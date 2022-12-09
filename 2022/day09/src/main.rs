@@ -87,7 +87,7 @@ impl Iterator for RepeatedDirection {
     type Item = Direction;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.count == 0 {
+        if self.count <= 0 {
             None
         } else {
             self.count -= 1;
