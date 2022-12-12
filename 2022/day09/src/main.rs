@@ -1,20 +1,9 @@
+use coord::Coordinate2D;
 use std::collections::HashSet;
 use std::io;
 use std::iter::repeat;
 use std::num::NonZeroUsize;
 use std::str::FromStr;
-
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-struct Coordinate2D {
-    x: i64,
-    y: i64,
-}
-
-impl Coordinate2D {
-    fn new(x: i64, y: i64) -> Self {
-        Self { x, y }
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Rope {
