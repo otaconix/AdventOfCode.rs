@@ -88,6 +88,14 @@ impl<T> Grid<T> {
         }
     }
 
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    pub fn height(&self) -> usize {
+        self.rows.len()
+    }
+
     pub fn get(&self, column: usize, row: usize) -> Option<&T> {
         self.rows.get(row).and_then(|row| row.get(column))
     }
