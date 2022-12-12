@@ -145,3 +145,11 @@ impl<T> Grid<T> {
         }
     }
 }
+
+impl<T> FromIterator<Vec<T>> for Grid<T> {
+    fn from_iter<I: IntoIterator<Item = Vec<T>>>(iter: I) -> Self {
+        let rows = iter.into_iter().collect();
+
+        Grid::new(rows).unwrap()
+    }
+}
