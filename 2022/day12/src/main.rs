@@ -1,7 +1,7 @@
 use grid::*;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BinaryHeap, HashMap};
 use std::io;
-use std::iter::successors;
+use std::iter::{once, successors};
 
 #[derive(Debug)]
 enum Cell {
@@ -17,6 +17,28 @@ impl Cell {
             Cell::Start => 0,
             Cell::End => 25,
         }
+    }
+}
+
+struct DijkstraVertex<T> {
+    priority: usize,
+    value: T,
+}
+
+impl<T> Eq for DijkstraVertex<T> {}
+impl<T> PartialEq for DijkstraVertex<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.priority == other.priority
+    }
+}
+impl<T> PartialOrd for DijkstraVertex<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl<T> Ord for DijkstraVertex<T> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.priority.cmp(&other.priority).reverse()
     }
 }
 
@@ -50,7 +72,7 @@ fn main() {
             .unwrap(),
     )
     .expect("No path found...");
-    print_grid_path(&input, &part_1);
+    // print_grid_path(&input, &part_1);
     println!("Part 1: {}", part_1.len() - 1);
 
     let part_2 = input
@@ -59,7 +81,7 @@ fn main() {
         .filter_map(|start| shortest_path(&input, start))
         .min_by_key(|path| path.len())
         .expect("Couldn't find shortest path for part 2");
-    print_grid_path(&input, &part_2);
+    // print_grid_path(&input, &part_2);
     println!("Part 2: {}", part_2.len() - 1)
 }
 
@@ -79,16 +101,24 @@ fn shortest_path(grid: &Grid<Cell>, start: (usize, usize)) -> Option<Vec<(usize,
         .coordinates()
         .map(|c| (c, if c == start { Some(0) } else { None }))
         .collect();
-    let mut unvisited: HashSet<(usize, usize)> = grid.coordinates().collect();
+    let mut queue: BinaryHeap<DijkstraVertex<(usize, usize)>> = once(DijkstraVertex {
+        priority: 0,
+        value: start,
+    })
+    .collect();
     let mut prev: HashMap<(usize, usize), (usize, usize)> = HashMap::new();
 
-    while !unvisited.is_empty() {
-        let current = unvisited
-            .iter()
-            .filter(|coord| distances[coord].is_some())
-            .min_by_key(|coord| distances[coord])?
-            .clone();
-        unvisited.remove(&current);
+    while let Some(DijkstraVertex {
+        value: current,
+        priority,
+    }) = queue.pop()
+    {
+        if distances[&current]
+            .map(|distance| distance != priority)
+            .unwrap_or(true)
+        {
+            continue;
+        }
 
         if current == end {
             break;
@@ -107,8 +137,10 @@ fn shortest_path(grid: &Grid<Cell>, start: (usize, usize)) -> Option<Vec<(usize,
             x.zip(*y)
                 // Only cells with non-negative coordinates
                 .map(|coord @ (x, y)| {
-                    if unvisited.contains(&coord) // Only unvisited
-                        && (0..=current_height + 1).contains(&grid.get(x, y).unwrap().height())
+                    if grid
+                        .get(x, y)
+                        .map(|cell| cell.height() <= current_height + 1)
+                        .unwrap_or(false)
                     {
                         // Only if height is at most one higher than current
                         Some(coord)
@@ -121,25 +153,28 @@ fn shortest_path(grid: &Grid<Cell>, start: (usize, usize)) -> Option<Vec<(usize,
         .for_each(|neighbor| {
             let distance = distances[&current].unwrap() + 1;
             distances.entry(neighbor).and_modify(|old_distance| {
-                *old_distance = if old_distance.is_some() && old_distance.unwrap() >= distance {
-                    *old_distance
-                } else {
-                    prev.entry(neighbor)
-                        .and_modify(|prev| *prev = current)
-                        .or_insert(current);
-                    Some(distance)
+                if old_distance.is_none() || old_distance.unwrap() > distance {
+                    *old_distance = Some(distance);
+                    prev.insert(neighbor, current);
+                    queue.push(DijkstraVertex {
+                        priority: distance,
+                        value: neighbor,
+                    });
                 }
             });
         });
     }
 
-    let mut prevs =
-        successors(Some(end), |curr| prev.get(curr).map(|x| x.clone())).collect::<Vec<_>>();
-    prevs.reverse();
+    distances[&end].map(|_| {
+        let mut prevs =
+            successors(Some(end), |curr| prev.get(curr).map(|x| x.clone())).collect::<Vec<_>>();
+        prevs.reverse();
 
-    Some(prevs)
+        prevs
+    })
 }
 
+#[allow(dead_code)]
 fn print_grid_path(grid: &Grid<Cell>, path: &Vec<(usize, usize)>) {
     (0..grid.height()).for_each(|y| {
         let row = (0..grid.width())
