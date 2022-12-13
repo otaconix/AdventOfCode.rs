@@ -64,7 +64,6 @@ fn main() {
         .iter()
         .take(220)
         .filter(|(i, _)| *i >= 20 && (i - 20) % 40 == 0)
-        .inspect(|x| println!("{x:#?}"))
         .map(|(i, x)| *i as i32 * x)
         .sum();
 
