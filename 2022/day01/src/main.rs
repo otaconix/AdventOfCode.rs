@@ -41,13 +41,13 @@ fn main() {
 
     let silver: u32 = input
         .iter()
-        .map(|elf| elf.into_iter().sum())
+        .map(|elf| elf.iter().sum())
         .max()
         .expect("Was there no input?");
 
     println!("Silver: {}", silver);
 
-    let mut calories_per_elf: Vec<u32> = input.iter().map(|elf| elf.into_iter().sum()).collect();
+    let mut calories_per_elf: Vec<u32> = input.iter().map(|elf| elf.iter().sum()).collect();
     calories_per_elf.sort_by(|a, b| a.cmp(b).reverse());
 
     let gold: u32 = calories_per_elf.iter().take(3).sum();

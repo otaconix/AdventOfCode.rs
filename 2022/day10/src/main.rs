@@ -13,16 +13,16 @@ impl FromStr for Instruction {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let words: Vec<_> = s.split_ascii_whitespace().collect();
 
-        match words.first().ok_or("Empty line")? {
-            &"noop" => Ok(Instruction::Noop),
-            &"addx" => words
+        match *words.first().ok_or("Empty line")? {
+            "noop" => Ok(Instruction::Noop),
+            "addx" => words
                 .get(1)
-                .ok_or("No operand for addx".to_string())
+                .ok_or_else(|| "No operand for addx".to_string())
                 .and_then(|operand| {
                     operand
                         .parse()
                         .map_err(|e| format!("Can't parse operand {operand}: {e}"))
-                        .map(|operand| Instruction::AddX(operand))
+                        .map(Instruction::AddX)
                 }),
             _ => Err(format!("Unknown instruction: {s}")),
         }
@@ -55,7 +55,7 @@ fn main() {
                         }
                     };
 
-                    Some(x.clone())
+                    Some(*x)
                 }),
         )
         .collect();
@@ -80,6 +80,6 @@ fn main() {
         })
         .collect::<Vec<_>>()
         .chunks(40)
-        .map(|chunk| chunk.into_iter().collect::<String>())
+        .map(|chunk| chunk.iter().collect::<String>())
         .for_each(|line| println!("{line}"));
 }

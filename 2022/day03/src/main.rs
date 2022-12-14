@@ -1,6 +1,6 @@
 use std::io;
 
-const PRIORITIES: &'static str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const PRIORITIES: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 struct Rucksack {
     items: String,
@@ -16,24 +16,16 @@ impl Rucksack {
             "Rucksacks must contain an even amount of items."
         );
 
-        for item in self.items[0..item_count / 2].chars() {
-            if self.items[item_count / 2..].contains(item) {
-                return Option::Some(item);
-            }
-        }
-
-        Option::None
+        self.items[..item_count / 2]
+            .chars()
+            .find(|&item| self.items[item_count / 2..].contains(item))
     }
 
     /// Returns the first common item among this rucksack and the ones passed in as a slice of rucksacks.
     fn common_item(&self, others: &[Rucksack]) -> Option<char> {
-        for item in self.items.chars() {
-            if others.iter().all(|rucksack| rucksack.items.contains(item)) {
-                return Option::Some(item);
-            }
-        }
-
-        Option::None
+        self.items
+            .chars()
+            .find(|&item| others.iter().all(|rucksack| rucksack.items.contains(item)))
     }
 }
 
@@ -46,7 +38,7 @@ impl ItemPriority for char {
         1 + PRIORITIES
             .chars()
             .position(|c| &c == self)
-            .expect(&format!("Unknown item: {}", self)) as u32
+            .unwrap_or_else(|| panic!("Unknown item: {self}")) as u32
     }
 }
 

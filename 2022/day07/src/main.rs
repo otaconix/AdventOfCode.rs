@@ -22,11 +22,7 @@ enum DirEntry {
 
 impl DirEntry {
     fn is_directory(&self) -> bool {
-        if let DirEntry::Dir(_) = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, DirEntry::Dir(_))
     }
 
     fn size(&self, fs: &FileSystem) -> u64 {
@@ -130,7 +126,7 @@ fn main() {
             }
             CommandLine::File(name, size) => {
                 let file_path = pwd.join(&name);
-                insert_direntry(&mut fs, file_path.clone(), || DirEntry::File(File { size }));
+                insert_direntry(&mut fs, file_path, || DirEntry::File(File { size }));
 
                 pwd
             }

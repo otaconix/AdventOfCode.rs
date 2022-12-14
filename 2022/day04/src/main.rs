@@ -14,10 +14,10 @@ impl std::str::FromStr for SectionIdRange {
             Result::Ok(SectionIdRange {
                 start: start
                     .parse()
-                    .expect(&format!("Couldn't parse range start: {}", start)),
+                    .unwrap_or_else(|_| panic!("Couldn't parse range start: {}", start)),
                 end: end
                     .parse()
-                    .expect(&format!("Couldn't parse range end: {}", end)),
+                    .unwrap_or_else(|_| panic!("Couldn't parse range end: {}", end)),
             })
         } else {
             Result::Err(format!("Couldn't parse SectionIdRange: {}", s))
@@ -25,9 +25,9 @@ impl std::str::FromStr for SectionIdRange {
     }
 }
 
-impl Into<RangeInclusive<u32>> for SectionIdRange {
-    fn into(self) -> RangeInclusive<u32> {
-        self.start..=self.end
+impl From<SectionIdRange> for RangeInclusive<u32> {
+    fn from(range: SectionIdRange) -> Self {
+        range.start..=range.end
     }
 }
 
@@ -38,7 +38,7 @@ fn main() {
         .map(|line| {
             let (range_a, range_b) = line
                 .split_once(',')
-                .expect(&format!("Couldn't split input line into two: {}", line));
+                .unwrap_or_else(|| panic!("Couldn't split input line into two: {}", line));
 
             let range_a: RangeInclusive<_> = range_a.parse::<SectionIdRange>().unwrap().into();
             let range_b: RangeInclusive<_> = range_b.parse::<SectionIdRange>().unwrap().into();

@@ -20,7 +20,7 @@ impl<T: PartialOrd> Day8Grid for Grid<T> {
             .any(|potential_blockers| {
                 potential_blockers
                     .into_iter()
-                    .all(|value| value < &self.get(column, row).unwrap())
+                    .all(|value| value < self.get(column, row).unwrap())
             })
     }
 
@@ -63,7 +63,7 @@ fn main() {
                     .map(|n| {
                         n.to_string()
                             .parse()
-                            .expect(&format!("{} could not be parsed as a number", n))
+                            .unwrap_or_else(|_| panic!("{} could not be parsed as a number", n))
                     })
                     .collect()
             })

@@ -62,13 +62,7 @@ fn main() {
         &input,
         input
             .coordinates()
-            .find(|(x, y)| {
-                if let Some(Cell::Start) = input.get(*x, *y) {
-                    true
-                } else {
-                    false
-                }
-            })
+            .find(|(x, y)| matches!(input.get(*x, *y), Some(Cell::Start)))
             .unwrap(),
     )
     .expect("No path found...");
@@ -88,13 +82,7 @@ fn main() {
 fn shortest_path(grid: &Grid<Cell>, start: (usize, usize)) -> Option<Vec<(usize, usize)>> {
     let end = grid
         .coordinates()
-        .find(|(x, y)| {
-            if let Some(Cell::End) = grid.get(*x, *y) {
-                true
-            } else {
-                false
-            }
-        })
+        .find(|(x, y)| matches!(grid.get(*x, *y), Some(Cell::End)))
         .expect("No 'end' cell found.");
 
     let mut distances: HashMap<(usize, usize), Option<usize>> = grid
@@ -166,8 +154,7 @@ fn shortest_path(grid: &Grid<Cell>, start: (usize, usize)) -> Option<Vec<(usize,
     }
 
     distances[&end].map(|_| {
-        let mut prevs =
-            successors(Some(end), |curr| prev.get(curr).map(|x| x.clone())).collect::<Vec<_>>();
+        let mut prevs = successors(Some(end), |curr| prev.get(curr).copied()).collect::<Vec<_>>();
         prevs.reverse();
 
         prevs
@@ -175,7 +162,7 @@ fn shortest_path(grid: &Grid<Cell>, start: (usize, usize)) -> Option<Vec<(usize,
 }
 
 #[allow(dead_code)]
-fn print_grid_path(grid: &Grid<Cell>, path: &Vec<(usize, usize)>) {
+fn print_grid_path(grid: &Grid<Cell>, path: &[(usize, usize)]) {
     (0..grid.height()).for_each(|y| {
         let row = (0..grid.width())
             .map(|x| {

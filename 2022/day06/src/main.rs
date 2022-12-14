@@ -6,7 +6,7 @@ fn find_first_string_of_unique_characters(s: &str, length: usize) -> Option<usiz
         .windows(length)
         .enumerate()
         .find(|(_, window)| {
-            let mut deduped = window.into_iter().collect::<Vec<_>>();
+            let mut deduped = window.iter().collect::<Vec<_>>();
             deduped.sort();
             deduped.dedup();
 

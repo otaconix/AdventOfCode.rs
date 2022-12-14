@@ -135,7 +135,7 @@ fn main() {
     let part_1 = part_1_monkeys[0].inspections * part_1_monkeys[1].inspections;
     println!("Part 1: {part_1}");
 
-    let mut part_2_monkeys = monkeys.clone();
+    let mut part_2_monkeys = monkeys;
     for _round in 0..10_000 {
         play_round(&mut part_2_monkeys, common_divisor);
     }

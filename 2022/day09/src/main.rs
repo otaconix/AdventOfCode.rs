@@ -137,7 +137,7 @@ fn main() {
         .flat_map(|mov| mov.as_repeated_direction())
         .scan(Rope::new(2.try_into().unwrap()), |rope, direction| {
             rope.move_in_direction(direction);
-            Some(rope.tail().clone())
+            Some(*rope.tail())
         })
         .collect();
 
@@ -150,7 +150,7 @@ fn main() {
             Rope::new(NonZeroUsize::new(10).unwrap()),
             |rope, direction| {
                 rope.move_in_direction(direction);
-                Some(rope.tail().clone())
+                Some(*rope.tail())
             },
         )
         .collect();
