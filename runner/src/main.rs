@@ -16,8 +16,8 @@ struct Opt {
     args: Vec<String>,
 }
 
-const CONTACT_INFO: &'static str = "AOC_CONTACT_INFO";
-const SESSION: &'static str = "AOC_SESSION";
+const CONTACT_INFO: &str = "AOC_CONTACT_INFO";
+const SESSION: &str = "AOC_SESSION";
 
 fn main() {
     dotenv().ok();
@@ -36,17 +36,17 @@ fn main() {
 fn get_input_file(year: u16, day: u8) -> Result<File, String> {
     let contact_info = env::var(CONTACT_INFO).unwrap();
     let session = env::var(SESSION).unwrap();
-    let cache_dir = &(&ProjectDirs::from(
+    let cache_dir = &ProjectDirs::from(
         "nl",
         "svanur",
         option_env!("CARGO_PACKAGE_NAME").unwrap_or("aoc-runner"),
     )
     .ok_or("Couldn't determine cache dir")?
-    .cache_dir())
+    .cache_dir()
         .join(year.to_string());
     let cache_file = cache_dir.join(day.to_string());
 
-    create_dir_all(&cache_dir).map_err(|e| {
+    create_dir_all(cache_dir).map_err(|e| {
         format!(
             "Couldn't create cache directory {}: {e}",
             cache_dir.display()
