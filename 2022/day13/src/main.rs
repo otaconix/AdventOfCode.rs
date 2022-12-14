@@ -28,9 +28,9 @@ mod types {
 
     impl Input {
         fn to_list(&self) -> Self {
-            match self {
-                &Input::List(_) => self.clone(),
-                &Input::Number(_) => Input::List(vec![self.clone()]),
+            match *self {
+                Input::List(_) => self.clone(),
+                Input::Number(_) => Input::List(vec![self.clone()]),
             }
         }
     }
@@ -51,8 +51,7 @@ mod types {
     fn list<'a>() -> Parser<'a, u8, Input> {
         let element = call(list) | number();
 
-        sym(b'[') * pom::parser::list(element, sym(b',')).map(|inputs| Input::List(inputs))
-            - sym(b']')
+        sym(b'[') * pom::parser::list(element, sym(b',')).map(Input::List) - sym(b']')
     }
 
     fn number<'a>() -> Parser<'a, u8, Input> {
