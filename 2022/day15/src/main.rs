@@ -93,16 +93,13 @@ fn main() {
         .collect();
     let part_1_row = 2_000_000;
 
-    let part_1: usize = remove_overlaps({
-        let mut x = sensors
+    let part_1: usize = remove_overlaps(
+        sensors
             .iter()
             .map(|sensor| sensor.impossible_range_on_row(part_1_row))
             .filter(|range| !range.is_empty())
-            .collect::<Vec<_>>();
-
-        x.sort_by_key(|range| range.start);
-        x
-    })
+            .collect(),
+    )
     .iter()
     .map(|range| range.clone().count())
     .sum::<usize>()
@@ -112,4 +109,27 @@ fn main() {
             .count();
 
     println!("Part 1: {part_1:#?}");
+
+    let part_2 = (0..=4_000_000)
+        .map(|row| {
+            let impossible_in_row = sensors
+                .iter()
+                .map(|sensor| {
+                    let mut range = sensor.impossible_range_on_row(row);
+                    range.start = range.start.clamp(0, 4_000_000);
+                    range.end = range.end.clamp(0, 4_000_000);
+
+                    range
+                })
+                .filter(|range| !range.is_empty())
+                .collect::<Vec<_>>();
+
+            remove_overlaps(impossible_in_row)
+        })
+        .enumerate()
+        .find(|(_, impossible_in_row)| impossible_in_row.len() > 1)
+        .map(|(y, x)| x[0].end * 4_000_000 + y as i64)
+        .unwrap();
+
+    println!("Part 2: {part_2:?}");
 }
