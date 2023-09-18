@@ -3,6 +3,6 @@ FROM rust:1.70
 WORKDIR /build
 
 build:
-	COPY runner/* .
+	COPY --dir runner/* .
 	RUN pwd && ls
 	RUN cargo build --release
