@@ -24,7 +24,7 @@ impl Rope {
     }
 
     fn move_in_direction(&mut self, direction: Direction) {
-        let mut head = self.knots.first_mut().unwrap();
+        let head = self.knots.first_mut().unwrap();
 
         match direction {
             Direction::Up => head.y += 1,
@@ -35,7 +35,7 @@ impl Rope {
 
         for knot_index in 1..self.knots.len() {
             let head = self.knots[knot_index - 1];
-            let mut tail = self.knots.get_mut(knot_index).unwrap();
+            let tail = self.knots.get_mut(knot_index).unwrap();
 
             let vertical_delta = head.y - tail.y;
             let horizontal_delta = head.x - tail.x;
