@@ -26,12 +26,15 @@ struct Monkey {
 }
 
 impl Monkey {
-    fn new_item_part_1(&self, old_item: &u64) -> u64 {
-        self.operation.apply(old_item) / 3
+    fn new_item(&self, old_item: &u64) -> u64 {
+        self.operation.apply(old_item)
     }
 }
 
-fn play_round(monkeys: &mut Vec<Monkey>, common_divisor: u64) {
+fn play_round<F>(monkeys: &mut Vec<Monkey>, common_divisor: u64, f: F)
+where
+    F: Fn(u64) -> u64,
+{
     for monkey_index in 0..monkeys.len() {
         let monkey = &mut monkeys[monkey_index];
         monkey.inspections += monkey.items.len();
@@ -40,7 +43,7 @@ fn play_round(monkeys: &mut Vec<Monkey>, common_divisor: u64) {
 
         for item_index in 0..items.len() {
             let monkey = &monkeys[monkey_index];
-            let new_item = monkey.new_item_part_1(&monkey.items[item_index]);
+            let new_item = f(monkey.new_item(&monkey.items[item_index]));
             let destination_index = if new_item % monkey.test_divisor == 0 {
                 monkey.true_destination
             } else {
@@ -127,7 +130,7 @@ fn main() {
 
     let mut part_1_monkeys = monkeys.clone();
     for _round in 0..20 {
-        play_round(&mut part_1_monkeys, common_divisor);
+        play_round(&mut part_1_monkeys, common_divisor, |item| item / 3);
     }
     part_1_monkeys.sort_by_cached_key(|monkey| monkey.inspections);
     part_1_monkeys.reverse();
@@ -137,7 +140,7 @@ fn main() {
 
     let mut part_2_monkeys = monkeys;
     for _round in 0..10_000 {
-        play_round(&mut part_2_monkeys, common_divisor);
+        play_round(&mut part_2_monkeys, common_divisor, |item| item);
     }
     part_2_monkeys.sort_by_cached_key(|monkey| monkey.inspections);
     part_2_monkeys.reverse();
