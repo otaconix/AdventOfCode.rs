@@ -29,6 +29,7 @@ run-all:
 	FROM +build
 	FOR year IN $(ls years)
 		FOR day IN $(ls "years/${year}")
+			RUN echo "Running aoc-${year}-${day}"
 			RUN --mount=type=cache,target=/root/.cache/aoc-runner ./target/release/aoc-runner ${year} ${day} ./target/release/aoc-${year}-${day}
 		END
 	END
