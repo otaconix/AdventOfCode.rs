@@ -1,23 +1,28 @@
 use std::io;
 use std::str::FromStr;
 
-#[derive(Debug, Clone)]
-struct Crate {
-    identifier: char,
+enum InputCrate {
+    Empty,
+    Crate(char),
 }
 
-impl FromStr for Crate {
+impl FromStr for InputCrate {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let char_slice = &s.chars().collect::<Vec<_>>()[..];
 
         match char_slice {
-            ['[', id, ']', ..] => Ok(Crate { identifier: *id }),
-            [' ', ' ', ' ', ..] => Ok(Crate { identifier: ' ' }),
+            ['[', id, ']', ..] => Ok(InputCrate::Crate(*id)),
+            [' ', ' ', ' ', ..] => Ok(InputCrate::Empty),
             _ => Err(format!("Couldn't parse crate: {}", s)),
         }
     }
+}
+
+#[derive(Debug, Clone)]
+struct Crate {
+    identifier: char,
 }
 
 #[derive(Debug)]
@@ -50,23 +55,8 @@ impl FromStr for RearrangementStep {
 
 enum InputParsing {
     Start,
-    Crates(Vec<Vec<Crate>>),
-    RearrangementSteps(Vec<Vec<Crate>>, Vec<RearrangementStep>),
-}
-
-impl Into<Input> for InputParsing {
-    fn into(self) -> Input {
-        match self {
-            InputParsing::RearrangementSteps(crates, steps) => Input {
-                stacks: crates
-                    .into_iter()
-                    .map(|stack| stack.into_iter().rev().collect())
-                    .collect(),
-                rearrangement_procedure: steps,
-            },
-            _ => panic!("`into` called on wrong stage of the parsing state"),
-        }
-    }
+    Crates(Vec<Vec<InputCrate>>),
+    RearrangementSteps(Vec<Vec<InputCrate>>, Vec<RearrangementStep>),
 }
 
 type Stack = Vec<Crate>;
@@ -77,11 +67,32 @@ struct Input {
     rearrangement_procedure: Vec<RearrangementStep>,
 }
 
-fn apply_rearrangement_step<F>(
-    stacks: &mut Vec<Stack>,
-    rearrangement_step: &RearrangementStep,
-    f: F,
-) where
+impl From<InputParsing> for Input {
+    fn from(value: InputParsing) -> Self {
+        match value {
+            InputParsing::RearrangementSteps(crates, steps) => Input {
+                stacks: crates
+                    .into_iter()
+                    .map(|stack| {
+                        stack
+                            .into_iter()
+                            .filter_map(|c| match c {
+                                InputCrate::Crate(id) => Some(Crate { identifier: id }),
+                                InputCrate::Empty => None,
+                            })
+                            .rev()
+                            .collect()
+                    })
+                    .collect(),
+                rearrangement_procedure: steps,
+            },
+            _ => panic!("`from` called on wrong stage of the parsing state"),
+        }
+    }
+}
+
+fn apply_rearrangement_step<F>(stacks: &mut [Stack], rearrangement_step: &RearrangementStep, f: F)
+where
     F: FnOnce(Vec<Crate>) -> Vec<Crate>,
 {
     let from_stack = stacks
@@ -107,7 +118,7 @@ fn main() {
                     .chunks(4)
                     .map(|raw_crate| {
                         if let Ok(crate_) =
-                            raw_crate.into_iter().collect::<String>().parse::<Crate>()
+                            raw_crate.iter().collect::<String>().parse::<InputCrate>()
                         {
                             vec![crate_]
                         } else {
@@ -121,7 +132,7 @@ fn main() {
                     .chars()
                     .collect::<Vec<_>>()
                     .chunks(4)
-                    .map(|raw_crate| raw_crate.into_iter().collect::<String>().parse::<Crate>())
+                    .map(|raw_crate| raw_crate.iter().collect::<String>().parse::<InputCrate>())
                     .collect::<Result<Vec<_>, _>>()
                 {
                     InputParsing::Crates(
@@ -149,28 +160,26 @@ fn main() {
 
     let mut stacks = input.stacks.clone();
     for step in input.rearrangement_procedure.iter() {
-        apply_rearrangement_step(&mut stacks, &step, |crates| {
+        apply_rearrangement_step(&mut stacks, step, |crates| {
             crates.into_iter().rev().collect()
         });
     }
 
     let part_1 = stacks
         .into_iter()
-        .filter_map(|stack| stack.into_iter().last())
-        .map(|crate_| crate_.identifier)
+        .filter_map(|stack| stack.into_iter().last().map(|c| c.identifier))
         .collect::<String>();
 
     println!("Part 1: {}", part_1);
 
     let mut stacks = input.stacks.clone();
     for step in input.rearrangement_procedure.iter() {
-        apply_rearrangement_step(&mut stacks, &step, |x| x);
+        apply_rearrangement_step(&mut stacks, step, |x| x);
     }
 
     let part_2 = stacks
         .into_iter()
-        .filter_map(|stack| stack.into_iter().last())
-        .map(|crate_| crate_.identifier)
+        .filter_map(|stack| stack.into_iter().last().map(|c| c.identifier))
         .collect::<String>();
 
     println!("Part 2: {}", part_2);
