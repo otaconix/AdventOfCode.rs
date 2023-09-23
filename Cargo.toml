@@ -1,0 +1,7 @@
+[workspace]
+members = [
+  "runner",
+  "crates/*",
+  "years/*/*",
+]
+resolver = "2"

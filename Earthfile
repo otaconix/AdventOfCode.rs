@@ -1,8 +1,34 @@
 VERSION 0.7
-FROM rust:1.70
+FROM rust:1.72
 WORKDIR /build
 
+install-chef:
+	RUN cargo install --locked cargo-chef
+
+prepare-cache:
+	FROM +install-chef
+	COPY --dir Cargo.toml Cargo.lock crates years runner .
+	RUN cargo chef prepare
+	SAVE ARTIFACT recipe.json
+
+build-cache:
+	FROM +install-chef
+	COPY +prepare-cache/recipe.json ./
+	CACHE target
+	RUN cargo chef cook --release
+
 build:
-	COPY --dir runner/* .
-	RUN pwd && ls
-	RUN cargo build --release
+	FROM +build-cache
+	COPY --dir . .
+	RUN cargo build --frozen --offline --release
+
+run-all:
+	ARG --required AOC_CONTACT_INFO
+	ARG --required AOC_SESSION
+
+	FROM +build
+	FOR year IN $(ls years)
+		FOR day IN $(ls "years/${year}")
+			RUN --mount=type=cache,target=/root/.cache/aoc-runner ./target/release/aoc-runner ${year} ${day} ./target/release/aoc-${year}-${day}
+		END
+	END
