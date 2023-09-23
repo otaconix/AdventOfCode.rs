@@ -1,3 +1,4 @@
+use clap::Parser;
 use directories::ProjectDirs;
 use dotenvy::dotenv;
 use reqwest::blocking::ClientBuilder;
@@ -6,9 +7,8 @@ use std::env;
 use std::fs::{create_dir_all, write, File};
 use std::os::unix::process::CommandExt;
 use std::process::{exit, Command, Stdio};
-use structopt::StructOpt;
 
-#[derive(StructOpt, Debug)]
+#[derive(Parser, Debug)]
 struct Opt {
     year: u16,
     day: u8,
@@ -21,7 +21,7 @@ const SESSION: &str = "AOC_SESSION";
 
 fn main() {
     dotenv().ok();
-    let opt = Opt::from_args();
+    let opt = Opt::parse();
     let input_file = get_input_file(opt.year, opt.day).unwrap();
 
     let exec_error = Command::new(opt.command)
@@ -43,7 +43,7 @@ fn get_input_file(year: u16, day: u8) -> Result<File, String> {
     )
     .ok_or("Couldn't determine cache dir")?
     .cache_dir()
-        .join(year.to_string());
+    .join(year.to_string());
     let cache_file = cache_dir.join(day.to_string());
 
     create_dir_all(cache_dir).map_err(|e| {
