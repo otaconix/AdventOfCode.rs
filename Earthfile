@@ -19,7 +19,7 @@ build-cache:
 
 build:
 	FROM +build-cache
-	COPY --dir . .
+	COPY --dir Cargo.* crates years runner .
 	RUN cargo build --frozen --offline --release
 
 run-all:
