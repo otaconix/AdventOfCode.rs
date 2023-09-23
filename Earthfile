@@ -27,9 +27,10 @@ run-all:
 	ARG --required AOC_SESSION
 
 	FROM +build
+	CACHE /root/.cache/aoc-runner
 	FOR year IN $(ls years)
 		FOR day IN $(ls "years/${year}")
 			RUN echo "Running aoc-${year}-${day}"
-			RUN --mount=type=cache,target=/root/.cache/aoc-runner ./target/release/aoc-runner ${year} ${day} ./target/release/aoc-${year}-${day}
+			RUN ./target/release/aoc-runner ${year} ${day} ./target/release/aoc-${year}-${day}
 		END
 	END
