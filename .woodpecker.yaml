@@ -5,4 +5,4 @@ steps:
       - /var/run/docker.sock:/var/run/docker.sock
     commands:
       - earthly bootstrap
-      - earthly --ci --push -P +build
+      - earthly --ci -P +run-all
