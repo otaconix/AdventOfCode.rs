@@ -102,7 +102,7 @@ struct Well {
 }
 
 impl Well {
-    fn new(width: u8, jets: &Vec<Jet>) -> Self {
+    fn new(width: u8, jets: &[Jet]) -> Self {
         Self {
             width,
             jets_stream: Box::new(jets.to_owned().into_iter().cycle()),
