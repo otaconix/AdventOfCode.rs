@@ -5,7 +5,7 @@ pub struct Coordinate2D {
 }
 
 impl Coordinate2D {
-    pub fn new(x: i64, y: i64) -> Self {
+    pub const fn new(x: i64, y: i64) -> Self {
         Self { x, y }
     }
 
@@ -14,5 +14,12 @@ impl Coordinate2D {
         let y_distance = self.y.abs_diff(other.y);
 
         x_distance + y_distance
+    }
+
+    pub fn translate(&self, other: &Self) -> Self {
+        Self {
+            x: self.x + other.x,
+            y: self.y + other.y,
+        }
     }
 }
