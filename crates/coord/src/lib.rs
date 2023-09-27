@@ -9,6 +9,9 @@ impl Coordinate2D {
         Self { x, y }
     }
 
+    /// Return the manhattan distance from `self` to `other`.
+    ///
+    /// The manhattan distance is the sum of the `x` and `y` distances.
     pub fn manhattan_distance(&self, other: &Self) -> u64 {
         let x_distance = self.x.abs_diff(other.x);
         let y_distance = self.y.abs_diff(other.y);
@@ -16,6 +19,7 @@ impl Coordinate2D {
         x_distance + y_distance
     }
 
+    /// Translate by `other`.
     pub fn translate(&self, other: &Self) -> Self {
         Self {
             x: self.x + other.x,
