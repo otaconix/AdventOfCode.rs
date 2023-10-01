@@ -35,11 +35,10 @@ impl RockCoords {
 ///   2. then `x`, ascending
 impl Ord for RockCoords {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.0
-            .y
-            .cmp(&other.0.y)
-            .reverse()
-            .then_with(|| self.0.x.cmp(&other.0.x))
+        match self.0.y.cmp(&other.0.y).reverse() {
+            std::cmp::Ordering::Equal => self.0.x.cmp(&other.0.x),
+            ord => ord,
+        }
     }
 }
 
@@ -108,8 +107,8 @@ impl Rock {
         Self {
             shape: self
                 .shape
-                .clone()
-                .into_iter()
+                .iter()
+                .copied()
                 .map(|coord| coord.translate(translation))
                 .collect(),
             top_leftmost_coord: self.top_leftmost_coord.translate(translation),
@@ -138,12 +137,22 @@ impl Well {
     }
 
     fn drop_rock(&mut self, rock: &Rock) {
+        // No need to check for collisions with settled rocks for the first three
+        // movevements, so we just do the horizontal movements first
         let initial_translation = Coordinate2D::new(
             2,
-            self.settled_rocks.first().map(|c| c.0.y).unwrap_or(-1) + 4,
+            self.settled_rocks.first().map(|c| c.0.y).unwrap_or(-1) + 1,
         );
 
-        let mut rock = rock.clone().translate(&initial_translation);
+        let mut rock = rock.translate(&initial_translation);
+
+        for _ in 0..3 {
+            let jet_translation = self.jets_stream.next().unwrap().as_translation();
+            let rock_sideways = rock.translate(&jet_translation);
+            if self.rock_is_in_bounds(&rock_sideways) {
+                rock = rock_sideways;
+            }
+        }
 
         loop {
             let jet_translation = self.jets_stream.next().unwrap().as_translation();
