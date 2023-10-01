@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::BTreeSet;
 use std::fmt::{Debug, Display};
 use std::io;
@@ -34,16 +35,16 @@ impl RockCoords {
 ///   1. `y`, descending (so highest first)
 ///   2. then `x`, ascending
 impl Ord for RockCoords {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         match self.0.y.cmp(&other.0.y).reverse() {
-            std::cmp::Ordering::Equal => self.0.x.cmp(&other.0.x),
+            Ordering::Equal => self.0.x.cmp(&other.0.x),
             ord => ord,
         }
     }
 }
 
 impl PartialOrd for RockCoords {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
@@ -82,23 +83,15 @@ impl TryFrom<char> for Jet {
 #[derive(Debug)]
 struct Rock {
     shape: Vec<RockCoords>,
-    top_leftmost_coord: RockCoords,
-    top_rightmost_coord: RockCoords,
+    min_x: i64,
+    max_x: i64,
 }
 
 impl Rock {
     fn new(shape: Vec<Coordinate2D>) -> Self {
         Self {
-            top_leftmost_coord: shape
-                .iter()
-                .max_by(|a, b| a.x.cmp(&b.x).reverse().then_with(|| a.y.cmp(&b.y)))
-                .map(|c| RockCoords(*c))
-                .unwrap(),
-            top_rightmost_coord: shape
-                .iter()
-                .max_by(|a, b| a.x.cmp(&b.x).then_with(|| a.y.cmp(&b.y)))
-                .map(|c| RockCoords(*c))
-                .unwrap(),
+            min_x: shape.iter().min_by_key(|c| c.x).unwrap().x,
+            max_x: shape.iter().max_by_key(|c| c.x).unwrap().x,
             shape: shape.into_iter().map(RockCoords).collect(),
         }
     }
@@ -111,8 +104,8 @@ impl Rock {
                 .copied()
                 .map(|coord| coord.translate(translation))
                 .collect(),
-            top_leftmost_coord: self.top_leftmost_coord.translate(translation),
-            top_rightmost_coord: self.top_rightmost_coord.translate(translation),
+            min_x: self.min_x + translation.x,
+            max_x: self.max_x + translation.x,
         }
     }
 }
@@ -124,19 +117,20 @@ impl Rock {
 /// do a collision check, since there's no need to check for
 /// collisions past each part of a rock.
 struct Well {
-    jets_stream: Box<dyn Iterator<Item = Jet>>,
     settled_rocks: BTreeSet<RockCoords>,
 }
 
 impl Well {
-    fn new(jets: &[Jet]) -> Self {
+    fn new() -> Self {
         Self {
-            jets_stream: Box::new(jets.to_owned().into_iter().cycle()),
             settled_rocks: BTreeSet::new(),
         }
     }
 
-    fn drop_rock(&mut self, rock: &Rock) {
+    fn drop_rock<'a, T>(&mut self, rock: &Rock, jets: &mut T)
+    where
+        T: Iterator<Item = &'a Jet>,
+    {
         // No need to check for collisions with settled rocks for the first three
         // movevements, so we just do the horizontal movements first
         let initial_translation = Coordinate2D::new(
@@ -147,7 +141,7 @@ impl Well {
         let mut rock = rock.translate(&initial_translation);
 
         for _ in 0..3 {
-            let jet_translation = self.jets_stream.next().unwrap().as_translation();
+            let jet_translation = jets.next().unwrap().as_translation();
             let rock_sideways = rock.translate(&jet_translation);
             if self.rock_is_in_bounds(&rock_sideways) {
                 rock = rock_sideways;
@@ -155,7 +149,7 @@ impl Well {
         }
 
         loop {
-            let jet_translation = self.jets_stream.next().unwrap().as_translation();
+            let jet_translation = jets.next().unwrap().as_translation();
             let rock_sideways = rock.translate(&jet_translation);
             if self.rock_is_in_bounds(&rock_sideways)
                 && !self.rock_collides_with_settled_rocks(&rock_sideways)
@@ -180,7 +174,7 @@ impl Well {
     }
 
     fn rock_is_in_bounds(&self, rock: &Rock) -> bool {
-        rock.top_leftmost_coord.0.x >= 0 && rock.top_rightmost_coord.0.x < WELL_WIDTH
+        rock.min_x >= 0 && rock.max_x < WELL_WIDTH
     }
 
     fn rock_collides_with_settled_rocks(&self, rock: &Rock) -> bool {
@@ -261,23 +255,25 @@ fn main() {
         .collect::<Result<Vec<_>, String>>()
         .expect("Invalid input");
 
-    let mut well = Well::new(&input);
+    let mut well = Well::new();
+    let mut jets = input.iter().cycle();
     rocks
         .iter()
         .cycle()
         .take(PART1_ROCK_COUNT)
-        .for_each(|r| well.drop_rock(r));
+        .for_each(|r| well.drop_rock(r, &mut jets));
 
     info!("Well:\n{well}");
     println!("Part 1: {}", well.settled_rocks.first().unwrap().0.y + 1);
 
     /*
-    let mut well = Well::new(&input);
+    let mut jets = input.iter().cycle();
+    let mut well = Well::new();
     rocks
         .iter()
         .cycle()
         .take(PART2_ROCK_COUNT)
-        .for_each(|r| well.drop_rock(r));
+        .for_each(|r| well.drop_rock(r, &mut jets));
 
     println!("Part 2: {}", well.settled_rocks.first().unwrap().0.y + 1);
     */
