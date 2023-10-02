@@ -1,252 +1,226 @@
-use std::cmp::Ordering;
-use std::collections::BTreeSet;
-use std::fmt::{Debug, Display};
-use std::io;
+mod solution {
+    use std::collections::HashMap;
+    use std::fmt::{Debug, Display};
 
-use coord::Coordinate2D;
-use log::info;
-
-const MOVE_LEFT: Coordinate2D = Coordinate2D::new(-1, 0);
-const MOVE_RIGHT: Coordinate2D = Coordinate2D::new(1, 0);
-const MOVE_DOWN: Coordinate2D = Coordinate2D::new(0, -1);
-const PART1_ROCK_COUNT: usize = 2022;
-#[allow(dead_code)] // TODO: remove when part 2 is done
-const PART2_ROCK_COUNT: usize = 1_000_000_000_000;
-const WELL_WIDTH: i64 = 7;
-
-/// Coordinates of a rock
-///
-/// By applying the _newtype_ pattern here, we can
-/// implement Ord for the underlying [Coordinate2D].
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-struct RockCoords(Coordinate2D);
-
-impl RockCoords {
-    fn new(x: i64, y: i64) -> Self {
-        RockCoords(Coordinate2D::new(x, y))
+    #[derive(Debug, Clone, Copy)]
+    pub enum Jet {
+        Left,
+        Right,
     }
 
-    fn translate(&self, translation: &Coordinate2D) -> Self {
-        Self(self.0.translate(translation))
-    }
-}
+    impl TryFrom<char> for Jet {
+        type Error = String;
 
-/// Orders the `RockCoords` by:
-///   1. `y`, descending (so highest first)
-///   2. then `x`, ascending
-impl Ord for RockCoords {
-    fn cmp(&self, other: &Self) -> Ordering {
-        match self.0.y.cmp(&other.0.y).reverse() {
-            Ordering::Equal => self.0.x.cmp(&other.0.x),
-            ord => ord,
-        }
-    }
-}
-
-impl PartialOrd for RockCoords {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-enum Jet {
-    Left,
-    Right,
-}
-
-impl Jet {
-    fn as_translation(&self) -> Coordinate2D {
-        match self {
-            Jet::Left => MOVE_LEFT,
-            Jet::Right => MOVE_RIGHT,
-        }
-    }
-}
-
-impl TryFrom<char> for Jet {
-    type Error = String;
-
-    fn try_from(value: char) -> Result<Self, Self::Error> {
-        match value {
-            '<' => Ok(Jet::Left),
-            '>' => Ok(Jet::Right),
-            _ => Err(format!("Invalid jet character: {value}")),
-        }
-    }
-}
-
-/// A rock that we will be dropping down the well
-///
-/// By keeping track of the top left- and rightmost corners, we can
-/// quickly check if the rock would go out of bounds.
-#[derive(Debug)]
-struct Rock {
-    shape: Vec<RockCoords>,
-    min_x: i64,
-    max_x: i64,
-}
-
-impl Rock {
-    fn new(shape: Vec<Coordinate2D>) -> Self {
-        Self {
-            min_x: shape.iter().min_by_key(|c| c.x).unwrap().x,
-            max_x: shape.iter().max_by_key(|c| c.x).unwrap().x,
-            shape: shape.into_iter().map(RockCoords).collect(),
+        fn try_from(value: char) -> Result<Self, Self::Error> {
+            match value {
+                '<' => Ok(Jet::Left),
+                '>' => Ok(Jet::Right),
+                _ => Err(format!("Invalid jet character: {value}")),
+            }
         }
     }
 
-    fn translate(&self, translation: &Coordinate2D) -> Self {
-        Self {
-            shape: self
-                .shape
+    pub struct JetIterator<'a> {
+        jets: &'a Vec<Jet>,
+        index: usize,
+    }
+
+    impl<'a> JetIterator<'a> {
+        pub fn new(jets: &'a Vec<Jet>) -> Self {
+            JetIterator { jets, index: 0 }
+        }
+    }
+
+    impl<'a> Iterator for JetIterator<'a> {
+        type Item = Jet;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            let result = self.jets[self.index];
+            self.index = (self.index + 1) % self.jets.len();
+
+            Some(result)
+        }
+    }
+
+    const LEFT_WALL: u32 = 0x40404040;
+    const RIGHT_WALL: u32 = 0x01010101;
+
+    #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct Rock(u32);
+
+    impl Rock {
+        fn all() -> [Self; 5] {
+            [
+                // 00011110
+                // 00000000
+                // 00000000
+                // 00000000
+                Rock(0x0000001E),
+                // 00001000
+                // 00011100
+                // 00001000
+                // 00000000
+                Rock(0x00081C08),
+                // 00000100
+                // 00000100
+                // 00011100
+                // 00000000
+                Rock(0x0004041C),
+                // 00010000
+                // 00010000
+                // 00010000
+                // 00010000
+                Rock(0x10101010),
+                // 00011000
+                // 00011000
+                // 00000000
+                // 00000000
+                Rock(0x00001818),
+            ]
+        }
+
+        fn move_sideways(&mut self, jet: &Jet, top_of_well: u32) {
+            let mut moved = self.0;
+
+            match *jet {
+                Jet::Left if self.0 & LEFT_WALL == 0 => moved <<= 1,
+                Jet::Right if self.0 & RIGHT_WALL == 0 => moved >>= 1,
+                _ => (),
+            }
+
+            if moved & top_of_well == 0 {
+                self.0 = moved;
+            }
+        }
+
+        fn bytes(&self) -> impl Iterator<Item = u8> {
+            // `to_le_bytes()` because reasons...
+            // I know of endianness, but everytime I have to think about it, my brain
+            // hurts. There's a relation to the endianness here, and how we've had to
+            // represent the shape of the rocks a little higher up, and probably also
+            // how we end up doing collision detection.
+            self.0.to_le_bytes().into_iter().take_while(|b| b != &0)
+        }
+    }
+
+    #[derive(Default)]
+    pub struct Well {
+        settled_rocks: Vec<u8>,
+    }
+
+    impl Well {
+        /// Gives 4 rows combined into a `u32`, starting at level `level`.
+        fn settled_at_level(&self, level: usize) -> u32 {
+            self.settled_rocks
                 .iter()
-                .copied()
-                .map(|coord| coord.translate(translation))
-                .collect(),
-            min_x: self.min_x + translation.x,
-            max_x: self.max_x + translation.x,
-        }
-    }
-}
-
-/// The well we will drop rocks into.
-///
-/// By keeping tracks of the coordinates of each part of
-/// the settled rocks in a [BTreeSet], we can efficiently
-/// do a collision check, since there's no need to check for
-/// collisions past each part of a rock.
-struct Well {
-    settled_rocks: BTreeSet<RockCoords>,
-}
-
-impl Well {
-    fn new() -> Self {
-        Self {
-            settled_rocks: BTreeSet::new(),
-        }
-    }
-
-    fn drop_rock<'a, T>(&mut self, rock: &Rock, jets: &mut T)
-    where
-        T: Iterator<Item = &'a Jet>,
-    {
-        // No need to check for collisions with settled rocks for the first three
-        // movevements, so we just do the horizontal movements first
-        let initial_translation = Coordinate2D::new(
-            2,
-            self.settled_rocks.first().map(|c| c.0.y).unwrap_or(-1) + 1,
-        );
-
-        let mut rock = rock.translate(&initial_translation);
-
-        for _ in 0..3 {
-            let jet_translation = jets.next().unwrap().as_translation();
-            let rock_sideways = rock.translate(&jet_translation);
-            if self.rock_is_in_bounds(&rock_sideways) {
-                rock = rock_sideways;
-            }
+                .skip(level)
+                .take(4)
+                .rev()
+                .fold(0, |acc, row| (acc << 8) | *row as u32)
         }
 
-        loop {
-            let jet_translation = jets.next().unwrap().as_translation();
-            let rock_sideways = rock.translate(&jet_translation);
-            if self.rock_is_in_bounds(&rock_sideways)
-                && !self.rock_collides_with_settled_rocks(&rock_sideways)
-            {
-                rock = rock_sideways;
-            }
-
-            let rock_down = rock.translate(&MOVE_DOWN);
-            if rock_down.shape.last().unwrap().0.y < 0
-                || rock_down
-                    .shape
-                    .iter()
-                    .any(|coord| self.settled_rocks.contains(coord))
-            {
-                break;
-            } else {
-                rock = rock_down;
-            }
+        /// Returns the distance from top to the topmost settled rock per column of the
+        /// well.
+        ///
+        /// Since we've implemented the well in such a way that there can't be a set bit in
+        /// the first index, we can omit it here.
+        fn canopy(&self) -> Vec<usize> {
+            [2, 4, 8, 16, 32, 64, 128]
+                .iter()
+                .rev()
+                .map(|x| {
+                    self.settled_rocks
+                        .iter()
+                        .rev()
+                        .enumerate()
+                        .find(|(_, row)| *row & x != 0)
+                        .unwrap_or((0, &0))
+                        .0
+                })
+                .collect()
         }
 
-        self.settled_rocks.extend(rock.shape);
-    }
+        pub fn drop_rocks(jets: &mut JetIterator, rocks_to_drop: usize) -> u64 {
+            let mut rocks = Rock::all().into_iter().cycle();
+            let mut well = Well::default();
+            let mut seen_states = HashMap::new();
+            let mut dropped_rocks = 0;
+            let mut repeats_height = 0;
 
-    fn rock_is_in_bounds(&self, rock: &Rock) -> bool {
-        rock.min_x >= 0 && rock.max_x < WELL_WIDTH
-    }
+            while dropped_rocks < rocks_to_drop {
+                let rock = rocks.next().unwrap();
+                well.drop_rock(jets, rock);
+                dropped_rocks += 1;
 
-    fn rock_collides_with_settled_rocks(&self, rock: &Rock) -> bool {
-        rock.shape.iter().any(|c| self.settled_rocks.contains(c))
-    }
-}
+                let state = (well.canopy(), rock, jets.index);
 
-impl Display for Well {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.settled_rocks.is_empty() {
-            writeln!(f, "Empty")?;
-        } else {
-            for y in (0..=self.settled_rocks.first().unwrap().0.y).rev() {
-                for x in 0..WELL_WIDTH {
-                    let coord = RockCoords::new(x, y);
+                if let Some((prev_dropped_rocks, height)) = seen_states.get(&state) {
+                    let repeat_len: usize = dropped_rocks - prev_dropped_rocks;
+                    let repeats: usize = (rocks_to_drop - dropped_rocks) / repeat_len;
 
-                    if self.settled_rocks.contains(&coord) {
-                        write!(f, "#")?;
-                    } else {
-                        write!(f, ".")?;
-                    }
+                    dropped_rocks += repeats * repeat_len;
+                    repeats_height += repeats * (well.settled_rocks.len() - height);
+
+                    seen_states.clear();
+                    continue;
                 }
-                writeln!(f)?;
+
+                seen_states.insert(state, (dropped_rocks, well.settled_rocks.len()));
             }
+
+            log::info!("Well:\n{well}");
+            well.settled_rocks.len() as u64 + repeats_height as u64
         }
 
-        Ok(())
+        fn drop_rock(&mut self, jets: &mut JetIterator, mut rock: Rock) {
+            let mut level = self.settled_rocks.len() + 3;
+
+            loop {
+                let settled = self.settled_at_level(level);
+                let jet = jets.next().unwrap();
+
+                rock.move_sideways(&jet, settled);
+
+                if level > self.settled_rocks.len() {
+                    level -= 1;
+                    continue;
+                }
+
+                if level == 0 || rock.0 & self.settled_at_level(level - 1) != 0 {
+                    for byte in rock.bytes().enumerate() {
+                        if level + byte.0 >= self.settled_rocks.len() {
+                            self.settled_rocks.push(byte.1);
+                        } else {
+                            self.settled_rocks[level + byte.0] |= byte.1;
+                        }
+                    }
+                    break;
+                }
+
+                level -= 1;
+            }
+        }
+    }
+
+    impl Display for Well {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            for row in self.settled_rocks.iter().rev() {
+                for x in [128, 64, 32, 16, 8, 4, 2, 1] {
+                    write!(f, "{}", if row & x != 0 { '#' } else { '.' })?;
+                }
+                writeln!(f)?
+            }
+
+            Ok(())
+        }
     }
 }
+
+use solution::*;
+use std::io;
 
 fn main() {
     env_logger::init();
-
-    let rocks: Vec<Rock> = vec![
-        // -
-        Rock::new(vec![
-            Coordinate2D::new(0, 0),
-            Coordinate2D::new(1, 0),
-            Coordinate2D::new(2, 0),
-            Coordinate2D::new(3, 0),
-        ]),
-        // +
-        Rock::new(vec![
-            Coordinate2D::new(1, 0),
-            Coordinate2D::new(0, 1),
-            Coordinate2D::new(1, 1),
-            Coordinate2D::new(2, 1),
-            Coordinate2D::new(1, 2),
-        ]),
-        // ⅃
-        Rock::new(vec![
-            Coordinate2D::new(0, 0),
-            Coordinate2D::new(1, 0),
-            Coordinate2D::new(2, 0),
-            Coordinate2D::new(2, 1),
-            Coordinate2D::new(2, 2),
-        ]),
-        // |
-        Rock::new(vec![
-            Coordinate2D::new(0, 0),
-            Coordinate2D::new(0, 1),
-            Coordinate2D::new(0, 2),
-            Coordinate2D::new(0, 3),
-        ]),
-        // _
-        Rock::new(vec![
-            Coordinate2D::new(0, 0),
-            Coordinate2D::new(1, 0),
-            Coordinate2D::new(0, 1),
-            Coordinate2D::new(1, 1),
-        ]),
-    ];
 
     let input: Vec<_> = io::stdin()
         .lines()
@@ -255,26 +229,12 @@ fn main() {
         .collect::<Result<Vec<_>, String>>()
         .expect("Invalid input");
 
-    let mut well = Well::new();
-    let mut jets = input.iter().cycle();
-    rocks
-        .iter()
-        .cycle()
-        .take(PART1_ROCK_COUNT)
-        .for_each(|r| well.drop_rock(r, &mut jets));
-
-    info!("Well:\n{well}");
-    println!("Part 1: {}", well.settled_rocks.first().unwrap().0.y + 1);
-
-    /*
-    let mut jets = input.iter().cycle();
-    let mut well = Well::new();
-    rocks
-        .iter()
-        .cycle()
-        .take(PART2_ROCK_COUNT)
-        .for_each(|r| well.drop_rock(r, &mut jets));
-
-    println!("Part 2: {}", well.settled_rocks.first().unwrap().0.y + 1);
-    */
+    println!(
+        "Part 1: {}",
+        Well::drop_rocks(&mut JetIterator::new(&input), 2022)
+    );
+    println!(
+        "Part 2: {}",
+        Well::drop_rocks(&mut JetIterator::new(&input), 1_000_000_000_000)
+    );
 }
