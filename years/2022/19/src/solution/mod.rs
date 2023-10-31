@@ -3,7 +3,7 @@ mod parser;
 use aoc_macros::EnumVariants;
 use aoc_utils::EnumVariants;
 use log::debug;
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::ops::{Add, Index, IndexMut, Mul, Sub};
 use std::str::FromStr;
 
@@ -108,10 +108,7 @@ pub struct Factory {
 
 impl Ord for Factory {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.minutes_left
-            .cmp(&other.minutes_left)
-            .reverse()
-            .then_with(|| self.resources.cmp(&other.resources))
+        self.resources[&Resource::Geode].cmp(&other.resources[&Resource::Geode])
     }
 }
 
@@ -146,7 +143,7 @@ impl Factory {
             .unwrap_or(0)
             + 1;
 
-        if minutes_necessary >= self.minutes_left {
+        if minutes_necessary > self.minutes_left {
             None
         } else {
             Some(Self {
@@ -165,20 +162,35 @@ impl Factory {
         }
     }
 
+    fn needs_to_produce_more_robots(
+        &self,
+        robot_resource: &Resource,
+        blueprint: &Blueprint,
+    ) -> bool {
+        robot_resource == &Resource::Geode
+            || self.robots[robot_resource] < blueprint.max[robot_resource]
+    }
+
     // Try to buy every possible robot (wait for as long as is necessary to actually be
     // able to), and also return a state where we didn't buy a robot.
     fn next_possible_states(&self, blueprint: &Blueprint) -> Vec<Factory> {
         Resource::variants()
             .iter()
-            .filter(|resource| {
-                resource == &&Resource::Geode || blueprint.max[&resource] > self.robots[&resource]
-            })
+            .filter(|resource| self.needs_to_produce_more_robots(resource, blueprint))
             .flat_map(|resource| {
                 self.buy_robot(resource, &blueprint.costs[resource])
                     .into_iter()
             })
             .chain(Some(self.run_to_completion()))
             .collect()
+    }
+
+    fn can_theoretically_produce_more_geodes(&self, geodes: u32) -> bool {
+        self.resources[&Resource::Geode]
+            + (1..=self.minutes_left)
+                .map(|minute| minute + self.robots[&Resource::Geode])
+                .sum::<u32>()
+            > geodes
     }
 }
 
@@ -198,11 +210,11 @@ impl Blueprint {
 
     pub fn run_simulation(&self, initial_factory: Factory) -> u32 {
         debug!("Starting simulation for blueprint {}", self.id);
-        let mut states_queue = BTreeSet::from([initial_factory]);
+        let mut states_queue = BinaryHeap::from([initial_factory]);
         let mut seen_states = HashSet::new();
         let mut max_geodes = 0;
 
-        while let Some(factory) = states_queue.pop_first() {
+        while let Some(factory) = states_queue.pop() {
             if seen_states.contains(&factory) {
                 continue;
             }
@@ -211,9 +223,7 @@ impl Blueprint {
 
             if factory.minutes_left == 0 {
                 max_geodes = max_geodes.max(factory.resources[&Resource::Geode]);
-            } else if factory.resources[&Resource::Geode] + (1..=factory.minutes_left).sum::<u32>()
-                > max_geodes
-            {
+            } else if factory.can_theoretically_produce_more_geodes(max_geodes) {
                 states_queue.extend(factory.next_possible_states(self));
             }
         }
@@ -223,7 +233,7 @@ impl Blueprint {
         );
         debug!("Seen states: {}", seen_states.len());
 
-        max_geodes * self.id
+        max_geodes
     }
 }
 
@@ -269,5 +279,16 @@ mod tests {
 
         assert_eq!(9, blueprint_1.run_simulation(factory));
         assert_eq!(24, blueprint_2.run_simulation(factory));
+    }
+
+    #[test]
+    fn compare_factories() {
+        let factory_no_geodes = Factory::default();
+        let factory_one_geode = Factory {
+            resources: Resources([0, 0, 0, 1]),
+            ..Default::default()
+        };
+
+        assert!(factory_one_geode > factory_no_geodes);
     }
 }
