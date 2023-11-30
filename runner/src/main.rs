@@ -44,7 +44,7 @@ fn get_input_file(year: u16, day: u8) -> Result<File, String> {
     .ok_or("Couldn't determine cache dir")?
     .cache_dir()
     .join(year.to_string());
-    let cache_file = cache_dir.join(day.to_string());
+    let cache_file = cache_dir.join(format!("{day:02}"));
 
     create_dir_all(cache_dir).map_err(|e| {
         format!(
