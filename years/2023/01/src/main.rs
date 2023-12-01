@@ -20,43 +20,33 @@ fn replace_spelled_digits(input: &str) -> String {
         })
 }
 
+fn input_to_number<S: ToString>(input: S) -> u16 {
+    let input = input.to_string();
+    let mut digit_iter = input.chars().filter(char::is_ascii_digit);
+
+    let first_digit = digit_iter.next().unwrap();
+
+    [first_digit, digit_iter.nth_back(0).unwrap_or(first_digit)]
+        .into_iter()
+        .collect::<String>()
+        .parse()
+        .unwrap()
+}
+
 fn main() {
     let input = io::stdin()
         .lines()
         .map(|result| result.expect("I/O error"))
         .collect::<Vec<_>>();
 
-    let part_1 = input
-        .iter()
-        .map(|line| {
-            line.chars()
-                .filter(char::is_ascii_digit)
-                .collect::<Vec<_>>()
-        })
-        .map(|digits| {
-            [digits[0], digits[digits.len() - 1]]
-                .iter()
-                .collect::<String>()
-        })
-        .map(|num_str| num_str.parse::<u16>().unwrap())
-        .sum::<u16>();
+    let part_1 = input.iter().map(input_to_number).sum::<u16>();
 
     println!("Part 1: {part_1}");
 
     let part_2 = input
         .iter()
         .map(|line| replace_spelled_digits(&line.to_string()))
-        .map(|line| {
-            line.chars()
-                .filter(char::is_ascii_digit)
-                .collect::<Vec<_>>()
-        })
-        .map(|digits| {
-            [digits[0], digits[digits.len() - 1]]
-                .iter()
-                .collect::<String>()
-        })
-        .map(|num_str| num_str.parse::<u16>().unwrap())
+        .map(input_to_number)
         .sum::<u16>();
 
     println!("Part 2: {part_2}");
