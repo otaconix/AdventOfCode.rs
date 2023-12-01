@@ -46,7 +46,6 @@ fn main() {
     let part_2 = input
         .iter()
         .map(|line| replace_spelled_digits(&line.to_string()))
-        .inspect(|line| println!("Replaced string: {line}"))
         .map(|line| {
             line.chars()
                 .filter(char::is_ascii_digit)
