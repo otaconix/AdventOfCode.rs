@@ -193,6 +193,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "aoc-2023-01"
+version = "0.1.0"
+
+[[package]]
 name = "aoc-macros"
 version = "0.1.0"
 dependencies = [
