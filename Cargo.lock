@@ -143,7 +143,7 @@ dependencies = [
 name = "aoc-2022-13"
 version = "0.1.0"
 dependencies = [
- "pom",
+ "pom 3.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -158,14 +158,14 @@ name = "aoc-2022-15"
 version = "0.1.0"
 dependencies = [
  "coord",
- "pom",
+ "pom 3.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "aoc-2022-16"
 version = "0.1.0"
 dependencies = [
- "pom",
+ "pom 3.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -189,7 +189,7 @@ dependencies = [
  "aoc-utils",
  "env_logger",
  "log",
- "pom",
+ "pom 3.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -199,6 +199,9 @@ version = "0.1.0"
 [[package]]
 name = "aoc-2023-02"
 version = "0.1.0"
+dependencies = [
+ "pom 3.3.0 (git+https://github.com/J-F-Liu/pom.git)",
+]
 
 [[package]]
 name = "aoc-macros"
@@ -960,6 +963,14 @@ name = "pom"
 version = "3.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c2d73a5fe10d458e77534589512104e5aa8ac480aa9ac30b74563274235cce4"
+dependencies = [
+ "bstr",
+]
+
+[[package]]
+name = "pom"
+version = "3.3.0"
+source = "git+https://github.com/J-F-Liu/pom.git#237723c329ba3580b5a9755732ca6a82dcfd8a7b"
 dependencies = [
  "bstr",
 ]
