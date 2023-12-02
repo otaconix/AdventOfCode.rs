@@ -8,7 +8,7 @@ struct Game {
     sets: Vec<Set>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct Set {
     red: u8,
     green: u8,
@@ -43,11 +43,7 @@ impl Set {
     fn parser<'a>() -> Parser<'a, Self> {
         let cubes = (number_parser() - seq(" ")) + (seq("red") | seq("green") | seq("blue"));
         list(cubes, seq(", ")).map(|cubes_list| {
-            let mut set = Set {
-                red: 0,
-                green: 0,
-                blue: 0,
-            };
+            let mut set = Set::default();
 
             for (count, color) in cubes_list {
                 match color {
@@ -82,4 +78,18 @@ fn main() {
         .sum::<u16>();
 
     println!("Part 1: {part_1}");
+
+    let part_2 = input
+        .iter()
+        .map(|game| {
+            game.sets.iter().fold(Set::default(), |result, set| Set {
+                red: result.red.max(set.red),
+                green: result.green.max(set.green),
+                blue: result.blue.max(set.blue),
+            })
+        })
+        .map(|minimum| minimum.red as u32 * minimum.green as u32 * minimum.blue as u32)
+        .sum::<u32>();
+
+    println!("Part 2: {part_2}");
 }
