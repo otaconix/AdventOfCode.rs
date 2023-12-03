@@ -33,17 +33,17 @@ fn get_coordinate_neighboring_values(grid: &Grid<char>, (x, y): (usize, usize)) 
 }
 
 fn get_number_range(grid: &Grid<char>, (x, y): (usize, usize)) -> Vec<(usize, usize)> {
-    let mut left = (0..x)
+    let left = (0..x)
         .rev()
         .take_while(|x| grid.get(*x, y).unwrap().is_ascii_digit())
         .map(|x| (x, y))
         .collect::<Vec<_>>();
-    left.reverse();
     let right = (x + 1..grid.width())
         .take_while(|x| grid.get(*x, y).unwrap().is_ascii_digit())
         .map(|x| (x, y));
 
     left.into_iter()
+        .rev()
         .chain(std::iter::once((x, y)))
         .chain(right)
         .collect()
