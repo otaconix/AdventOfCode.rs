@@ -1,5 +1,6 @@
 use grid::*;
-use std::{collections::HashSet, io};
+use std::collections::HashSet;
+use std::io;
 
 fn is_symbol(char: &char) -> bool {
     match char {
@@ -48,6 +49,15 @@ fn get_number_range(grid: &Grid<char>, (x, y): (usize, usize)) -> Vec<(usize, us
         .collect()
 }
 
+fn parse_number_range(grid: &Grid<char>, coord_range: &[(usize, usize)]) -> u32 {
+    coord_range
+        .iter()
+        .map(|(x, y)| grid.get(*x, *y).unwrap())
+        .collect::<String>()
+        .parse::<u32>()
+        .expect("Couldn't parse number")
+}
+
 fn main() {
     let grid: Grid<char> = io::stdin()
         .lines()
@@ -71,14 +81,7 @@ fn main() {
 
     let part_1 = symbol_adjacent_number_coords
         .iter()
-        .map(|coords| {
-            coords
-                .iter()
-                .map(|(x, y)| grid.get(*x, *y).unwrap())
-                .collect::<String>()
-                .parse::<u32>()
-                .unwrap()
-        })
+        .map(|coords| parse_number_range(&grid, coords))
         .sum::<u32>();
 
     println!("Part 1: {part_1}");
@@ -121,14 +124,7 @@ fn main() {
                 Some(
                     adjacent_number_coords
                         .iter()
-                        .map(|coords| {
-                            coords
-                                .iter()
-                                .map(|(x, y)| grid.get(*x, *y).unwrap())
-                                .collect::<String>()
-                                .parse::<u32>()
-                                .unwrap()
-                        })
+                        .map(|coords| parse_number_range(&grid, coords))
                         .product::<u32>(),
                 )
             } else {
