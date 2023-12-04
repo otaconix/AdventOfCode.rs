@@ -211,6 +211,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "aoc-2023-04"
+version = "0.1.0"
+dependencies = [
+ "pom 3.3.0 (git+https://github.com/J-F-Liu/pom.git)",
+]
+
+[[package]]
 name = "aoc-macros"
 version = "0.1.0"
 dependencies = [
