@@ -3,16 +3,28 @@ use std::io;
 #[derive(Debug)]
 enum ParsingState {
     Start,
-    Seeds(Vec<u32>),
-    MapTitle(Vec<u32>, Vec<Map>, String, Vec<MapRange>),
-    Map(Vec<u32>, Vec<Map>),
+    Seeds(Vec<u64>),
+    MapTitle(Vec<u64>, Vec<Map>, String, Vec<MapRange>),
+    Map(Vec<u64>, Vec<Map>),
 }
 
 #[derive(Debug)]
 struct MapRange {
-    source: u32,
-    dest: u32,
-    length: u32,
+    source: u64,
+    dest: u64,
+    length: u64,
+}
+
+impl MapRange {
+    fn map(&self, input: &u64) -> Option<u64> {
+        let range = self.source..self.source + self.length;
+
+        if range.contains(input) {
+            Some(self.dest + input - self.source)
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -21,10 +33,28 @@ struct Map {
     ranges: Vec<MapRange>,
 }
 
+impl Map {
+    fn map(&self, input: &u64) -> u64 {
+        self.ranges
+            .iter()
+            .map(|range| range.map(input))
+            .find(|mapped| mapped.is_some())
+            .unwrap_or(Some(*input))
+            .unwrap()
+    }
+}
+
 #[derive(Debug)]
 struct Input {
-    seeds: Vec<u32>,
+    seeds: Vec<u64>,
     maps: Vec<Map>,
+}
+
+fn parse_numbers_line(line: &str, skip: usize) -> Vec<u64> {
+    line.split(' ')
+        .skip(skip)
+        .map(|number_string| number_string.parse().expect("Couldn't parse number"))
+        .collect()
 }
 
 fn main() {
@@ -32,13 +62,7 @@ fn main() {
         .lines()
         .map(|result| result.expect("I/O error"))
         .fold(ParsingState::Start, |state, line| match state {
-            ParsingState::Start => ParsingState::Seeds(
-                line.split(' ')
-                    .skip(1)
-                    .map(str::parse)
-                    .map(|result| result.expect("Couldn't parse seed number"))
-                    .collect(),
-            ),
+            ParsingState::Start => ParsingState::Seeds(parse_numbers_line(&line, 1)),
             ParsingState::Seeds(seeds) => {
                 if line.is_empty() {
                     ParsingState::Seeds(seeds)
@@ -56,14 +80,10 @@ fn main() {
                     maps.push(Map { title, ranges });
                     ParsingState::Map(seeds, maps)
                 } else {
-                    let raw_range = line
-                        .split(' ')
-                        .map(str::parse)
-                        .map(|result| result.expect("Couldn't parse number"))
-                        .collect::<Vec<_>>();
+                    let raw_range = parse_numbers_line(&line, 0);
                     ranges.push(MapRange {
-                        source: raw_range[0],
-                        dest: raw_range[1],
+                        source: raw_range[1],
+                        dest: raw_range[0],
                         length: raw_range[2],
                     });
                     ParsingState::MapTitle(seeds, maps, title, ranges)
@@ -85,5 +105,12 @@ fn main() {
         _ => panic!("Unexpected parsing state: {parsing_state:?}"),
     };
 
-    println!("Input: {input:#?}");
+    let part_1 = input
+        .seeds
+        .iter()
+        .map(|seed| input.maps.iter().fold(*seed, |input, map| map.map(&input)))
+        .min()
+        .expect("No mapped seeds?");
+
+    println!("Part 1: {part_1}");
 }
