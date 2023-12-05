@@ -1,4 +1,4 @@
-use std::io;
+use std::{io, ops::Range};
 
 #[derive(Debug)]
 enum ParsingState {
@@ -113,4 +113,15 @@ fn main() {
         .expect("No mapped seeds?");
 
     println!("Part 1: {part_1}");
+
+    let part_2 = (0..input.seeds.len())
+        .step_by(2)
+        .flat_map(|seed_index| {
+            input.seeds[seed_index]..input.seeds[seed_index] + input.seeds[seed_index + 1]
+        })
+        .map(|seed| input.maps.iter().fold(seed, |input, map| map.map(&input)))
+        .min()
+        .expect("No mapped seeds?");
+
+    println!("Part 2: {part_2}");
 }
