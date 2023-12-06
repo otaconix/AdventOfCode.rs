@@ -2,8 +2,8 @@ use std::io;
 
 #[derive(Debug)]
 struct Race {
-    time: u32,
-    distance: u32,
+    time: u64,
+    distance: u64,
 }
 
 impl Race {
@@ -12,6 +12,20 @@ impl Race {
             .filter(|speed| (self.time - speed) * speed > self.distance)
             .count()
     }
+}
+
+fn concatenate_integers(a: u64, b: u64) -> u64 {
+    let mut multiplier = 1;
+
+    loop {
+        multiplier *= 10;
+
+        if multiplier > b {
+            break;
+        };
+    }
+
+    a * multiplier + b
 }
 
 fn main() {
@@ -37,5 +51,24 @@ fn main() {
 
     let part_1: usize = input.iter().map(Race::winners).product();
 
-    println!("Part 1: {part_1:?}");
+    println!("Part 1: {part_1}");
+
+    let (part_2_time, part_2_distance) = input
+        .iter()
+        .map(|race| (race.time, race.distance))
+        .reduce(|(time, distance), (race_time, race_distance)| {
+            (
+                concatenate_integers(time, race_time),
+                concatenate_integers(distance, race_distance),
+            )
+        })
+        .unwrap();
+
+    let part_2 = Race {
+        time: part_2_time,
+        distance: part_2_distance,
+    }
+    .winners();
+
+    println!("Part 2: {part_2}");
 }
