@@ -22,6 +22,10 @@ build:
 	COPY --dir Cargo.* crates years runner .
 	RUN cargo build --frozen --offline --release
 
+tests:
+	FROM +build
+	RUN cargo test --frozen --offline --release
+
 run-all:
 	ARG --required AOC_CONTACT_INFO
 	ARG --required AOC_SESSION

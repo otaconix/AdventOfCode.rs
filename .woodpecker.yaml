@@ -5,11 +5,9 @@ steps:
       - /var/run/docker.sock:/var/run/docker.sock
     commands:
       - earthly bootstrap
+      - earthly --ci -P +tests
       - >
-        earthly 
-        --ci
-        -P
-        +run-all
+        earthly --ci -P +run-all
         --AOC_CONTACT_INFO=$AOC_CONTACT_INFO
         --AOC_SESSION=$AOC_SESSION
     secrets:
