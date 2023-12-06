@@ -10,17 +10,14 @@ enum ParsingState {
 
 #[derive(Debug)]
 struct MapRange {
-    source: u64,
-    dest: u64,
-    length: u64,
+    source: Range<u64>,
+    dest: Range<u64>,
 }
 
 impl MapRange {
     fn map(&self, input: &u64) -> Option<u64> {
-        let range = self.source..self.source + self.length;
-
-        if range.contains(input) {
-            Some(self.dest + input - self.source)
+        if self.source.contains(input) {
+            Some(input - self.source.start + self.dest.start)
         } else {
             None
         }
@@ -34,6 +31,12 @@ struct Map {
 }
 
 impl Map {
+    fn new(title: String, mut ranges: Vec<MapRange>) -> Self {
+        ranges.sort_by_key(|range| range.source.start);
+
+        Map { title, ranges }
+    }
+
     fn map(&self, input: &u64) -> u64 {
         self.ranges
             .iter()
@@ -77,14 +80,13 @@ fn main() {
             }
             ParsingState::MapTitle(seeds, mut maps, title, mut ranges) => {
                 if line.is_empty() {
-                    maps.push(Map { title, ranges });
+                    maps.push(Map::new(title, ranges));
                     ParsingState::Map(seeds, maps)
                 } else {
                     let raw_range = parse_numbers_line(&line, 0);
                     ranges.push(MapRange {
-                        source: raw_range[1],
-                        dest: raw_range[0],
-                        length: raw_range[2],
+                        source: raw_range[1]..raw_range[1] + raw_range[2],
+                        dest: raw_range[0]..raw_range[0] + raw_range[2],
                     });
                     ParsingState::MapTitle(seeds, maps, title, ranges)
                 }
@@ -99,7 +101,7 @@ fn main() {
 
     let input = match parsing_state {
         ParsingState::MapTitle(seeds, mut maps, title, ranges) => {
-            maps.push(Map { title, ranges });
+            maps.push(Map::new(title, ranges));
             Input { seeds, maps }
         }
         _ => panic!("Unexpected parsing state: {parsing_state:?}"),
