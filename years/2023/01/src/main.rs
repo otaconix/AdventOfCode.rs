@@ -33,21 +33,58 @@ fn input_to_number<S: ToString>(input: S) -> u16 {
         .unwrap()
 }
 
+fn part_1(input: &[String]) -> u16 {
+    input.iter().map(input_to_number).sum()
+}
+
+fn part_2(input: &[String]) -> u16 {
+    input
+        .iter()
+        .map(|line| replace_spelled_digits(&line.to_string()))
+        .map(input_to_number)
+        .sum()
+}
+
 fn main() {
     let input = io::stdin()
         .lines()
         .map(|result| result.expect("I/O error"))
         .collect::<Vec<_>>();
 
-    let part_1 = input.iter().map(input_to_number).sum::<u16>();
+    let part_1 = part_1(&input);
 
     println!("Part 1: {part_1}");
 
-    let part_2 = input
-        .iter()
-        .map(|line| replace_spelled_digits(&line.to_string()))
-        .map(input_to_number)
-        .sum::<u16>();
+    let part_2 = part_2(&input);
 
     println!("Part 2: {part_2}");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_part_1() {
+        let input = include_str!("test-input-1.txt")
+            .lines()
+            .map(str::to_string)
+            .collect::<Vec<_>>();
+
+        let result = part_1(&input);
+
+        assert_eq!(result, 142);
+    }
+
+    #[test]
+    fn test_part_2() {
+        let input = include_str!("test-input-2.txt")
+            .lines()
+            .map(str::to_string)
+            .collect::<Vec<_>>();
+
+        let result = part_2(&input);
+
+        assert_eq!(result, 281);
+    }
 }

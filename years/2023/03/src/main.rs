@@ -58,34 +58,35 @@ fn parse_number_range(grid: &Grid<char>, coord_range: &[(usize, usize)]) -> u32 
         .expect("Couldn't parse number")
 }
 
-fn main() {
-    let grid: Grid<char> = io::stdin()
-        .lines()
-        .map(|result| result.expect("I/O error"))
+fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Grid<char> {
+    input
+        .map(|input| input.to_string())
         .filter(|line| !line.is_empty())
-        .map(|line| line.chars().collect::<Vec<_>>())
-        .collect();
+        .map(|line| line.chars().collect())
+        .collect()
+}
 
-    let symbol_adjacent_number_coords = grid
+fn part_1(input: &Grid<char>) -> u32 {
+    let symbol_adjacent_number_coords = input
         .coordinates()
         .filter(|(x, y)| {
-            let char = grid.get(*x, *y).unwrap();
+            let char = input.get(*x, *y).unwrap();
 
             char.is_ascii_digit()
-                && get_coordinate_neighboring_values(&grid, (*x, *y))
+                && get_coordinate_neighboring_values(input, (*x, *y))
                     .iter()
                     .any(is_symbol)
         })
-        .map(|coord| get_number_range(&grid, coord))
+        .map(|coord| get_number_range(input, coord))
         .collect::<HashSet<_>>();
 
-    let part_1 = symbol_adjacent_number_coords
+    symbol_adjacent_number_coords
         .iter()
-        .map(|coords| parse_number_range(&grid, coords))
-        .sum::<u32>();
+        .map(|coords| parse_number_range(input, coords))
+        .sum()
+}
 
-    println!("Part 1: {part_1}");
-
+fn part_2(grid: &Grid<char>) -> u32 {
     let potential_gears = grid
         .coordinates()
         .filter(|(x, y)| {
@@ -105,10 +106,10 @@ fn main() {
                     .iter()
                     .any(|(gx, gy)| x.abs_diff(*gx) <= 1 && y.abs_diff(*gy) <= 1)
         })
-        .map(|coord| get_number_range(&grid, coord))
+        .map(|coord| get_number_range(grid, coord))
         .collect::<HashSet<_>>();
 
-    let part_2 = potential_gears
+    potential_gears
         .iter()
         .filter_map(|(gx, gy)| {
             let adjacent_number_coords = gear_adjacent_number_coords
@@ -124,14 +125,47 @@ fn main() {
                 Some(
                     adjacent_number_coords
                         .iter()
-                        .map(|coords| parse_number_range(&grid, coords))
+                        .map(|coords| parse_number_range(grid, coords))
                         .product::<u32>(),
                 )
             } else {
                 None
             }
         })
-        .sum::<u32>();
+        .sum()
+}
+
+fn main() {
+    let grid: Grid<char> = parse(io::stdin().lines().map(|result| result.expect("I/O error")));
+
+    let part_1 = part_1(&grid);
+
+    println!("Part 1: {part_1}");
+
+    let part_2 = part_2(&grid);
 
     println!("Part 2: {part_2}");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const INPUT: &str = include_str!("test-input.txt");
+
+    #[test]
+    fn test_part_1() {
+        let input = parse(&mut INPUT.lines());
+        let result = part_1(&input);
+
+        assert_eq!(result, 4361);
+    }
+
+    #[test]
+    fn test_part_2() {
+        let input = parse(&mut INPUT.lines());
+        let result = part_2(&input);
+
+        assert_eq!(result, 467835);
+    }
 }

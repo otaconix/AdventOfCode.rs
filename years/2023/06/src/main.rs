@@ -28,31 +28,32 @@ fn concatenate_integers(a: u64, b: u64) -> u64 {
     a * multiplier + b
 }
 
-fn main() {
-    let number_lines = io::stdin()
-        .lines()
-        .map(|result| result.expect("I/O error"))
+fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Vec<Race> {
+    let number_lines = input
         .map(|line| {
-            line.split_whitespace()
+            line.to_string()
+                .split_whitespace()
                 .skip(1)
                 .map(|number| number.parse().expect("Couldn't parse number"))
                 .collect::<Vec<_>>()
         })
         .collect::<Vec<_>>();
 
-    let input: Vec<Race> = number_lines[0]
+    number_lines[0]
         .iter()
         .zip(number_lines[1].iter())
         .map(|(time, distance)| Race {
             time: *time,
             distance: *distance,
         })
-        .collect();
+        .collect()
+}
 
-    let part_1: usize = input.iter().map(Race::winners).product();
+fn part_1(input: &[Race]) -> usize {
+    input.iter().map(Race::winners).product()
+}
 
-    println!("Part 1: {part_1}");
-
+fn part_2(input: &[Race]) -> usize {
     let (part_2_time, part_2_distance) = input
         .iter()
         .map(|race| (race.time, race.distance))
@@ -64,11 +65,44 @@ fn main() {
         })
         .unwrap();
 
-    let part_2 = Race {
+    Race {
         time: part_2_time,
         distance: part_2_distance,
     }
-    .winners();
+    .winners()
+}
+
+fn main() {
+    let input: Vec<Race> = parse(io::stdin().lines().map(|result| result.expect("I/O error")));
+
+    let part_1 = part_1(&input);
+
+    println!("Part 1: {part_1}");
+
+    let part_2 = part_2(&input);
 
     println!("Part 2: {part_2}");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const INPUT: &str = include_str!("test-input.txt");
+
+    #[test]
+    fn test_part_1() {
+        let input = parse(INPUT.lines());
+        let result = part_1(&input);
+
+        assert_eq!(result, 288);
+    }
+
+    #[test]
+    fn test_part_2() {
+        let input = parse(INPUT.lines());
+        let result = part_2(&input);
+
+        assert_eq!(result, 71503);
+    }
 }

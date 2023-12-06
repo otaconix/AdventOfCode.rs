@@ -59,14 +59,18 @@ impl Set {
     }
 }
 
-fn main() {
-    let input = io::stdin()
-        .lines()
-        .map(|result| result.expect("I/O error"))
-        .map(|line| line.parse::<Game>().expect("Failed to parse game"))
-        .collect::<Vec<_>>();
+fn parse<S: ToString, T: Iterator<Item = S>>(input: T) -> Vec<Game> {
+    input
+        .map(|line| {
+            line.to_string()
+                .parse::<Game>()
+                .expect("Failed to parse game")
+        })
+        .collect()
+}
 
-    let part_1 = input
+fn part_1(input: &[Game]) -> u16 {
+    input
         .iter()
         .filter(|game| {
             !game
@@ -75,11 +79,11 @@ fn main() {
                 .any(|set| set.red > 12 || set.green > 13 || set.blue > 14)
         })
         .map(|game| game.id as u16)
-        .sum::<u16>();
+        .sum()
+}
 
-    println!("Part 1: {part_1}");
-
-    let part_2 = input
+fn part_2(input: &[Game]) -> u32 {
+    input
         .iter()
         .map(|game| {
             game.sets.iter().fold(Set::default(), |result, set| Set {
@@ -89,7 +93,38 @@ fn main() {
             })
         })
         .map(|minimum| minimum.red as u32 * minimum.green as u32 * minimum.blue as u32)
-        .sum::<u32>();
+        .sum()
+}
+
+fn main() {
+    let input = parse(io::stdin().lines().map(|result| result.expect("I/O error")));
+
+    let part_1 = part_1(&input);
+
+    println!("Part 1: {part_1}");
+
+    let part_2 = part_2(&input);
 
     println!("Part 2: {part_2}");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const INPUT: &str = include_str!("test-input.txt");
+
+    #[test]
+    fn test_part_1() {
+        let result = part_1(&parse(INPUT.lines()));
+
+        assert_eq!(result, 8);
+    }
+
+    #[test]
+    fn test_part_2() {
+        let result = part_2(&parse(INPUT.lines()));
+
+        assert_eq!(result, 2286);
+    }
 }

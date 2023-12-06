@@ -60,70 +60,104 @@ fn parse_numbers_line(line: &str, skip: usize) -> Vec<u64> {
         .collect()
 }
 
-fn main() {
-    let parsing_state = io::stdin()
-        .lines()
-        .map(|result| result.expect("I/O error"))
-        .fold(ParsingState::Start, |state, line| match state {
-            ParsingState::Start => ParsingState::Seeds(parse_numbers_line(&line, 1)),
-            ParsingState::Seeds(seeds) => {
-                if line.is_empty() {
-                    ParsingState::Seeds(seeds)
-                } else {
-                    ParsingState::MapTitle(
-                        seeds,
-                        vec![],
-                        line.split(' ').next().expect("No title found").to_string(),
-                        vec![],
-                    )
+fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Input {
+    let parsing_state =
+        input
+            .map(|line| line.to_string())
+            .fold(ParsingState::Start, |state, line| match state {
+                ParsingState::Start => ParsingState::Seeds(parse_numbers_line(&line, 1)),
+                ParsingState::Seeds(seeds) => {
+                    if line.is_empty() {
+                        ParsingState::Seeds(seeds)
+                    } else {
+                        ParsingState::MapTitle(
+                            seeds,
+                            vec![],
+                            line.split(' ').next().expect("No title found").to_string(),
+                            vec![],
+                        )
+                    }
                 }
-            }
-            ParsingState::MapTitle(seeds, mut maps, title, mut ranges) => {
-                if line.is_empty() {
-                    maps.push(Map::new(title, ranges));
-                    ParsingState::Map(seeds, maps)
-                } else {
-                    let raw_range = parse_numbers_line(&line, 0);
-                    ranges.push(MapRange {
-                        source: raw_range[1]..raw_range[1] + raw_range[2],
-                        dest: raw_range[0]..raw_range[0] + raw_range[2],
-                    });
-                    ParsingState::MapTitle(seeds, maps, title, ranges)
+                ParsingState::MapTitle(seeds, mut maps, title, mut ranges) => {
+                    if line.is_empty() {
+                        maps.push(Map::new(title, ranges));
+                        ParsingState::Map(seeds, maps)
+                    } else {
+                        let raw_range = parse_numbers_line(&line, 0);
+                        ranges.push(MapRange {
+                            source: raw_range[1]..raw_range[1] + raw_range[2],
+                            dest: raw_range[0]..raw_range[0] + raw_range[2],
+                        });
+                        ParsingState::MapTitle(seeds, maps, title, ranges)
+                    }
                 }
-            }
-            ParsingState::Map(seeds, maps) => ParsingState::MapTitle(
-                seeds,
-                maps,
-                line.split(' ').next().expect("No title found").to_string(),
-                vec![],
-            ),
-        });
+                ParsingState::Map(seeds, maps) => ParsingState::MapTitle(
+                    seeds,
+                    maps,
+                    line.split(' ').next().expect("No title found").to_string(),
+                    vec![],
+                ),
+            });
 
-    let input = match parsing_state {
+    match parsing_state {
         ParsingState::MapTitle(seeds, mut maps, title, ranges) => {
             maps.push(Map::new(title, ranges));
             Input { seeds, maps }
         }
         _ => panic!("Unexpected parsing state: {parsing_state:?}"),
-    };
+    }
+}
 
-    let part_1 = input
+fn part_1(input: &Input) -> u64 {
+    input
         .seeds
         .iter()
         .map(|seed| input.maps.iter().fold(*seed, |input, map| map.map(&input)))
         .min()
-        .expect("No mapped seeds?");
+        .expect("No mapped seeds?")
+}
 
-    println!("Part 1: {part_1}");
-
-    let part_2 = (0..input.seeds.len())
+fn part_2(input: &Input) -> u64 {
+    (0..input.seeds.len())
         .step_by(2)
         .flat_map(|seed_index| {
             input.seeds[seed_index]..input.seeds[seed_index] + input.seeds[seed_index + 1]
         })
         .map(|seed| input.maps.iter().fold(seed, |input, map| map.map(&input)))
         .min()
-        .expect("No mapped seeds?");
+        .expect("No mapped seeds?")
+}
+
+fn main() {
+    let input = parse(io::stdin().lines().map(|result| result.expect("I/O error")));
+
+    let part_1 = part_1(&input);
+
+    println!("Part 1: {part_1}");
+
+    let part_2 = part_2(&input);
 
     println!("Part 2: {part_2}");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    const INPUT: &str = include_str!("test-input.txt");
+
+    #[test]
+    fn test_part_1() {
+        let input = parse(INPUT.lines());
+        let result = part_1(&input);
+
+        assert_eq!(result, 35);
+    }
+
+    #[test]
+    fn test_part_2() {
+        let input = parse(INPUT.lines());
+        let result = part_2(&input);
+
+        assert_eq!(result, 46);
+    }
 }
