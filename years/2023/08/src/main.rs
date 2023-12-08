@@ -55,8 +55,8 @@ fn parse<S: ToString, I: Iterator<Item = S>>(mut input: I) -> Input {
             (
                 words[0].clone(),
                 Destinations {
-                    left: words[1].clone(),
-                    right: words[2].clone(),
+                    left: words[2].clone(),
+                    right: words[3].clone(),
                 },
             )
         })
@@ -65,8 +65,32 @@ fn parse<S: ToString, I: Iterator<Item = S>>(mut input: I) -> Input {
     Input { directions, map }
 }
 
+const START: &str = "AAA";
+const END: &str = "ZZZ";
+
+fn part_1(input: &Input) -> usize {
+    let mut count = 0;
+    let mut current = START;
+
+    for direction in input.directions.iter().cycle() {
+        if current == END {
+            break;
+        }
+
+        count += 1;
+        current = match direction {
+            Direction::Left => &input.map[current].left,
+            Direction::Right => &input.map[current].right,
+        }
+    }
+
+    count
+}
+
 fn main() {
     let input = parse(io::stdin().lines().map(|result| result.expect("I/O error")));
 
-    println!("Input: {input:#?}");
+    let part_1 = part_1(&input);
+
+    println!("Part 1: {part_1}");
 }
