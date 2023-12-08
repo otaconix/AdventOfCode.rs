@@ -1,4 +1,7 @@
-use std::{collections::HashMap, io};
+use std::collections::HashMap;
+use std::io;
+
+use num_integer::lcm;
 
 #[derive(Debug)]
 enum Direction {
@@ -47,7 +50,7 @@ fn parse<S: ToString, I: Iterator<Item = S>>(mut input: I) -> Input {
                 .split_ascii_whitespace()
                 .map(|word| {
                     word.chars()
-                        .filter(char::is_ascii_uppercase)
+                        .filter(char::is_ascii_alphanumeric)
                         .collect::<String>()
                 })
                 .collect::<Vec<_>>();
@@ -68,12 +71,15 @@ fn parse<S: ToString, I: Iterator<Item = S>>(mut input: I) -> Input {
 const START: &str = "AAA";
 const END: &str = "ZZZ";
 
-fn part_1(input: &Input) -> usize {
+fn steps_count<F>(input: &Input, start: &str, dest_predicate: F) -> usize
+where
+    F: Fn(&str) -> bool,
+{
+    let mut current = start;
     let mut count = 0;
-    let mut current = START;
 
     for direction in input.directions.iter().cycle() {
-        if current == END {
+        if dest_predicate(current) {
             break;
         }
 
@@ -87,10 +93,28 @@ fn part_1(input: &Input) -> usize {
     count
 }
 
+fn part_1(input: &Input) -> usize {
+    steps_count(input, START, |current| current == END)
+}
+
+fn part_2(input: &Input) -> usize {
+    input
+        .map
+        .keys()
+        .filter(|position| position.ends_with('A'))
+        .map(|start| steps_count(input, start, |position| position.ends_with('Z')))
+        .reduce(lcm)
+        .unwrap()
+}
+
 fn main() {
     let input = parse(io::stdin().lines().map(|result| result.expect("I/O error")));
 
     let part_1 = part_1(&input);
 
     println!("Part 1: {part_1}");
+
+    let part_2 = part_2(&input);
+
+    println!("Part 2: {part_2}");
 }
