@@ -1,4 +1,4 @@
-use std::io;
+use std::{cmp::Ordering, io};
 
 use grid::Grid;
 use itertools::Itertools;
@@ -70,27 +70,50 @@ fn get_loop(input: &Grid<Tile>) -> Vec<(usize, usize)> {
     use Direction::*;
     use Tile::*;
 
-    std::iter::successors(Some((start_coords, North)), |((x, y), direction)| {
-        match (input.get(*x, *y).unwrap(), direction) {
-            (Horizontal, East) => ((*x + 1, *y), East).into(),
-            (Horizontal, West) => ((*x - 1, *y), West).into(),
-            (Ground, East) => ((*x + 1, *y), East).into(),
-            (Ground, West) => ((*x - 1, *y), West).into(),
-            (Ground, North) => ((*x, *y - 1), North).into(),
-            (Ground, South) => ((*x, *y + 1), South).into(),
-            (NorthEast, South) => ((*x + 1, *y), East).into(),
-            (NorthEast, West) => ((*x, *y - 1), North).into(),
-            (Vertical, North) => ((*x, *y - 1), North).into(),
-            (Vertical, South) => ((*x, *y + 1), South).into(),
-            (NorthWest, South) => ((*x - 1, *y), West).into(),
-            (NorthWest, East) => ((*x, *y - 1), North).into(),
-            (SouthEast, North) => ((*x + 1, *y), East).into(),
-            (SouthEast, West) => ((*x, *y + 1), South).into(),
-            (SouthWest, North) => ((*x - 1, *y), West).into(),
-            (SouthWest, East) => ((*x, *y + 1), South).into(),
-            (Start, _) => ((*x, *y + 1), South).into(), // Assumption: we can start by going south
-            (tile, direction) => panic!("Unsupported combination: {tile:?} {direction:?}"),
+    fn next(
+        input: &Grid<Tile>,
+        (x, y): (usize, usize),
+        direction: &Direction,
+    ) -> Option<((usize, usize), Direction)> {
+        match (input.get(x, y).unwrap(), direction) {
+            (Horizontal, East) => ((x + 1, y), East).into(),
+            (Horizontal, West) => ((x - 1, y), West).into(),
+            (Ground, East) => ((x + 1, y), East).into(),
+            (Ground, West) => ((x - 1, y), West).into(),
+            (Ground, North) => ((x, y - 1), North).into(),
+            (Ground, South) => ((x, y + 1), South).into(),
+            (NorthEast, South) => ((x + 1, y), East).into(),
+            (NorthEast, West) => ((x, y - 1), North).into(),
+            (Vertical, North) => ((x, y - 1), North).into(),
+            (Vertical, South) => ((x, y + 1), South).into(),
+            (NorthWest, South) => ((x - 1, y), West).into(),
+            (NorthWest, East) => ((x, y - 1), North).into(),
+            (SouthEast, North) => ((x + 1, y), East).into(),
+            (SouthEast, West) => ((x, y + 1), South).into(),
+            (SouthWest, North) => ((x - 1, y), West).into(),
+            (SouthWest, East) => ((x, y + 1), South).into(),
+            (Start, _) => input
+                .get_neighbors(x, y)
+                .into_iter()
+                .map(|(nx, ny)| {
+                    (
+                        (nx, ny),
+                        match (x.cmp(&nx), y.cmp(&ny)) {
+                            (_, Ordering::Greater) => North,
+                            (_, Ordering::Less) => South,
+                            (Ordering::Greater, _) => West,
+                            (Ordering::Less, _) => East,
+                            _ => panic!(),
+                        },
+                    )
+                })
+                .find(|(neighbor, direction)| next(input, *neighbor, direction).is_some()),
+            (_, _) => None,
         }
+    }
+
+    std::iter::successors(Some((start_coords, North)), |((x, y), direction)| {
+        next(input, (*x, *y), direction)
     })
     .map(|step| step.0)
     .enumerate()
