@@ -124,6 +124,15 @@ impl<T> Grid<T> {
         }
     }
 
+    pub fn get_neighbors(&self, column: usize, row: usize) -> Vec<(usize, usize)> {
+        let left = column.checked_sub(1).map(|x| (x, row));
+        let right = Some((column + 1, row)).filter(|(x, _)| x < &self.width());
+        let up = row.checked_sub(1).map(|y| (column, y));
+        let down = Some((column, row + 1)).filter(|(_, y)| y < &self.height());
+
+        [left, right, up, down].into_iter().flatten().collect()
+    }
+
     pub fn get_line_of_sight_neighbors(
         &self,
         column: usize,
