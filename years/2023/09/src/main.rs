@@ -1,7 +1,5 @@
 use std::io;
 
-use itertools::Itertools;
-
 fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Vec<Vec<i32>> {
     input
         .map(|line| {
@@ -20,11 +18,7 @@ fn deduce_around(series: &[i32]) -> (i32, i32) {
         let last = series[series.len() - 1];
         let first = series[0];
 
-        let subseries = series
-            .iter()
-            .tuple_windows()
-            .map(|(n, m)| m - n)
-            .collect::<Vec<_>>();
+        let subseries = series.windows(2).map(|n| n[1] - n[0]).collect::<Vec<_>>();
 
         let (sub_prev, sub_next) = deduce_around(&subseries);
 

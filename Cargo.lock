@@ -243,9 +243,6 @@ dependencies = [
 [[package]]
 name = "aoc-2023-09"
 version = "0.1.0"
-dependencies = [
- "itertools",
-]
 
 [[package]]
 name = "aoc-2023-10"
