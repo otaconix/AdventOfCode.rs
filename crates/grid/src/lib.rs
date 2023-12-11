@@ -41,6 +41,7 @@ impl<'a, T> Iterator for GridColumn<'a, T> {
     }
 }
 
+#[derive(Clone)]
 pub struct GridCoordinates<'a, T> {
     grid: &'a Grid<T>,
     column: usize,
