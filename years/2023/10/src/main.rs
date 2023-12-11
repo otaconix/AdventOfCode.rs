@@ -3,7 +3,7 @@ use std::{cmp::Ordering, io};
 use grid::Grid;
 use itertools::Itertools;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 enum Tile {
     Horizontal,
     Ground,
@@ -64,7 +64,7 @@ fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Grid<Tile> {
 fn get_loop(input: &Grid<Tile>) -> Vec<(usize, usize)> {
     let start_coords = input
         .coordinates()
-        .find(|(x, y)| input.get(*x, *y).unwrap() == &Tile::Start)
+        .find(|(x, y)| matches!(input.get(*x, *y), Some(Tile::Start)))
         .expect("Start not found");
 
     use Direction::*;
