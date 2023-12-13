@@ -38,38 +38,42 @@ fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Vec<ConditionRecord> {
         .collect()
 }
 
-fn possible_statuses(record: &ConditionRecord) -> u32 {
+fn possible_statuses(record: &ConditionRecord) -> u64 {
     fn inner(
         start: usize,
         group_lengths: &[usize],
         record: &ConditionRecord,
         working_groups: &mut Vec<Range<usize>>,
         original_groups: &[Range<usize>],
-    ) -> u32 {
+    ) -> u64 {
         if group_lengths.is_empty() {
-            /*
-            println!(
-                "{}",
-                (0..record.statuses.len())
-                    .map(|index| {
-                        if working_groups.iter().any(|w| w.contains(&index)) {
-                            '#'
-                        } else {
-                            '.'
-                        }
-                    })
-                    .collect::<String>()
-            );
-            */
-            if original_groups
-                .iter()
-                .any(|og| og.start > working_groups.last().unwrap().end)
-            {
+            // No more groups to process
+            if original_groups.iter().any(|og| og.start >= start) {
+                // There are still some original groups after the last group we placed
                 0
             } else {
+                // println!(
+                //     "{}",
+                //     (0..record.statuses.len())
+                //         .map(|index| {
+                //             if working_groups.iter().any(|w| w.contains(&index)) {
+                //                 '#'
+                //             } else {
+                //                 '.'
+                //             }
+                //         })
+                //         .collect::<String>()
+                // );
                 1
             }
-        } else if start + group_lengths[0] > record.statuses.len() {
+        } else if start
+            + group_lengths
+                .iter()
+                .fold(0, |result, group| result + group + 1)
+            - 1
+            > record.statuses.len()
+        {
+            // No more room to place remaining groups
             0
         } else {
             let current_group_length = group_lengths[0];
@@ -78,13 +82,8 @@ fn possible_statuses(record: &ConditionRecord) -> u32 {
 
             let cutoff = original_groups
                 .iter()
-                .find_map(|original| {
-                    if original.start >= start {
-                        original.start.into()
-                    } else {
-                        None
-                    }
-                })
+                .find(|og| og.start >= start)
+                .map(|og| og.start)
                 .unwrap_or(usize::MAX)
                 .min(
                     record.statuses.len()
@@ -128,7 +127,7 @@ fn possible_statuses(record: &ConditionRecord) -> u32 {
             .group_by(|s| *s)
             .into_iter()
             .fold(Vec::<(Status, Range<usize>)>::new(), |mut acc, (s, g)| {
-                let index = acc.last().map(|(_, g)| g.end).unwrap_or(0usize);
+                let index = acc.last().map(|(_, g)| g.end).unwrap_or(0);
                 acc.push((*s, index..index + g.collect_vec().len()));
                 acc
             })
@@ -147,11 +146,10 @@ fn possible_statuses(record: &ConditionRecord) -> u32 {
 fn main() {
     let input = parse(io::stdin().lines().map(|result| result.expect("I/O error")));
 
-    let part_1 = input./*par_*/iter().map(possible_statuses).sum::<u32>();
+    let part_1 = input.par_iter().map(possible_statuses).sum::<u64>();
 
     println!("Part 1: {part_1}");
 
-    /*
     let part_2 = input
         .iter()
         .cloned()
@@ -167,28 +165,25 @@ fn main() {
                 groups: expanded_groups,
             }
         })
-        .inspect(|r| {
-            /*
-            println!(
-                "{}",
-                r.statuses
-                    .iter()
-                    .map(|s| match s {
-                        Status::Damaged => '#',
-                        Status::Operational => '.',
-                        Status::Unknown => '?',
-                    })
-                    .collect::<String>()
-            )
-                */
-        })
+        // .inspect(|r| {
+        //     println!(
+        //         "{}",
+        //         r.statuses
+        //             .iter()
+        //             .map(|s| match s {
+        //                 Status::Damaged => '#',
+        //                 Status::Operational => '.',
+        //                 Status::Unknown => '?',
+        //             })
+        //             .collect::<String>()
+        //     )
+        // })
         .enumerate()
         .par_bridge()
         .map(|(index, record)| (index, possible_statuses(&record)))
         .inspect(|(index, count)| println!("{index}: {count}"))
         .map(|(_, count)| count)
-        .sum::<u32>();
+        .sum::<u64>();
 
     println!("Part 2: {part_2}");
-    */
 }
