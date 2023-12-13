@@ -1,5 +1,6 @@
 use std::io;
 
+use aoc_utils::PartitionEnumerated;
 use grid::Grid;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -20,54 +21,62 @@ enum Split {
     },
 }
 
-fn split_by_mirror(grid: &Grid<Stuff>) -> Split {
-    for row in 1..grid.height() {
-        let above = (0..row)
-            .map(|i| grid.row(i).copied().collect::<Vec<_>>())
-            .collect::<Vec<_>>();
-        let below = (row..grid.height())
-            .map(|i| grid.row(i).copied().collect::<Vec<_>>())
-            .collect::<Vec<_>>();
-
-        let to_check = above.len().min(below.len());
-        let skip_above = above.len() - to_check;
-
-        if above[skip_above..skip_above + to_check]
-            .iter()
-            .zip(below[0..to_check].iter().rev())
-            .all(|(a, b)| a == b)
-        {
-            return Split::Horizontal {
-                above: Grid::new(above).unwrap(),
-                below: Grid::new(below).unwrap(),
-            };
+impl Split {
+    fn score(&self) -> usize {
+        match self {
+            Split::Vertical { left, right: _ } => left.height(),
+            Split::Horizontal { above, below: _ } => above.height() * 100,
         }
     }
+}
 
-    for column in 1..grid.width() {
-        let left = (0..column)
-            .map(|i| grid.column(i).copied().collect::<Vec<_>>())
-            .collect::<Vec<_>>();
-        let right = (column..grid.width())
-            .map(|i| grid.column(i).copied().collect::<Vec<_>>())
-            .collect::<Vec<_>>();
+// Not exactly the prettiest, but I attempted to deduplicate code to check for both horizontal and
+// vertical mirrors
+fn split_by_mirror<F>(grid: &Grid<Stuff>, check_fn: F) -> Split
+where
+    F: Fn(&Vec<Vec<Stuff>>, &Vec<Vec<Stuff>>) -> bool,
+{
+    (1..grid.height())
+        .map(|i| (true, i))
+        .chain((1..grid.width()).map(|i| (false, i)))
+        .find_map(|(is_horizontal, i)| {
+            let (before, after) = (0..if is_horizontal {
+                grid.height()
+            } else {
+                grid.width()
+            })
+                .map(|i| {
+                    if is_horizontal {
+                        grid.row(i).copied().collect()
+                    } else {
+                        grid.column(i).copied().collect()
+                    }
+                })
+                .partition_enumerated::<Vec<_>, _>(|index, _| index < i);
 
-        let to_check = left.len().min(right.len());
-        let skip_left = left.len() - to_check;
+            let to_check = before.len().min(after.len());
+            let skip_before = before.len() - to_check;
 
-        if left[skip_left..skip_left + to_check]
-            .iter()
-            .zip(right[0..to_check].iter().rev())
-            .all(|(a, b)| a == b)
-        {
-            return Split::Vertical {
-                left: Grid::new(left).unwrap(),
-                right: Grid::new(right).unwrap(),
-            };
-        }
-    }
-
-    panic!("No mirror found")
+            if check_fn(
+                &before[skip_before..skip_before + to_check].to_vec(),
+                &after[0..to_check].iter().rev().cloned().collect(),
+            ) {
+                Some(if is_horizontal {
+                    Split::Horizontal {
+                        above: Grid::new(before).unwrap(),
+                        below: Grid::new(after).unwrap(),
+                    }
+                } else {
+                    Split::Vertical {
+                        left: Grid::new(before).unwrap(),
+                        right: Grid::new(after).unwrap(),
+                    }
+                })
+            } else {
+                None
+            }
+        })
+        .expect("No mirror found")
 }
 
 fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Vec<Grid<Stuff>> {
@@ -96,18 +105,61 @@ fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Vec<Grid<Stuff>> {
         .collect()
 }
 
+fn part_1(input: &[Grid<Stuff>]) -> usize {
+    input
+        .iter()
+        .map(|grid| split_by_mirror(grid, |a, b| a.iter().zip(b).all(|(a, b)| a == b)))
+        .map(|split| split.score())
+        .sum::<usize>()
+}
+
+fn part_2(input: &[Grid<Stuff>]) -> usize {
+    input
+        .iter()
+        .map(|grid| {
+            split_by_mirror(grid, |a, b| {
+                a.iter()
+                    .zip(b)
+                    .map(|(a, b)| a.iter().zip(b).filter(|(a, b)| a != b).count())
+                    .sum::<usize>()
+                    == 1
+            })
+        })
+        .map(|split| split.score())
+        .sum::<usize>()
+}
+
 fn main() {
     let input = parse(io::stdin().lines().map(|result| result.expect("I/O error")));
 
-    let part_1 = input
-        .iter()
-        .map(split_by_mirror)
-        .map(|split| match split {
-            Split::Vertical { left, right: _ } => left.height(),
-            Split::Horizontal { above, below: _ } => above.height() * 100,
-        })
-        // .inspect(|n| println!("{n}"))
-        .sum::<usize>();
+    let part_1 = part_1(&input);
 
     println!("Part 1: {part_1}");
+
+    let part_2 = part_2(&input);
+
+    println!("Part 2: {part_2}");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const INPUT: &str = include_str!("test-input");
+
+    #[test]
+    fn test_part_1() {
+        let input = parse(INPUT.lines());
+        let result = part_1(&input);
+
+        assert_eq!(result, 405);
+    }
+
+    #[test]
+    fn test_part_2() {
+        let input = parse(INPUT.lines());
+        let result = part_2(&input);
+
+        assert_eq!(result, 400);
+    }
 }
