@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io;
 use std::ops::Range;
 
@@ -39,14 +40,17 @@ fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Vec<ConditionRecord> {
 }
 
 fn possible_statuses(record: &ConditionRecord) -> u64 {
-    fn inner(
+    fn inner<'a>(
         start: usize,
-        group_lengths: &[usize],
+        group_lengths: &'a [usize],
         record: &ConditionRecord,
         working_groups: &mut Vec<Range<usize>>,
         original_groups: &[Range<usize>],
+        memo: &mut HashMap<(usize, &'a [usize]), u64>,
     ) -> u64 {
-        if group_lengths.is_empty() {
+        if let Some(result) = memo.get(&(start, group_lengths)) {
+            *result
+        } else if group_lengths.is_empty() {
             // No more groups to process
             if original_groups.iter().any(|og| og.start >= start) {
                 // There are still some original groups after the last group we placed
@@ -96,10 +100,12 @@ fn possible_statuses(record: &ConditionRecord) -> u64 {
                     record,
                     working_groups,
                     original_groups,
+                    memo,
                 );
                 working_groups.pop();
             }
 
+            memo.insert((start, group_lengths), sum);
             sum
         }
     }
@@ -128,6 +134,7 @@ fn possible_statuses(record: &ConditionRecord) -> u64 {
                 }
             })
             .collect_vec(),
+        &mut HashMap::new(),
     )
 }
 
@@ -154,7 +161,6 @@ fn part_2(input: &[ConditionRecord]) -> u64 {
         .enumerate()
         .par_bridge()
         .map(|(index, record)| (index, possible_statuses(&record)))
-        .inspect(|(index, count)| println!("{index}: {count}"))
         .map(|(_, count)| count)
         .sum()
 }
@@ -166,13 +172,9 @@ fn main() {
 
     println!("Part 1: {part_1}");
 
-    if cfg!(feature = "slow") {
-        let part_2 = part_2(&input);
+    let part_2 = part_2(&input);
 
-        println!("Part 2: {part_2}");
-    } else {
-        println!("Part 2 disabled while it's still so goddamn slow");
-    }
+    println!("Part 2: {part_2}");
 }
 
 #[cfg(test)]
