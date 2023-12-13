@@ -52,18 +52,6 @@ fn possible_statuses(record: &ConditionRecord) -> u64 {
                 // There are still some original groups after the last group we placed
                 0
             } else {
-                // println!(
-                //     "{}",
-                //     (0..record.statuses.len())
-                //         .map(|index| {
-                //             if working_groups.iter().any(|w| w.contains(&index)) {
-                //                 '#'
-                //             } else {
-                //                 '.'
-                //             }
-                //         })
-                //         .collect::<String>()
-                // );
                 1
             }
         } else if start
@@ -143,6 +131,7 @@ fn possible_statuses(record: &ConditionRecord) -> u64 {
     )
 }
 
+#[allow(unused_doc_comments)]
 fn main() {
     let input = parse(io::stdin().lines().map(|result| result.expect("I/O error")));
 
@@ -150,40 +139,31 @@ fn main() {
 
     println!("Part 1: {part_1}");
 
-    let part_2 = input
-        .iter()
-        .cloned()
-        .map(|record| {
-            let expanded_statuses = repeat_n(record.statuses, 5)
-                .interleave_shortest(repeat_n(vec![Status::Unknown], 4))
-                .flatten()
-                .collect_vec();
-            let expanded_groups = repeat_n(record.groups, 5).flatten().collect();
+    if cfg!(feature = "slow") {
+        let part_2 = input
+            .iter()
+            .cloned()
+            .map(|record| {
+                let expanded_statuses = repeat_n(record.statuses, 5)
+                    .interleave_shortest(repeat_n(vec![Status::Unknown], 4))
+                    .flatten()
+                    .collect_vec();
+                let expanded_groups = repeat_n(record.groups, 5).flatten().collect();
 
-            ConditionRecord {
-                statuses: expanded_statuses,
-                groups: expanded_groups,
-            }
-        })
-        // .inspect(|r| {
-        //     println!(
-        //         "{}",
-        //         r.statuses
-        //             .iter()
-        //             .map(|s| match s {
-        //                 Status::Damaged => '#',
-        //                 Status::Operational => '.',
-        //                 Status::Unknown => '?',
-        //             })
-        //             .collect::<String>()
-        //     )
-        // })
-        .enumerate()
-        .par_bridge()
-        .map(|(index, record)| (index, possible_statuses(&record)))
-        .inspect(|(index, count)| println!("{index}: {count}"))
-        .map(|(_, count)| count)
-        .sum::<u64>();
+                ConditionRecord {
+                    statuses: expanded_statuses,
+                    groups: expanded_groups,
+                }
+            })
+            .enumerate()
+            .par_bridge()
+            .map(|(index, record)| (index, possible_statuses(&record)))
+            .inspect(|(index, count)| println!("{index}: {count}"))
+            .map(|(_, count)| count)
+            .sum::<u64>();
 
-    println!("Part 2: {part_2}");
+        println!("Part 2: {part_2}");
+    } else {
+        println!("Part 2 disabled while it's still so goddamn slow");
+    }
 }
