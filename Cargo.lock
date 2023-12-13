@@ -269,6 +269,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "aoc-2023-13"
+version = "0.1.0"
+dependencies = [
+ "grid",
+]
+
+[[package]]
 name = "aoc-macros"
 version = "0.1.0"
 dependencies = [
