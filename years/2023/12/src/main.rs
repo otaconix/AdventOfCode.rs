@@ -1,57 +1,20 @@
-use std::{collections::HashMap, io};
+use std::io;
+use std::ops::Range;
 
-use itertools::Itertools;
+use itertools::{repeat_n, Itertools};
+use rayon::prelude::*;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 enum Status {
     Operational,
     Damaged,
     Unknown,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 struct ConditionRecord {
     statuses: Vec<Status>,
-    groups: Vec<u8>,
-}
-
-struct StatusPermutations {
-    state: u32,
-    unknowns: usize,
-}
-
-impl StatusPermutations {
-    fn new(unknowns: usize) -> Self {
-        if unknowns > 32 {
-            panic!("Max amount of unknowns is 32 (new was called with {unknowns})");
-        }
-
-        StatusPermutations { state: 0, unknowns }
-    }
-}
-
-impl Iterator for StatusPermutations {
-    type Item = Vec<Status>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.state == 2u32.pow(self.unknowns as u32) {
-            None
-        } else {
-            let result = (0..self.unknowns)
-                .map(|bit| {
-                    if self.state & 1 << bit == 0 {
-                        Status::Damaged
-                    } else {
-                        Status::Operational
-                    }
-                })
-                .collect();
-
-            self.state += 1;
-
-            Some(result)
-        }
-    }
+    groups: Vec<usize>,
 }
 
 fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Vec<ConditionRecord> {
@@ -75,50 +38,155 @@ fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Vec<ConditionRecord> {
         .collect()
 }
 
+fn possible_statuses(record: &ConditionRecord) -> u32 {
+    fn inner(
+        start: usize,
+        group_lengths: &[usize],
+        record: &ConditionRecord,
+        working_groups: &mut Vec<Range<usize>>,
+        original_groups: &[Range<usize>],
+    ) -> u32 {
+        if group_lengths.is_empty() {
+            /*
+            println!(
+                "{}",
+                (0..record.statuses.len())
+                    .map(|index| {
+                        if working_groups.iter().any(|w| w.contains(&index)) {
+                            '#'
+                        } else {
+                            '.'
+                        }
+                    })
+                    .collect::<String>()
+            );
+            */
+            if original_groups
+                .iter()
+                .any(|og| og.start > working_groups.last().unwrap().end)
+            {
+                0
+            } else {
+                1
+            }
+        } else if start + group_lengths[0] > record.statuses.len() {
+            0
+        } else {
+            let current_group_length = group_lengths[0];
+            let next_group_lengths = &group_lengths[1..];
+            let mut sum = 0;
+
+            let cutoff = original_groups
+                .iter()
+                .find_map(|original| {
+                    if original.start >= start {
+                        original.start.into()
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or(usize::MAX)
+                .min(
+                    record.statuses.len()
+                        - (current_group_length
+                            + next_group_lengths.iter().sum::<usize>()
+                            + next_group_lengths.len()),
+                );
+
+            for start_index in start..=cutoff {
+                if record.statuses.get(start_index + current_group_length) == Some(&Status::Damaged)
+                    || record.statuses[start_index..start_index + current_group_length]
+                        .iter()
+                        .any(|overriden_status| overriden_status == &Status::Operational)
+                {
+                    continue;
+                }
+
+                working_groups.push(start_index..start_index + current_group_length);
+                sum += inner(
+                    start_index + current_group_length + 1,
+                    next_group_lengths,
+                    record,
+                    working_groups,
+                    original_groups,
+                );
+                working_groups.pop();
+            }
+
+            sum
+        }
+    }
+
+    inner(
+        0,
+        &record.groups,
+        record,
+        &mut vec![],
+        &record
+            .statuses
+            .iter()
+            .group_by(|s| *s)
+            .into_iter()
+            .fold(Vec::<(Status, Range<usize>)>::new(), |mut acc, (s, g)| {
+                let index = acc.last().map(|(_, g)| g.end).unwrap_or(0usize);
+                acc.push((*s, index..index + g.collect_vec().len()));
+                acc
+            })
+            .iter()
+            .filter_map(|(s, g)| {
+                if s == &Status::Damaged {
+                    Some(g.to_owned())
+                } else {
+                    None
+                }
+            })
+            .collect_vec(),
+    )
+}
+
 fn main() {
     let input = parse(io::stdin().lines().map(|result| result.expect("I/O error")));
 
-    let part_1 = input
-        .iter()
-        .map(|report| {
-            let unknowns = report
-                .statuses
-                .iter()
-                .enumerate()
-                .filter(|(_, status)| matches!(status, Status::Unknown))
-                .map(|(index, _)| index)
-                .enumerate()
-                .collect::<HashMap<_, _>>();
-
-            StatusPermutations::new(unknowns.len())
-                .map(|permutation| {
-                    let mut report = report.clone();
-
-                    for (replacement_index, original_index) in &unknowns {
-                        report.statuses[*original_index] = permutation[*replacement_index];
-                    }
-
-                    report
-                })
-                .filter(|report| {
-                    report
-                        .statuses
-                        .iter()
-                        .group_by(|status| *status)
-                        .into_iter()
-                        .filter_map(|(status, group)| {
-                            if matches!(status, Status::Damaged) {
-                                Some(group.count() as u8)
-                            } else {
-                                None
-                            }
-                        })
-                        .collect::<Vec<_>>()
-                        == report.groups
-                })
-                .count()
-        })
-        .sum::<usize>();
+    let part_1 = input./*par_*/iter().map(possible_statuses).sum::<u32>();
 
     println!("Part 1: {part_1}");
+
+    let part_2 = input
+        .iter()
+        .cloned()
+        .map(|record| {
+            let expanded_statuses = repeat_n(record.statuses, 5)
+                .interleave_shortest(repeat_n(vec![Status::Unknown], 4))
+                .flatten()
+                .collect_vec();
+            let expanded_groups = repeat_n(record.groups, 5).flatten().collect();
+
+            ConditionRecord {
+                statuses: expanded_statuses,
+                groups: expanded_groups,
+            }
+        })
+        .inspect(|r| {
+            /*
+            println!(
+                "{}",
+                r.statuses
+                    .iter()
+                    .map(|s| match s {
+                        Status::Damaged => '#',
+                        Status::Operational => '.',
+                        Status::Unknown => '?',
+                    })
+                    .collect::<String>()
+            )
+                */
+        })
+        .enumerate()
+        .par_bridge()
+        .map(|(index, record)| (index, possible_statuses(&record)))
+        .inspect(|(index, count)| println!("{index}: {count}"))
+        .map(|(_, count)| count)
+        .sum::<u32>();
+
+    println!("Part 2: {part_2}");
 }
