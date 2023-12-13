@@ -131,39 +131,69 @@ fn possible_statuses(record: &ConditionRecord) -> u64 {
     )
 }
 
-#[allow(unused_doc_comments)]
+fn part_1(input: &[ConditionRecord]) -> u64 {
+    input.par_iter().map(possible_statuses).sum()
+}
+
+fn part_2(input: &[ConditionRecord]) -> u64 {
+    input
+        .iter()
+        .cloned()
+        .map(|record| {
+            let expanded_statuses = repeat_n(record.statuses, 5)
+                .interleave_shortest(repeat_n(vec![Status::Unknown], 4))
+                .flatten()
+                .collect_vec();
+            let expanded_groups = repeat_n(record.groups, 5).flatten().collect();
+
+            ConditionRecord {
+                statuses: expanded_statuses,
+                groups: expanded_groups,
+            }
+        })
+        .enumerate()
+        .par_bridge()
+        .map(|(index, record)| (index, possible_statuses(&record)))
+        .inspect(|(index, count)| println!("{index}: {count}"))
+        .map(|(_, count)| count)
+        .sum()
+}
+
 fn main() {
     let input = parse(io::stdin().lines().map(|result| result.expect("I/O error")));
 
-    let part_1 = input.par_iter().map(possible_statuses).sum::<u64>();
+    let part_1 = part_1(&input);
 
     println!("Part 1: {part_1}");
 
     if cfg!(feature = "slow") {
-        let part_2 = input
-            .iter()
-            .cloned()
-            .map(|record| {
-                let expanded_statuses = repeat_n(record.statuses, 5)
-                    .interleave_shortest(repeat_n(vec![Status::Unknown], 4))
-                    .flatten()
-                    .collect_vec();
-                let expanded_groups = repeat_n(record.groups, 5).flatten().collect();
-
-                ConditionRecord {
-                    statuses: expanded_statuses,
-                    groups: expanded_groups,
-                }
-            })
-            .enumerate()
-            .par_bridge()
-            .map(|(index, record)| (index, possible_statuses(&record)))
-            .inspect(|(index, count)| println!("{index}: {count}"))
-            .map(|(_, count)| count)
-            .sum::<u64>();
+        let part_2 = part_2(&input);
 
         println!("Part 2: {part_2}");
     } else {
         println!("Part 2 disabled while it's still so goddamn slow");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const INPUT: &str = include_str!("test-input");
+
+    #[test]
+    fn test_part_1() {
+        let input = parse(INPUT.lines());
+        let result = part_1(&input);
+
+        assert_eq!(result, 21);
+    }
+
+    #[test]
+    fn test_part_2() {
+        let input = parse(INPUT.lines());
+        let result = part_2(&input);
+
+        assert_eq!(result, 525152);
     }
 }
