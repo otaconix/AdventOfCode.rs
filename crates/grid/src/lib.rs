@@ -1,4 +1,6 @@
-#[derive(Debug)]
+use std::{fmt::Debug, hash::Hash};
+
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Grid<T> {
     width: usize,
     rows: Vec<Vec<T>>,
@@ -25,6 +27,7 @@ pub struct GridColumn<'a, T> {
     grid: &'a Grid<T>,
     column: usize,
     index: usize,
+    index_back: usize,
 }
 
 impl<'a, T> Iterator for GridColumn<'a, T> {
@@ -38,6 +41,27 @@ impl<'a, T> Iterator for GridColumn<'a, T> {
             .rows
             .get(index)
             .and_then(|row| row.get(self.column))
+    }
+}
+
+impl<'a, T> ExactSizeIterator for GridColumn<'a, T> {
+    fn len(&self) -> usize {
+        self.index_back - self.index
+    }
+}
+
+impl<'a, T> DoubleEndedIterator for GridColumn<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.index == self.index_back {
+            None
+        } else {
+            self.index_back -= 1;
+
+            self.grid
+                .rows
+                .get(self.index_back)
+                .and_then(|row| row.get(self.column))
+        }
     }
 }
 
@@ -122,7 +146,12 @@ impl<T> Grid<T> {
             grid: self,
             column,
             index: 0,
+            index_back: self.height(),
         }
+    }
+
+    pub fn update(&mut self, column: usize, row: usize, value: T) {
+        self.rows[row][column] = value;
     }
 
     pub fn get_neighbors(&self, column: usize, row: usize) -> Vec<(usize, usize)> {
@@ -164,10 +193,28 @@ impl<T> Grid<T> {
     }
 }
 
+impl<T: Debug> Debug for Grid<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for row in 0..self.height() {
+            writeln!(f, "{:?}", self.rows[row])?;
+        }
+
+        Ok(())
+    }
+}
+
 impl<T> FromIterator<Vec<T>> for Grid<T> {
     fn from_iter<I: IntoIterator<Item = Vec<T>>>(iter: I) -> Self {
         let rows = iter.into_iter().collect();
 
         Grid::new(rows).unwrap()
+    }
+}
+
+impl<T: Clone> Grid<T> {
+    pub fn transpose(&self) -> Self {
+        (0..self.width())
+            .map(|column| self.column(column).cloned().collect::<Vec<_>>())
+            .collect()
     }
 }
