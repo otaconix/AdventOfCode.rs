@@ -70,3 +70,18 @@ fn main() {
     let part_1 = part_1(&input);
     println!("Part 1: {part_1}");
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const INPUT: &str = include_str!("test-input");
+
+    #[test]
+    fn test_part_1() {
+        let input = parse(INPUT.lines());
+        let result = part_1(&input);
+
+        assert_eq!(result, 136);
+    }
+}
