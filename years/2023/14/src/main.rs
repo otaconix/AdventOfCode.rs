@@ -1,12 +1,20 @@
-use std::io;
+use std::{collections::HashMap, io};
 
 use grid::Grid;
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 enum Rock {
     Round,
     Cube,
     None,
+}
+
+#[derive(Debug)]
+enum Direction {
+    North,
+    West,
+    South,
+    East,
 }
 
 fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Grid<Rock> {
@@ -25,43 +33,151 @@ fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Grid<Rock> {
         .collect()
 }
 
-fn part_1(input: &Grid<Rock>) -> usize {
-    (0..input.width())
-        .map(|column| {
-            input
-                .column(column)
-                .enumerate()
-                .map(|(row, rock)| {
-                    if row == 0 && rock != &Rock::Cube {
-                        // println!("First row in column {column} is empty");
-                        input
-                            .column(column)
-                            .take_while(|rock| rock != &&Rock::Cube)
-                            .filter(|rock| rock == &&Rock::Round)
-                            .enumerate()
-                            .map(|(row, _)| input.height() - row)
-                            // .inspect(|num| println!("{num}"))
-                            .sum()
-                    } else if rock == &Rock::Cube {
-                        input
-                            .column(column)
-                            .skip(row + 1)
-                            .take_while(|rock| rock != &&Rock::Cube)
-                            .filter(|rock| rock == &&Rock::Round)
-                            .enumerate()
-                            // .inspect(|(sub_row, _)| {
-                            //     println!("Rock below {column},{row}: {column},{}", row + sub_row)
-                            // })
-                            .map(|(sub_row, _)| input.height() - (row + sub_row + 1))
-                            // .inspect(|n| println!("{n}"))
-                            .sum()
-                    } else {
-                        0
+fn tilt_platform(input: &mut Grid<Rock>, direction: Direction) {
+    match direction {
+        Direction::North => {
+            for column in 0..input.width() {
+                for row in 0..input.height() {
+                    let rock = input.get(column, row).unwrap();
+
+                    if rock == &Rock::None {
+                        if let Some(first_round_cube_row) = (row + 1..input.height())
+                            .take_while(|subrow| input.get(column, *subrow).unwrap() != &Rock::Cube)
+                            .find(|subrow| input.get(column, *subrow).unwrap() == &Rock::Round)
+                        {
+                            input.update(column, row, Rock::Round);
+                            input.update(column, first_round_cube_row, Rock::None);
+                        }
                     }
-                })
-                .sum::<usize>()
+                }
+            }
+        }
+        Direction::South => {
+            for column in 0..input.width() {
+                for row in (0..input.height()).rev() {
+                    let rock = input.get(column, row).unwrap();
+
+                    if rock == &Rock::None {
+                        if let Some(first_round_cube_row) = (0..row)
+                            .rev()
+                            .take_while(|subrow| input.get(column, *subrow).unwrap() != &Rock::Cube)
+                            .find(|subrow| input.get(column, *subrow).unwrap() == &Rock::Round)
+                        {
+                            input.update(column, row, Rock::Round);
+                            input.update(column, first_round_cube_row, Rock::None);
+                        }
+                    }
+                }
+            }
+        }
+        Direction::East => {
+            for row in 0..input.height() {
+                for column in (0..input.width()).rev() {
+                    let rock = input.get(column, row).unwrap();
+
+                    if rock == &Rock::None {
+                        if let Some(first_round_cube_column) = (0..column)
+                            .rev()
+                            .take_while(|subcolumn| {
+                                input.get(*subcolumn, row).unwrap() != &Rock::Cube
+                            })
+                            .find(|subcolumn| input.get(*subcolumn, row).unwrap() == &Rock::Round)
+                        {
+                            input.update(column, row, Rock::Round);
+                            input.update(first_round_cube_column, row, Rock::None);
+                        }
+                    }
+                }
+            }
+        }
+        Direction::West => {
+            for row in 0..input.height() {
+                for column in 0..input.width() {
+                    let rock = input.get(column, row).unwrap();
+
+                    if rock == &Rock::None {
+                        if let Some(first_round_cube_column) = (column + 1..input.width())
+                            .take_while(|subcolumn| {
+                                input.get(*subcolumn, row).unwrap() != &Rock::Cube
+                            })
+                            .find(|subcolumn| input.get(*subcolumn, row).unwrap() == &Rock::Round)
+                        {
+                            input.update(column, row, Rock::Round);
+                            input.update(first_round_cube_column, row, Rock::None);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn print_grid(input: &Grid<Rock>) {
+    for row in 0..input.height() {
+        for column in 0..input.width() {
+            print!(
+                "{}",
+                match input.get(column, row).unwrap() {
+                    Rock::Round => 'O',
+                    Rock::Cube => '#',
+                    Rock::None => '.',
+                }
+            );
+        }
+        println!();
+    }
+}
+
+fn score(input: &Grid<Rock>) -> usize {
+    input
+        .coordinates()
+        .filter_map(|(column, row)| {
+            if input.get(column, row).unwrap() == &Rock::Round {
+                Some(input.height() - row)
+            } else {
+                None
+            }
         })
         .sum()
+}
+
+fn part_1(input: &Grid<Rock>) -> usize {
+    let mut input = input.clone();
+    tilt_platform(&mut input, Direction::North);
+
+    score(&input)
+}
+
+fn apply_tilt_cycle(input: &mut Grid<Rock>) {
+    use Direction::*;
+
+    for direction in [North, West, South, East] {
+        tilt_platform(input, direction);
+    }
+}
+
+fn part_2(input: &Grid<Rock>) -> usize {
+    let mut input = input.clone();
+    let mut seen_states = HashMap::new();
+
+    for cycle in 0..1_000_000_000 {
+        if let Some(first_occurrence) = seen_states.get(&input) {
+            let repeat_length = seen_states.len() - first_occurrence;
+            let remaining_cycles = 1_000_000_000 - cycle;
+            let remainder_after_repeats = remaining_cycles % repeat_length;
+
+            for _ in 0..remainder_after_repeats {
+                apply_tilt_cycle(&mut input);
+            }
+            break;
+        }
+
+        seen_states.insert(input.clone(), cycle);
+
+        apply_tilt_cycle(&mut input);
+    }
+
+    score(&input)
 }
 
 fn main() {
@@ -69,6 +185,9 @@ fn main() {
 
     let part_1 = part_1(&input);
     println!("Part 1: {part_1}");
+
+    let part_2 = part_2(&input);
+    println!("Part 2: {part_2}");
 }
 
 #[cfg(test)]
@@ -83,5 +202,13 @@ mod tests {
         let result = part_1(&input);
 
         assert_eq!(result, 136);
+    }
+
+    #[test]
+    fn test_part_2() {
+        let input = parse(INPUT.lines());
+        let result = part_2(&input);
+
+        assert_eq!(result, 64);
     }
 }
