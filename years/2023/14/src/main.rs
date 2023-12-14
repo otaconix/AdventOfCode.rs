@@ -1,6 +1,7 @@
 use std::{collections::HashMap, io};
 
 use grid::Grid;
+use log::info;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 enum Rock {
@@ -112,20 +113,19 @@ fn tilt_platform(input: &mut Grid<Rock>, direction: Direction) {
     }
 }
 
-fn print_grid(input: &Grid<Rock>) {
-    for row in 0..input.height() {
-        for column in 0..input.width() {
-            print!(
-                "{}",
-                match input.get(column, row).unwrap() {
+fn grid_string(input: &Grid<Rock>) -> String {
+    (0..input.height())
+        .map(|row| {
+            (0..input.width())
+                .map(|column| match input.get(column, row).unwrap() {
                     Rock::Round => 'O',
                     Rock::Cube => '#',
                     Rock::None => '.',
-                }
-            );
-        }
-        println!();
-    }
+                })
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn score(input: &Grid<Rock>) -> usize {
@@ -144,6 +144,8 @@ fn score(input: &Grid<Rock>) -> usize {
 fn part_1(input: &Grid<Rock>) -> usize {
     let mut input = input.clone();
     tilt_platform(&mut input, Direction::North);
+
+    info!("\n{}", grid_string(&input));
 
     score(&input)
 }
@@ -166,6 +168,11 @@ fn part_2(input: &Grid<Rock>) -> usize {
             let remaining_cycles = 1_000_000_000 - cycle;
             let remainder_after_repeats = remaining_cycles % repeat_length;
 
+            info!("Cycle detected.");
+            info!("Cycle length: {repeat_length}");
+            info!("First occurrence: {first_occurrence}");
+            info!("Remainder after repeats: {remainder_after_repeats}");
+
             for _ in 0..remainder_after_repeats {
                 apply_tilt_cycle(&mut input);
             }
@@ -177,10 +184,14 @@ fn part_2(input: &Grid<Rock>) -> usize {
         apply_tilt_cycle(&mut input);
     }
 
+    info!("\n{}", grid_string(&input));
+
     score(&input)
 }
 
 fn main() {
+    env_logger::init();
+
     let input = parse(io::stdin().lines().map(|result| result.expect("I/O error")));
 
     let part_1 = part_1(&input);
