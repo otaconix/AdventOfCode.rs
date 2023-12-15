@@ -1,5 +1,6 @@
 use aoc_timing::trace::log_run;
-use std::{io, ops::Range};
+use std::io;
+use std::ops::Range;
 
 #[derive(Debug)]
 enum ParsingState {
@@ -23,12 +24,41 @@ impl MapRange {
             None
         }
     }
+
+    fn map_range(&self, input: &Range<u64>) -> MapRangeResult {
+        MapRangeResult {
+            before: if input.start < self.source.start {
+                Some(input.start..input.end.min(self.source.start))
+            } else {
+                None
+            },
+            mapped: if input.start < self.source.end && input.end > self.source.start {
+                Some(
+                    self.map(&input.start.max(self.source.start)).unwrap()
+                        ..self.map(&(input.end.min(self.source.end) - 1)).unwrap() + 1,
+                )
+            } else {
+                None
+            },
+            after: if input.end > self.source.end {
+                Some(input.start.max(self.source.end)..input.end)
+            } else {
+                None
+            },
+        }
+    }
 }
 
 #[derive(Debug)]
 struct Map {
     title: String,
     ranges: Vec<MapRange>,
+}
+
+struct MapRangeResult {
+    before: Option<Range<u64>>,
+    mapped: Option<Range<u64>>,
+    after: Option<Range<u64>>,
 }
 
 impl Map {
@@ -45,6 +75,40 @@ impl Map {
             .find(|mapped| mapped.is_some())
             .unwrap_or(Some(*input))
             .unwrap()
+    }
+
+    /// returns (mapped, unmapped)
+    fn map_range(&self, input: &Range<u64>) -> (Vec<Range<u64>>, Vec<Range<u64>>) {
+        self.ranges.iter().fold(
+            (vec![], vec![input.to_owned()]),
+            |(mut mapped, unmapped), map_range| {
+                let (mut new_mapped, new_unmapped) = unmapped.into_iter().fold(
+                    (vec![], vec![]),
+                    |(mut mapped, mut unmapped), range| {
+                        let MapRangeResult {
+                            before,
+                            mapped: new_mapped,
+                            after,
+                        } = map_range.map_range(&range);
+                        if let Some(new_mapped) = new_mapped {
+                            mapped.push(new_mapped);
+                        }
+                        if let Some(before) = before {
+                            unmapped.push(before);
+                        }
+                        if let Some(after) = after {
+                            unmapped.push(after);
+                        }
+
+                        (mapped, unmapped)
+                    },
+                );
+
+                mapped.append(&mut new_mapped);
+
+                (mapped, new_unmapped)
+            },
+        )
     }
 }
 
@@ -119,14 +183,45 @@ fn part_1(input: &Input) -> u64 {
 }
 
 fn part_2(input: &Input) -> u64 {
-    (0..input.seeds.len())
+    let mut seed_ranges = (0..input.seeds.len())
         .step_by(2)
-        .flat_map(|seed_index| {
+        .map(|seed_index| {
             input.seeds[seed_index]..input.seeds[seed_index] + input.seeds[seed_index + 1]
         })
-        .map(|seed| input.maps.iter().fold(seed, |input, map| map.map(&input)))
+        .collect::<Vec<_>>();
+    seed_ranges.sort_unstable_by_key(|range| range.start);
+
+    input
+        .maps
+        .iter()
+        .fold(seed_ranges, |seed_ranges, map| {
+            let (mapped, unmapped) = seed_ranges.into_iter().fold(
+                (vec![], vec![]),
+                |(mut mapped, unmapped), seed_range| {
+                    let (mut new_mapped, new_unmapped) = unmapped
+                        .into_iter()
+                        .chain(Some(seed_range))
+                        .map(|unmapped| map.map_range(&unmapped))
+                        .fold((vec![], vec![]), |(mut m1, mut u1), (mut m2, mut u2)| {
+                            m1.append(&mut m2);
+                            u1.append(&mut u2);
+
+                            (m1, u1)
+                        });
+                    mapped.append(&mut new_mapped);
+
+                    (mapped, new_unmapped)
+                },
+            );
+
+            let mut result = mapped.into_iter().chain(unmapped).collect::<Vec<_>>();
+            result.sort_unstable_by_key(|range| range.start);
+            result
+        })
+        .iter()
+        .map(|range| range.start)
         .min()
-        .expect("No mapped seeds?")
+        .unwrap()
 }
 
 fn main() {
@@ -145,6 +240,12 @@ mod tests {
     use super::*;
     const INPUT: &str = include_str!("test-input.txt");
 
+    impl From<MapRangeResult> for (Option<Range<u64>>, Option<Range<u64>>, Option<Range<u64>>) {
+        fn from(val: MapRangeResult) -> Self {
+            (val.before, val.mapped, val.after)
+        }
+    }
+
     #[test]
     fn test_part_1() {
         let input = parse(INPUT.lines());
@@ -159,5 +260,34 @@ mod tests {
         let result = part_2(&input);
 
         assert_eq!(result, 46);
+    }
+
+    #[test]
+    fn test_map_range() {
+        let map_range = MapRange {
+            source: 1..4,
+            dest: 5..8,
+        };
+
+        let before_mapped_after = map_range.map_range(&(0..6));
+        assert_eq!(
+            (Some(0..1), Some(5..8), Some(4..6)),
+            before_mapped_after.into()
+        );
+
+        let before_mapped = map_range.map_range(&(0..2));
+        assert_eq!((Some(0..1), Some(5..6), None), before_mapped.into());
+
+        let mapped_after = map_range.map_range(&(1..5));
+        assert_eq!((None, Some(5..8), Some(4..5)), mapped_after.into());
+
+        let mapped = map_range.map_range(&(3..4));
+        assert_eq!((None, Some(7..8), None), mapped.into());
+
+        let before = map_range.map_range(&(0..1));
+        assert_eq!((Some(0..1), None, None), before.into());
+
+        let after = map_range.map_range(&(4..7));
+        assert_eq!((None, None, Some(4..7)), after.into());
     }
 }
