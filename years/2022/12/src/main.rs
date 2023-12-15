@@ -1,3 +1,4 @@
+use aoc_timing::trace::log_run;
 use grid::*;
 use std::collections::{BinaryHeap, HashMap};
 use std::io;
@@ -58,23 +59,27 @@ fn main() {
         })
         .collect();
 
-    let part_1 = shortest_path(
-        &input,
-        input
-            .coordinates()
-            .find(|(x, y)| matches!(input.get(*x, *y), Some(Cell::Start)))
-            .unwrap(),
-    )
-    .expect("No path found...");
+    let part_1 = log_run("Part 1", || {
+        shortest_path(
+            &input,
+            input
+                .coordinates()
+                .find(|(x, y)| matches!(input.get(*x, *y), Some(Cell::Start)))
+                .unwrap(),
+        )
+        .expect("No path found...")
+    });
     // print_grid_path(&input, &part_1);
     println!("Part 1: {}", part_1.len() - 1);
 
-    let part_2 = input
-        .coordinates()
-        .filter(|(x, y)| input.get(*x, *y).unwrap().height() == 0)
-        .filter_map(|start| shortest_path(&input, start))
-        .min_by_key(|path| path.len())
-        .expect("Couldn't find shortest path for part 2");
+    let part_2 = log_run("Part 2", || {
+        input
+            .coordinates()
+            .filter(|(x, y)| input.get(*x, *y).unwrap().height() == 0)
+            .filter_map(|start| shortest_path(&input, start))
+            .min_by_key(|path| path.len())
+            .expect("Couldn't find shortest path for part 2")
+    });
     // print_grid_path(&input, &part_2);
     println!("Part 2: {}", part_2.len() - 1)
 }

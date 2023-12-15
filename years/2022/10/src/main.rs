@@ -1,3 +1,4 @@
+use aoc_timing::trace::log_run;
 use std::io;
 use std::iter::once;
 use std::str::FromStr;
@@ -30,6 +31,8 @@ impl FromStr for Instruction {
 }
 
 fn main() {
+    env_logger::init();
+
     let instructions: Vec<Instruction> = once(Instruction::Noop)
         .chain(
             io::stdin()
@@ -60,13 +63,14 @@ fn main() {
         )
         .collect();
 
-    let part_1: i32 = states
-        .iter()
-        .take(220)
-        .filter(|(i, _)| *i >= 20 && (i - 20) % 40 == 0)
-        .map(|(i, x)| *i as i32 * x)
-        .sum();
-
+    let part_1: i32 = log_run("Part 1", || {
+        states
+            .iter()
+            .take(220)
+            .filter(|(i, _)| *i >= 20 && (i - 20) % 40 == 0)
+            .map(|(i, x)| *i as i32 * x)
+            .sum()
+    });
     println!("Part 1: {part_1}");
 
     states

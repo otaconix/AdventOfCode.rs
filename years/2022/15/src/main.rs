@@ -1,3 +1,4 @@
+use aoc_timing::trace::log_run;
 use std::{collections::HashSet, io, ops::Range, str::FromStr};
 
 use coord::Coordinate2D;
@@ -82,6 +83,7 @@ fn remove_overlaps(mut ranges: Vec<Range<i64>>) -> Vec<Range<i64>> {
 }
 
 fn main() {
+    env_logger::init();
     let sensors = io::stdin()
         .lines()
         .map(|result| result.expect("I/O error"))
@@ -93,43 +95,47 @@ fn main() {
         .collect();
     let part_1_row = 2_000_000;
 
-    let part_1: usize = remove_overlaps(
-        sensors
-            .iter()
-            .map(|sensor| sensor.impossible_range_on_row(part_1_row))
-            .filter(|range| !range.is_empty())
-            .collect(),
-    )
-    .iter()
-    .map(|range| range.clone().count())
-    .sum::<usize>()
-        - unique_beacons
-            .iter()
-            .filter(|beacon| beacon.y == part_1_row)
-            .count();
+    let part_1: usize = log_run("Part 1", || {
+        remove_overlaps(
+            sensors
+                .iter()
+                .map(|sensor| sensor.impossible_range_on_row(part_1_row))
+                .filter(|range| !range.is_empty())
+                .collect(),
+        )
+        .iter()
+        .map(|range| range.clone().count())
+        .sum::<usize>()
+            - unique_beacons
+                .iter()
+                .filter(|beacon| beacon.y == part_1_row)
+                .count()
+    });
 
     println!("Part 1: {part_1:#?}");
 
-    let part_2 = (0..=4_000_000)
-        .map(|row| {
-            let impossible_in_row = sensors
-                .iter()
-                .map(|sensor| {
-                    let mut range = sensor.impossible_range_on_row(row);
-                    range.start = range.start.clamp(0, 4_000_000);
-                    range.end = range.end.clamp(0, 4_000_000);
+    let part_2 = log_run("Part 2", || {
+        (0..=4_000_000)
+            .map(|row| {
+                let impossible_in_row = sensors
+                    .iter()
+                    .map(|sensor| {
+                        let mut range = sensor.impossible_range_on_row(row);
+                        range.start = range.start.clamp(0, 4_000_000);
+                        range.end = range.end.clamp(0, 4_000_000);
 
-                    range
-                })
-                .filter(|range| !range.is_empty())
-                .collect::<Vec<_>>();
+                        range
+                    })
+                    .filter(|range| !range.is_empty())
+                    .collect::<Vec<_>>();
 
-            remove_overlaps(impossible_in_row)
-        })
-        .enumerate()
-        .find(|(_, impossible_in_row)| impossible_in_row.len() > 1)
-        .map(|(y, x)| x[0].end * 4_000_000 + y as i64)
-        .unwrap();
+                remove_overlaps(impossible_in_row)
+            })
+            .enumerate()
+            .find(|(_, impossible_in_row)| impossible_in_row.len() > 1)
+            .map(|(y, x)| x[0].end * 4_000_000 + y as i64)
+            .unwrap()
+    });
 
     println!("Part 2: {part_2:?}");
 }

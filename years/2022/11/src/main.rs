@@ -1,3 +1,5 @@
+use aoc_timing::trace::log_run;
+
 #[derive(Debug, Clone)]
 enum MonkeyOperation {
     MultiplicationSelf,
@@ -60,6 +62,8 @@ where
 }
 
 fn main() {
+    env_logger::init();
+
     let monkeys = vec![
         Monkey {
             items: vec![66, 79],
@@ -128,23 +132,27 @@ fn main() {
     ];
     let common_divisor: u64 = monkeys.iter().map(|monkey| monkey.test_divisor).product();
 
-    let mut part_1_monkeys = monkeys.clone();
-    for _round in 0..20 {
-        play_round(&mut part_1_monkeys, common_divisor, |item| item / 3);
-    }
-    part_1_monkeys.sort_by_cached_key(|monkey| monkey.inspections);
-    part_1_monkeys.reverse();
+    let part_1 = log_run("Part 1", || {
+        let mut part_1_monkeys = monkeys.clone();
+        for _round in 0..20 {
+            play_round(&mut part_1_monkeys, common_divisor, |item| item / 3);
+        }
+        part_1_monkeys.sort_by_cached_key(|monkey| monkey.inspections);
+        part_1_monkeys.reverse();
 
-    let part_1 = part_1_monkeys[0].inspections * part_1_monkeys[1].inspections;
+        part_1_monkeys[0].inspections * part_1_monkeys[1].inspections
+    });
     println!("Part 1: {part_1}");
 
-    let mut part_2_monkeys = monkeys;
-    for _round in 0..10_000 {
-        play_round(&mut part_2_monkeys, common_divisor, |item| item);
-    }
-    part_2_monkeys.sort_by_cached_key(|monkey| monkey.inspections);
-    part_2_monkeys.reverse();
+    let mut part_2_monkeys = monkeys.clone();
+    let part_2 = log_run("Part 2", || {
+        for _round in 0..10_000 {
+            play_round(&mut part_2_monkeys, common_divisor, |item| item);
+        }
+        part_2_monkeys.sort_by_cached_key(|monkey| monkey.inspections);
+        part_2_monkeys.reverse();
 
-    let part_2 = part_2_monkeys[0].inspections * part_2_monkeys[1].inspections;
+        part_2_monkeys[0].inspections * part_2_monkeys[1].inspections
+    });
     println!("Part 2: {part_2}");
 }

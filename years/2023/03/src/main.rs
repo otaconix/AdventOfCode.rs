@@ -1,3 +1,4 @@
+use aoc_timing::trace::log_run;
 use grid::*;
 use std::collections::HashSet;
 use std::io;
@@ -136,14 +137,13 @@ fn part_2(grid: &Grid<char>) -> u32 {
 }
 
 fn main() {
+    env_logger::init();
     let grid: Grid<char> = parse(io::stdin().lines().map(|result| result.expect("I/O error")));
 
-    let part_1 = part_1(&grid);
-
+    let part_1 = log_run("Part 1", || part_1(&grid));
     println!("Part 1: {part_1}");
 
-    let part_2 = part_2(&grid);
-
+    let part_2 = log_run("Part 2", || part_2(&grid));
     println!("Part 2: {part_2}");
 }
 

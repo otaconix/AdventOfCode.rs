@@ -1,5 +1,6 @@
 use std::{cmp::Ordering, io};
 
+use aoc_timing::trace::log_run;
 use grid::Grid;
 use itertools::Itertools;
 
@@ -143,12 +144,13 @@ fn cells_within_loop(grid_loop: &[(usize, usize)]) -> i32 {
 }
 
 fn main() {
+    env_logger::init();
     let input = parse(io::stdin().lines().map(|result| result.expect("I/O error")));
 
-    let grid_loop = get_loop(&input);
-    let part_1 = grid_loop.len() / 2;
+    let grid_loop = log_run("Getting loop", || get_loop(&input));
+    let part_1 = log_run("Part 1", || grid_loop.len() / 2);
     println!("Part 1: {part_1}");
 
-    let part_2 = cells_within_loop(&grid_loop);
+    let part_2 = log_run("Part 2", || cells_within_loop(&grid_loop));
     println!("Part 2: {part_2}");
 }

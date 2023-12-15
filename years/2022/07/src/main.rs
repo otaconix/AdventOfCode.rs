@@ -1,3 +1,4 @@
+use aoc_timing::trace::log_run;
 use std::collections::HashMap;
 use std::io;
 use std::path::PathBuf;
@@ -80,6 +81,8 @@ fn insert_direntry<F: FnOnce() -> DirEntry>(fs: &mut FileSystem, path: PathBuf, 
 }
 
 fn main() {
+    env_logger::init();
+
     let root_path: PathBuf = PathBuf::from("/");
     let mut fs = FileSystem::new();
     fs.insert(
@@ -114,7 +117,7 @@ fn main() {
                 }
             },
             CommandLine::Dir(name) => {
-                let dir_path = pwd.join(&name);
+                let dir_path = pwd.join(name);
                 insert_direntry(&mut fs, dir_path.clone(), || {
                     DirEntry::Dir(Directory {
                         path: dir_path.clone(),
@@ -125,7 +128,7 @@ fn main() {
                 pwd
             }
             CommandLine::File(name, size) => {
-                let file_path = pwd.join(&name);
+                let file_path = pwd.join(name);
                 insert_direntry(&mut fs, file_path, || DirEntry::File(File { size }));
 
                 pwd
@@ -133,26 +136,28 @@ fn main() {
             CommandLine::Ls => pwd,
         });
 
-    let part_1: u64 = fs
-        .values()
-        .filter(|direntry| direntry.is_directory())
-        .map(|dir| dir.size(&fs))
-        .filter(|size| size < &100_000u64)
-        .sum();
+    let part_1: u64 = log_run("Part 1", || {
+        fs.values()
+            .filter(|direntry| direntry.is_directory())
+            .map(|dir| dir.size(&fs))
+            .filter(|size| size < &100_000u64)
+            .sum()
+    });
 
     println!("Part 1: {}", part_1);
 
-    let total_used = fs.get(&root_path).unwrap().size(&fs);
-    let unused = 70_000_000 - total_used;
-    let minimum_needed = 30_000_000 - unused;
+    let part_2: u64 = log_run("Part 2", || {
+        let total_used = fs.get(&root_path).unwrap().size(&fs);
+        let unused = 70_000_000 - total_used;
+        let minimum_needed = 30_000_000 - unused;
 
-    let part_2: u64 = fs
-        .values()
-        .filter(|direntry| direntry.is_directory())
-        .map(|dir| dir.size(&fs))
-        .filter(|size| size >= &minimum_needed)
-        .min()
-        .expect("No solution to part 2 found?");
+        fs.values()
+            .filter(|direntry| direntry.is_directory())
+            .map(|dir| dir.size(&fs))
+            .filter(|size| size >= &minimum_needed)
+            .min()
+            .expect("No solution to part 2 found?")
+    });
 
     println!("Part 2: {}", part_2);
 }

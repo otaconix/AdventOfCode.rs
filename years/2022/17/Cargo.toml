@@ -9,3 +9,4 @@ edition = "2021"
 coord = { version = "0.1.0", path = "../../../crates/coord" }
 log = "0.4"
 env_logger = "0.10"
+aoc-timing = { version = "0.1.0", path = "../../../crates/timing" }

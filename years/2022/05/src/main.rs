@@ -1,3 +1,4 @@
+use aoc_timing::trace::log_run;
 use std::io;
 use std::str::FromStr;
 
@@ -107,6 +108,8 @@ where
 }
 
 fn main() {
+    env_logger::init();
+
     let input: Input = io::stdin()
         .lines()
         .map(|result| result.expect("I/O error"))
@@ -158,29 +161,33 @@ fn main() {
         })
         .into();
 
-    let mut stacks = input.stacks.clone();
-    for step in input.rearrangement_procedure.iter() {
-        apply_rearrangement_step(&mut stacks, step, |crates| {
-            crates.into_iter().rev().collect()
-        });
-    }
+    let part_1 = log_run("Part 1", || {
+        let mut stacks = input.stacks.clone();
+        for step in input.rearrangement_procedure.iter() {
+            apply_rearrangement_step(&mut stacks, step, |crates| {
+                crates.into_iter().rev().collect()
+            });
+        }
 
-    let part_1 = stacks
-        .into_iter()
-        .filter_map(|stack| stack.into_iter().last().map(|c| c.identifier))
-        .collect::<String>();
+        stacks
+            .into_iter()
+            .filter_map(|stack| stack.into_iter().last().map(|c| c.identifier))
+            .collect::<String>()
+    });
 
     println!("Part 1: {}", part_1);
 
-    let mut stacks = input.stacks.clone();
-    for step in input.rearrangement_procedure.iter() {
-        apply_rearrangement_step(&mut stacks, step, |x| x);
-    }
+    let part_2 = log_run("Part 1", || {
+        let mut stacks = input.stacks.clone();
+        for step in input.rearrangement_procedure.iter() {
+            apply_rearrangement_step(&mut stacks, step, |x| x);
+        }
 
-    let part_2 = stacks
-        .into_iter()
-        .filter_map(|stack| stack.into_iter().last().map(|c| c.identifier))
-        .collect::<String>();
+        stacks
+            .into_iter()
+            .filter_map(|stack| stack.into_iter().last().map(|c| c.identifier))
+            .collect::<String>()
+    });
 
     println!("Part 2: {}", part_2);
 }

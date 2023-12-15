@@ -1,3 +1,4 @@
+use aoc_timing::trace::log_run;
 use std::io;
 
 const PRIORITIES: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -43,33 +44,39 @@ impl ItemPriority for char {
 }
 
 fn main() {
+    env_logger::init();
+
     let rucksacks: Vec<Rucksack> = io::stdin()
         .lines()
         .map(|result| result.expect("I/O error"))
         .map(|line| Rucksack { items: line })
         .collect();
 
-    let silver: u32 = rucksacks
-        .iter()
-        .map(|rucksack| {
-            rucksack
-                .item_in_both_compartments()
-                .expect("No item found in both compartments!")
-                .priority()
-        })
-        .sum();
+    let silver: u32 = log_run("Part 1", || {
+        rucksacks
+            .iter()
+            .map(|rucksack| {
+                rucksack
+                    .item_in_both_compartments()
+                    .expect("No item found in both compartments!")
+                    .priority()
+            })
+            .sum()
+    });
 
     println!("Silver: {}", silver);
 
-    let gold: u32 = rucksacks
-        .chunks(3)
-        .map(|rucksacks| {
-            rucksacks[0]
-                .common_item(&rucksacks[1..])
-                .expect("No common item found")
-                .priority()
-        })
-        .sum();
+    let gold: u32 = log_run("Part 2", || {
+        rucksacks
+            .chunks(3)
+            .map(|rucksacks| {
+                rucksacks[0]
+                    .common_item(&rucksacks[1..])
+                    .expect("No common item found")
+                    .priority()
+            })
+            .sum()
+    });
 
     println!("Gold: {}", gold);
 }

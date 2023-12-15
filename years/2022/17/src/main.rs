@@ -216,6 +216,7 @@ mod solution {
     }
 }
 
+use aoc_timing::trace::log_run;
 use solution::*;
 use std::io;
 
@@ -229,12 +230,12 @@ fn main() {
         .collect::<Result<Vec<_>, String>>()
         .expect("Invalid input");
 
-    println!(
-        "Part 1: {}",
+    let part_1 = log_run("Part 1", || {
         Well::drop_rocks(&mut JetIterator::new(&input), 2022)
-    );
-    println!(
-        "Part 2: {}",
+    });
+    println!("Part 1: {part_1}");
+    let part_2 = log_run("Part 2", || {
         Well::drop_rocks(&mut JetIterator::new(&input), 1_000_000_000_000)
-    );
+    });
+    println!("Part 2: {part_2}");
 }

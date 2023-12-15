@@ -1,3 +1,4 @@
+use aoc_timing::trace::log_run;
 use std::collections::HashSet;
 use std::io;
 
@@ -45,6 +46,7 @@ fn exterior(lava_bits: &HashSet<LavaBit>) -> HashSet<LavaBit> {
 }
 
 fn main() {
+    env_logger::init();
     let input: HashSet<_> = io::stdin()
         .lines()
         .map(|result| result.expect("I/O error"))
@@ -58,28 +60,31 @@ fn main() {
         })
         .collect();
 
-    let part1 = input
-        .iter()
-        .flat_map(|lava_bit| {
-            lava_bit
-                .neighbors()
-                .into_iter()
-                .filter(|neighbor| !input.contains(neighbor))
-        })
-        .count();
-
+    let part1 = log_run("Part 1", || {
+        input
+            .iter()
+            .flat_map(|lava_bit| {
+                lava_bit
+                    .neighbors()
+                    .into_iter()
+                    .filter(|neighbor| !input.contains(neighbor))
+            })
+            .count()
+    });
     println!("Part 1: {part1}");
 
-    let exterior = exterior(&input);
-    let part2 = input
-        .iter()
-        .flat_map(|lava_bit| {
-            lava_bit
-                .neighbors()
-                .into_iter()
-                .filter(|neighbor| exterior.contains(neighbor))
-        })
-        .count();
+    let part2 = log_run("Part 2", || {
+        let exterior = exterior(&input);
 
+        input
+            .iter()
+            .flat_map(|lava_bit| {
+                lava_bit
+                    .neighbors()
+                    .into_iter()
+                    .filter(|neighbor| exterior.contains(neighbor))
+            })
+            .count()
+    });
     println!("Part 2: {part2}");
 }

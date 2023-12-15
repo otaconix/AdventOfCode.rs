@@ -1,3 +1,4 @@
+use aoc_timing::trace::log_run;
 use std::io;
 use std::ops::RangeInclusive;
 
@@ -32,6 +33,8 @@ impl From<SectionIdRange> for RangeInclusive<u32> {
 }
 
 fn main() {
+    env_logger::init();
+
     let paired_ranges: Vec<_> = io::stdin()
         .lines()
         .map(|result| result.expect("I/O error"))
@@ -47,20 +50,24 @@ fn main() {
         })
         .collect();
 
-    let part_1 = paired_ranges
-        .iter()
-        .filter(|(range_a, range_b)| {
-            range_a.to_owned().all(|a| range_b.contains(&a))
-                || range_b.to_owned().all(|b| range_a.contains(&b))
-        })
-        .count();
+    let part_1 = log_run("Part 1", || {
+        paired_ranges
+            .iter()
+            .filter(|(range_a, range_b)| {
+                range_a.to_owned().all(|a| range_b.contains(&a))
+                    || range_b.to_owned().all(|b| range_a.contains(&b))
+            })
+            .count()
+    });
 
     println!("Part 1: {}", part_1);
 
-    let part_2 = paired_ranges
-        .iter()
-        .filter(|(range_a, range_b)| range_a.to_owned().any(|a| range_b.contains(&a)))
-        .count();
+    let part_2 = log_run("Part 2", || {
+        paired_ranges
+            .iter()
+            .filter(|(range_a, range_b)| range_a.to_owned().any(|a| range_b.contains(&a)))
+            .count()
+    });
 
     println!("Part 2: {}", part_2);
 }

@@ -1,6 +1,6 @@
 use std::io;
 
-use aoc_timing::info;
+use aoc_timing::trace;
 
 fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Vec<String> {
     input
@@ -64,10 +64,10 @@ fn main() {
     env_logger::init();
     let input = parse(io::stdin().lines().map(|result| result.expect("I/O error")));
 
-    let part_1 = info::log_run("Part 1", || part_1(&input));
+    let part_1 = trace::log_run("Part 1", || part_1(&input));
     println!("Part 1: {part_1}");
 
-    let part_2 = info::log_run("Part 2", || part_2(&input));
+    let part_2 = trace::log_run("Part 2", || part_2(&input));
     println!("Part 2: {part_2}");
 }
 

@@ -1,3 +1,4 @@
+use aoc_timing::trace::log_run;
 use coord::Coordinate2D;
 use std::collections::HashSet;
 use std::io;
@@ -126,34 +127,40 @@ impl FromStr for Move {
 }
 
 fn main() {
+    env_logger::init();
+
     let moves: Vec<Move> = io::stdin()
         .lines()
         .map(|result| result.expect("I/O error"))
         .map(|line| line.parse().unwrap())
         .collect();
 
-    let part_1: HashSet<_> = moves
-        .iter()
-        .flat_map(|mov| mov.as_repeated_direction())
-        .scan(Rope::new(2.try_into().unwrap()), |rope, direction| {
-            rope.move_in_direction(direction);
-            Some(*rope.tail())
-        })
-        .collect();
+    let part_1: HashSet<_> = log_run("Part 1", || {
+        moves
+            .iter()
+            .flat_map(|mov| mov.as_repeated_direction())
+            .scan(Rope::new(2.try_into().unwrap()), |rope, direction| {
+                rope.move_in_direction(direction);
+                Some(*rope.tail())
+            })
+            .collect()
+    });
 
     println!("Part 1: {}", part_1.len());
 
-    let part_2: HashSet<_> = moves
-        .iter()
-        .flat_map(|mov| mov.as_repeated_direction())
-        .scan(
-            Rope::new(NonZeroUsize::new(10).unwrap()),
-            |rope, direction| {
-                rope.move_in_direction(direction);
-                Some(*rope.tail())
-            },
-        )
-        .collect();
+    let part_2: HashSet<_> = log_run("Part 2", || {
+        moves
+            .iter()
+            .flat_map(|mov| mov.as_repeated_direction())
+            .scan(
+                Rope::new(NonZeroUsize::new(10).unwrap()),
+                |rope, direction| {
+                    rope.move_in_direction(direction);
+                    Some(*rope.tail())
+                },
+            )
+            .collect()
+    });
 
     println!("Part 2: {}", part_2.len());
 }

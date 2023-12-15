@@ -1,3 +1,4 @@
+use aoc_timing::trace::log_run;
 use coord::Coordinate2D;
 use std::cmp::Ordering;
 use std::collections::HashSet;
@@ -113,6 +114,8 @@ impl PuzzleCoordinate for Coordinate2D {
 }
 
 fn main() {
+    env_logger::init();
+
     let rock_structures: Vec<_> = io::stdin()
         .lines()
         .map(|result| result.expect("I/O error"))
@@ -133,50 +136,55 @@ fn main() {
     let start_coordinate = Coordinate2D::new(500, 0);
 
     let mut stage = rock_coords.clone();
-    let part_1 = (0..)
-        .find(|_| {
-            let mut sand = start_coordinate;
+    let part_1 = log_run("Part 1", || {
+        (0..)
+            .find(|_| {
+                let mut sand = start_coordinate;
 
-            while sand.y < lowest_rock_y {
-                if let Some(next) = [sand.down(), sand.down_left(), sand.down_right()]
-                    .iter()
-                    .find(|next| !stage.contains(next))
-                {
-                    sand = *next;
-                } else {
-                    stage.insert(sand);
-                    return false;
+                while sand.y < lowest_rock_y {
+                    if let Some(next) = [sand.down(), sand.down_left(), sand.down_right()]
+                        .iter()
+                        .find(|next| !stage.contains(next))
+                    {
+                        sand = *next;
+                    } else {
+                        stage.insert(sand);
+                        return false;
+                    }
                 }
-            }
 
-            true
-        })
-        .unwrap();
+                true
+            })
+            .unwrap()
+    });
 
     println!("Part 1: {part_1}");
 
-    let floor_y = lowest_rock_y + 2;
-    let mut stage = rock_coords;
-    let part_2 = (1..)
-        .find(|_| {
-            let mut sand = start_coordinate;
+    let mut stage = rock_coords.clone();
+    let part_2 = log_run("Part 2", || {
+        let floor_y = lowest_rock_y + 2;
 
-            while sand.y + 1 < floor_y {
-                if let Some(next) = [sand.down(), sand.down_left(), sand.down_right()]
-                    .iter()
-                    .find(|next| !stage.contains(next))
-                {
-                    sand = *next;
-                } else {
-                    stage.insert(sand);
-                    return sand == start_coordinate;
+        (1..)
+            .find(|_| {
+                let mut sand = start_coordinate;
+
+                while sand.y + 1 < floor_y {
+                    if let Some(next) = [sand.down(), sand.down_left(), sand.down_right()]
+                        .iter()
+                        .find(|next| !stage.contains(next))
+                    {
+                        sand = *next;
+                    } else {
+                        stage.insert(sand);
+                        return sand == start_coordinate;
+                    }
                 }
-            }
 
-            stage.insert(sand);
-            false
-        })
-        .unwrap();
+                stage.insert(sand);
+                false
+            })
+            .unwrap()
+    });
 
     println!("Part 2: {part_2}");
 }

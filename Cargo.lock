@@ -92,43 +92,81 @@ dependencies = [
 [[package]]
 name = "aoc-2018-01"
 version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "env_logger",
+]
 
 [[package]]
 name = "aoc-2018-02"
 version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "env_logger",
+]
 
 [[package]]
 name = "aoc-2022-01"
 version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "env_logger",
+]
 
 [[package]]
 name = "aoc-2022-02"
 version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "env_logger",
+]
 
 [[package]]
 name = "aoc-2022-03"
 version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "env_logger",
+]
 
 [[package]]
 name = "aoc-2022-04"
 version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "env_logger",
+]
 
 [[package]]
 name = "aoc-2022-05"
 version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "env_logger",
+]
 
 [[package]]
 name = "aoc-2022-06"
 version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "env_logger",
+]
 
 [[package]]
 name = "aoc-2022-07"
 version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "env_logger",
+]
 
 [[package]]
 name = "aoc-2022-08"
 version = "0.1.0"
 dependencies = [
+ "aoc-timing",
+ "env_logger",
  "grid",
 ]
 
@@ -136,21 +174,33 @@ dependencies = [
 name = "aoc-2022-09"
 version = "0.1.0"
 dependencies = [
+ "aoc-timing",
  "coord",
+ "env_logger",
 ]
 
 [[package]]
 name = "aoc-2022-10"
 version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "env_logger",
+]
 
 [[package]]
 name = "aoc-2022-11"
 version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "env_logger",
+]
 
 [[package]]
 name = "aoc-2022-12"
 version = "0.1.0"
 dependencies = [
+ "aoc-timing",
+ "env_logger",
  "grid",
 ]
 
@@ -158,6 +208,8 @@ dependencies = [
 name = "aoc-2022-13"
 version = "0.1.0"
 dependencies = [
+ "aoc-timing",
+ "env_logger",
  "pom 3.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -165,14 +217,18 @@ dependencies = [
 name = "aoc-2022-14"
 version = "0.1.0"
 dependencies = [
+ "aoc-timing",
  "coord",
+ "env_logger",
 ]
 
 [[package]]
 name = "aoc-2022-15"
 version = "0.1.0"
 dependencies = [
+ "aoc-timing",
  "coord",
+ "env_logger",
  "pom 3.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -180,6 +236,8 @@ dependencies = [
 name = "aoc-2022-16"
 version = "0.1.0"
 dependencies = [
+ "aoc-timing",
+ "env_logger",
  "pom 3.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -187,6 +245,7 @@ dependencies = [
 name = "aoc-2022-17"
 version = "0.1.0"
 dependencies = [
+ "aoc-timing",
  "coord",
  "env_logger",
  "log",
@@ -195,12 +254,17 @@ dependencies = [
 [[package]]
 name = "aoc-2022-18"
 version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "env_logger",
+]
 
 [[package]]
 name = "aoc-2022-19"
 version = "0.1.0"
 dependencies = [
  "aoc-macros",
+ "aoc-timing",
  "aoc-utils",
  "env_logger",
  "log",
@@ -210,11 +274,17 @@ dependencies = [
 [[package]]
 name = "aoc-2023-01"
 version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "env_logger",
+]
 
 [[package]]
 name = "aoc-2023-02"
 version = "0.1.0"
 dependencies = [
+ "aoc-timing",
+ "env_logger",
  "pom 3.3.0 (git+https://github.com/J-F-Liu/pom.git)",
 ]
 
@@ -222,6 +292,8 @@ dependencies = [
 name = "aoc-2023-03"
 version = "0.1.0"
 dependencies = [
+ "aoc-timing",
+ "env_logger",
  "grid",
 ]
 
@@ -229,40 +301,60 @@ dependencies = [
 name = "aoc-2023-04"
 version = "0.1.0"
 dependencies = [
+ "aoc-timing",
+ "env_logger",
  "pom 3.3.0 (git+https://github.com/J-F-Liu/pom.git)",
 ]
 
 [[package]]
 name = "aoc-2023-05"
 version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "env_logger",
+]
 
 [[package]]
 name = "aoc-2023-06"
 version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "env_logger",
+]
 
 [[package]]
 name = "aoc-2023-07"
 version = "0.1.0"
 dependencies = [
  "aoc-macros",
+ "aoc-timing",
  "aoc-utils",
+ "env_logger",
 ]
 
 [[package]]
 name = "aoc-2023-08"
 version = "0.1.0"
 dependencies = [
+ "aoc-timing",
+ "env_logger",
  "num-integer",
 ]
 
 [[package]]
 name = "aoc-2023-09"
 version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "env_logger",
+]
 
 [[package]]
 name = "aoc-2023-10"
 version = "0.1.0"
 dependencies = [
+ "aoc-timing",
+ "env_logger",
  "grid",
  "itertools",
 ]
@@ -271,6 +363,8 @@ dependencies = [
 name = "aoc-2023-11"
 version = "0.1.0"
 dependencies = [
+ "aoc-timing",
+ "env_logger",
  "grid",
  "itertools",
 ]
@@ -279,6 +373,8 @@ dependencies = [
 name = "aoc-2023-12"
 version = "0.1.0"
 dependencies = [
+ "aoc-timing",
+ "env_logger",
  "itertools",
  "rayon",
 ]
@@ -287,7 +383,9 @@ dependencies = [
 name = "aoc-2023-13"
 version = "0.1.0"
 dependencies = [
+ "aoc-timing",
  "aoc-utils",
+ "env_logger",
  "grid",
 ]
 
@@ -295,6 +393,7 @@ dependencies = [
 name = "aoc-2023-14"
 version = "0.1.0"
 dependencies = [
+ "aoc-timing",
  "env_logger",
  "grid",
  "log",

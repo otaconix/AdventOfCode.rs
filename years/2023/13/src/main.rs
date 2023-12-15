@@ -1,5 +1,6 @@
 use std::io;
 
+use aoc_timing::trace::log_run;
 use aoc_utils::PartitionEnumerated;
 use grid::Grid;
 
@@ -130,14 +131,13 @@ fn part_2(input: &[Grid<Stuff>]) -> usize {
 }
 
 fn main() {
+    env_logger::init();
     let input = parse(io::stdin().lines().map(|result| result.expect("I/O error")));
 
-    let part_1 = part_1(&input);
-
+    let part_1 = log_run("Part 1", || part_1(&input));
     println!("Part 1: {part_1}");
 
-    let part_2 = part_2(&input);
-
+    let part_2 = log_run("Part 2", || part_2(&input));
     println!("Part 2: {part_2}");
 }
 

@@ -1,3 +1,4 @@
+use aoc_timing::trace::log_run;
 use std::io;
 
 #[derive(PartialEq, Eq, Clone, Copy)]
@@ -83,11 +84,11 @@ fn score(opponent_hand: &RockPaperScissors, own_hand: &RockPaperScissors) -> u32
     shape_score + win_score
 }
 
-impl PartialOrd for RockPaperScissors {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+impl Ord for RockPaperScissors {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         use std::cmp::Ordering::*;
 
-        Some(match (self, other) {
+        match (self, other) {
             (Rock, Rock) => Equal,
             (Rock, Paper) => Less,
             (Rock, Scissors) => Greater,
@@ -97,34 +98,38 @@ impl PartialOrd for RockPaperScissors {
             (Scissors, Rock) => Less,
             (Scissors, Paper) => Greater,
             (Scissors, Scissors) => Equal,
-        })
+        }
     }
 }
 
-impl Ord for RockPaperScissors {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.partial_cmp(other).unwrap()
+impl PartialOrd for RockPaperScissors {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 
 fn main() {
-    let (silver, gold) = io::stdin()
-        .lines()
-        .map(|result| result.expect("I/O error"))
-        .map(|line| {
-            let hands: Vec<&str> = line.split_whitespace().collect();
-            assert_eq!(hands.len(), 2, "Hands per line must be two!");
+    env_logger::init();
 
-            let opponent = RockPaperScissors::parse_opponent(hands[0]);
-            let own_silver = RockPaperScissors::parse_own(hands[1]);
-            let outcome = Outcome::parse(hands[1]);
-            let own_gold = outcome.determine_needed_hand(&opponent);
+    let (silver, gold) = log_run("Both parts", || {
+        io::stdin()
+            .lines()
+            .map(|result| result.expect("I/O error"))
+            .map(|line| {
+                let hands: Vec<&str> = line.split_whitespace().collect();
+                assert_eq!(hands.len(), 2, "Hands per line must be two!");
 
-            (score(&opponent, &own_silver), score(&opponent, &own_gold))
-        })
-        .fold((0u32, 0u32), |(silver, gold), score| {
-            (silver + score.0, gold + score.1)
-        });
+                let opponent = RockPaperScissors::parse_opponent(hands[0]);
+                let own_silver = RockPaperScissors::parse_own(hands[1]);
+                let outcome = Outcome::parse(hands[1]);
+                let own_gold = outcome.determine_needed_hand(&opponent);
+
+                (score(&opponent, &own_silver), score(&opponent, &own_gold))
+            })
+            .fold((0u32, 0u32), |(silver, gold), score| {
+                (silver + score.0, gold + score.1)
+            })
+    });
 
     println!("Silver: {}", silver);
     println!("Gold: {}", gold);

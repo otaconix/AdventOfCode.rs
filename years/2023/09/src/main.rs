@@ -1,3 +1,4 @@
+use aoc_timing::trace::log_run;
 use std::io;
 
 fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Vec<Vec<i32>> {
@@ -29,12 +30,14 @@ fn deduce_around(series: &[i32]) -> (i32, i32) {
 fn main() {
     let input = parse(io::stdin().lines().map(|result| result.expect("I/O error")));
 
-    let (part_2, part_1) = input
-        .iter()
-        .map(|series| deduce_around(series))
-        .fold((0, 0), |(sum_prev, sum_next), (prev, next)| {
-            (sum_prev + prev, sum_next + next)
-        });
+    let (part_2, part_1) = log_run("Both parts", || {
+        input
+            .iter()
+            .map(|series| deduce_around(series))
+            .fold((0, 0), |(sum_prev, sum_next), (prev, next)| {
+                (sum_prev + prev, sum_next + next)
+            })
+    });
 
     println!("Part 1: {part_1}");
     println!("Part 2: {part_2}");

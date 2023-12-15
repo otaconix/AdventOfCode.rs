@@ -1,3 +1,4 @@
+use aoc_timing::trace::log_run;
 use std::io;
 
 #[derive(Debug)]
@@ -7,6 +8,8 @@ enum InputLine {
 }
 
 fn main() {
+    env_logger::init();
+
     let mut input = io::stdin()
         .lines()
         .map(|result| result.expect("IO error"))
@@ -39,18 +42,22 @@ fn main() {
         input.0
     };
 
-    let silver: u32 = input
-        .iter()
-        .map(|elf| elf.iter().sum())
-        .max()
-        .expect("Was there no input?");
+    let silver: u32 = log_run("Part 1", || {
+        input
+            .iter()
+            .map(|elf| elf.iter().sum())
+            .max()
+            .expect("Was there no input?")
+    });
 
     println!("Silver: {}", silver);
 
-    let mut calories_per_elf: Vec<u32> = input.iter().map(|elf| elf.iter().sum()).collect();
-    calories_per_elf.sort_by(|a, b| a.cmp(b).reverse());
+    let gold: u32 = log_run("Part 2", || {
+        let mut calories_per_elf: Vec<u32> = input.iter().map(|elf| elf.iter().sum()).collect();
+        calories_per_elf.sort_by(|a, b| a.cmp(b).reverse());
 
-    let gold: u32 = calories_per_elf.iter().take(3).sum();
+        calories_per_elf.iter().take(3).sum()
+    });
 
     println!("Gold: {}", gold);
 }

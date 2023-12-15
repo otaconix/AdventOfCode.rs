@@ -31,6 +31,7 @@ run-all:
 	ARG --required AOC_SESSION
 
 	FROM +build
+	ENV RUST_LOG=aoc_timing=trace
 	CACHE /root/.cache/aoc-runner
 	FOR year IN $(ls years)
 		FOR day IN $(ls "years/${year}")

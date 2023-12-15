@@ -1,3 +1,4 @@
+use aoc_timing::trace::log_run;
 use std::{cmp::Ordering, io};
 use types::*;
 
@@ -66,6 +67,8 @@ mod types {
 }
 
 fn main() {
+    env_logger::init();
+
     let inputs: Vec<_> = io::stdin()
         .lines()
         .map(|result| result.expect("I/O error"))
@@ -73,27 +76,32 @@ fn main() {
         .map(|line| line.parse::<Input>().unwrap())
         .collect::<Vec<_>>();
 
-    let part_1: usize = (1..)
-        .zip(
-            inputs
-                .chunks(2)
-                .map(|pair| (pair[0].clone(), pair[1].clone())),
-        )
-        .filter(|(_, (a, b))| Ordering::is_le(a.cmp(b)))
-        .map(|(index, _)| index)
-        .sum();
+    let part_1: usize = log_run("Part 1", || {
+        (1..)
+            .zip(
+                inputs
+                    .chunks(2)
+                    .map(|pair| (pair[0].clone(), pair[1].clone())),
+            )
+            .filter(|(_, (a, b))| Ordering::is_le(a.cmp(b)))
+            .map(|(index, _)| index)
+            .sum()
+    });
     println!("Part 1: {part_1}");
 
-    let divider_packets: [Input; 2] = ["[[2]]".parse().unwrap(), "[[6]]".parse().unwrap()];
-    let mut part_2 = divider_packets
-        .iter()
-        .chain(inputs.iter())
-        .collect::<Vec<_>>();
-    part_2.sort();
-    let part_2: usize = (1..)
-        .zip(part_2.iter())
-        .filter(|(_, input)| divider_packets.contains(input))
-        .map(|(index, _)| index)
-        .product();
+    let part_2: usize = log_run("Part 2", || {
+        let divider_packets: [Input; 2] = ["[[2]]".parse().unwrap(), "[[6]]".parse().unwrap()];
+        let mut part_2 = divider_packets
+            .iter()
+            .chain(inputs.iter())
+            .collect::<Vec<_>>();
+        part_2.sort();
+
+        (1..)
+            .zip(part_2.iter())
+            .filter(|(_, input)| divider_packets.contains(input))
+            .map(|(index, _)| index)
+            .product()
+    });
     println!("Part 2: {part_2}");
 }

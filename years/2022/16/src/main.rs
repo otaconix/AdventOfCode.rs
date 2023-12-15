@@ -1,3 +1,4 @@
+use aoc_timing::trace::log_run;
 use std::collections::HashMap;
 use std::io;
 use std::str::FromStr;
@@ -218,6 +219,7 @@ fn maximum_possible_pressure_release_with_elephant<'a>(
 }
 
 fn main() {
+    env_logger::init();
     let valves = io::stdin()
         .lines()
         .map(|result| result.expect("I/O error"))
@@ -229,9 +231,13 @@ fn main() {
         .map(|valve| (valve.name.clone(), valve))
         .collect::<HashMap<_, _>>();
 
-    let part_1 = maximum_possible_pressure_release("AA", &valves, 30);
+    let part_1 = log_run("Part 1", || {
+        maximum_possible_pressure_release("AA", &valves, 30)
+    });
     println!("Part 1: {part_1}");
 
-    let part_2 = maximum_possible_pressure_release_with_elephant("AA", &valves, 26);
+    let part_2 = log_run("Part 2", || {
+        maximum_possible_pressure_release_with_elephant("AA", &valves, 26)
+    });
     println!("Part 2: {part_2}");
 }

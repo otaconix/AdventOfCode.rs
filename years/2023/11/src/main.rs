@@ -1,5 +1,6 @@
 use std::io;
 
+use aoc_timing::trace::log_run;
 use grid::Grid;
 use itertools::Itertools;
 
@@ -64,6 +65,8 @@ fn sum_of_distances_between_stars<F: Clone + Fn(usize) -> usize>(
 }
 
 fn main() {
+    env_logger::init();
+
     let input = parse(io::stdin().lines().map(|result| result.expect("I/O error")));
     let empty_row_indices = (0..input.height())
         .filter_map(|row_index| {
@@ -91,21 +94,24 @@ fn main() {
         .filter(|(x, y)| matches!(input.get(*x, *y).unwrap(), Cell::Star))
         .collect::<Vec<_>>();
 
-    let part_1 = sum_of_distances_between_stars(
-        &star_coordinates,
-        &empty_row_indices,
-        &empty_column_indices,
-        |count| count,
-    );
-
+    let part_1 = log_run("Part 1", || {
+        sum_of_distances_between_stars(
+            &star_coordinates,
+            &empty_row_indices,
+            &empty_column_indices,
+            |count| count,
+        )
+    });
     println!("Part 1: {part_1}");
 
-    let part_2 = sum_of_distances_between_stars(
-        &star_coordinates,
-        &empty_row_indices,
-        &empty_column_indices,
-        |count| count * 999_999,
-    );
+    let part_2 = log_run("Part 2", || {
+        sum_of_distances_between_stars(
+            &star_coordinates,
+            &empty_row_indices,
+            &empty_column_indices,
+            |count| count * 999_999,
+        )
+    });
 
     println!("Part 2: {part_2}");
 }
