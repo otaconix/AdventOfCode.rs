@@ -1,6 +1,6 @@
 use std::io;
 
-use indexmap::IndexMap;
+use aoc_timing::info;
 
 fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Vec<String> {
     input
@@ -24,7 +24,7 @@ fn part_1(input: &[String]) -> usize {
 }
 
 fn part_2(input: &[String]) -> usize {
-    let mut boxes: Vec<IndexMap<&str, usize>> = (0..=u8::MAX).map(|_| IndexMap::new()).collect();
+    let mut boxes: Vec<Vec<(&str, usize)>> = (0..=u8::MAX).map(|_| Vec::new()).collect();
 
     input.iter().for_each(|step| {
         let (label, focal_length) = step
@@ -37,13 +37,15 @@ fn part_2(input: &[String]) -> usize {
         if operation == '=' {
             let focal_length: usize = focal_length.parse().expect("Invalid focal length");
 
-            if let Some(existing_focal_length) = boxes[label_hash].get_mut(label) {
+            if let Some((_, existing_focal_length)) =
+                boxes[label_hash].iter_mut().find(|(l, _)| l == &label)
+            {
                 *existing_focal_length = focal_length;
             } else {
-                boxes[label_hash].insert(label, focal_length);
+                boxes[label_hash].push((label, focal_length));
             }
         } else {
-            boxes[label_hash].shift_remove(label);
+            boxes[label_hash].retain_mut(|(l, _)| l != &label);
         }
     });
 
@@ -59,12 +61,13 @@ fn part_2(input: &[String]) -> usize {
 }
 
 fn main() {
+    env_logger::init();
     let input = parse(io::stdin().lines().map(|result| result.expect("I/O error")));
 
-    let part_1 = part_1(&input);
+    let part_1 = info::log_run("Part 1", || part_1(&input));
     println!("Part 1: {part_1}");
 
-    let part_2 = part_2(&input);
+    let part_2 = info::log_run("Part 2", || part_2(&input));
     println!("Part 2: {part_2}");
 }
 
