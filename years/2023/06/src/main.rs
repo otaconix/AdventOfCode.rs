@@ -3,19 +3,26 @@ use std::io;
 
 #[derive(Debug)]
 struct Race {
-    time: u64,
-    distance: u64,
+    time: usize,
+    distance: usize,
 }
 
 impl Race {
     fn winners(&self) -> usize {
-        (1..self.time)
-            .filter(|speed| (self.time - speed) * speed > self.distance)
-            .count()
+        let discriminant = self.time * self.time - 4 * self.distance;
+        let root = (discriminant as f64).sqrt();
+        let left = (self.time as f64) - root;
+        let left = left / 2.0;
+        let left = left.ceil();
+        let right = (self.time as f64) + root;
+        let right = right / 2.0;
+        let right = right.floor() + 1.0;
+
+        (right - left) as usize
     }
 }
 
-fn concatenate_integers(a: u64, b: u64) -> u64 {
+fn concatenate_integers(a: usize, b: usize) -> usize {
     let mut multiplier = 1;
 
     loop {
@@ -75,12 +82,19 @@ fn part_2(input: &[Race]) -> usize {
 
 fn main() {
     env_logger::init();
-    let input: Vec<Race> = parse(io::stdin().lines().map(|result| result.expect("I/O error")));
 
-    let part_1 = log_run("Part 1", || part_1(&input));
+    let (part_1, part_2) = log_run("Full run", || {
+        let input: Vec<Race> = log_run("Parsing", || {
+            parse(io::stdin().lines().map(|result| result.expect("I/O error")))
+        });
+
+        let part_1 = log_run("Part 1", || part_1(&input));
+        let part_2 = log_run("Part 2", || part_2(&input));
+
+        (part_1, part_2)
+    });
+
     println!("Part 1: {part_1}");
-
-    let part_2 = log_run("Part 2", || part_2(&input));
     println!("Part 2: {part_2}");
 }
 
