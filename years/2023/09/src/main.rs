@@ -28,6 +28,7 @@ fn deduce_around(series: &[i32]) -> (i32, i32) {
 }
 
 fn main() {
+    env_logger::init();
     let input = parse(io::stdin().lines().map(|result| result.expect("I/O error")));
 
     let (part_2, part_1) = log_run("Both parts", || {

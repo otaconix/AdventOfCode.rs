@@ -44,20 +44,26 @@ impl<T> Ord for DijkstraVertex<T> {
 }
 
 fn main() {
-    let input: Grid<Cell> = io::stdin()
-        .lines()
-        .map(|result| result.expect("I/O error"))
-        .map(|line| {
-            line.chars()
-                .map(|char| match char {
-                    'S' => Cell::Start,
-                    'E' => Cell::End,
-                    _ if char.is_ascii_lowercase() => Cell::Height(char.to_digit(36).unwrap() - 10),
-                    _ => panic!("Unexpected character: {char}"),
-                })
-                .collect::<Vec<_>>()
-        })
-        .collect();
+    env_logger::init();
+
+    let input: Grid<Cell> = log_run("Parsing", || {
+        io::stdin()
+            .lines()
+            .map(|result| result.expect("I/O error"))
+            .map(|line| {
+                line.chars()
+                    .map(|char| match char {
+                        'S' => Cell::Start,
+                        'E' => Cell::End,
+                        _ if char.is_ascii_lowercase() => {
+                            Cell::Height(char.to_digit(36).unwrap() - 10)
+                        }
+                        _ => panic!("Unexpected character: {char}"),
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect()
+    });
 
     let part_1 = log_run("Part 1", || {
         shortest_path(
