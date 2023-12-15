@@ -145,7 +145,7 @@ fn part_1(input: &Grid<Rock>) -> usize {
     let mut input = input.clone();
     tilt_platform(&mut input, Direction::North);
 
-    info!("\n{}", grid_string(&input));
+    info!("Part 1 result\n{}", grid_string(&input));
 
     score(&input)
 }
@@ -184,7 +184,7 @@ fn part_2(input: &Grid<Rock>) -> usize {
         apply_tilt_cycle(&mut input);
     }
 
-    info!("\n{}", grid_string(&input));
+    info!("Part 2 result:\n{}", grid_string(&input));
 
     score(&input)
 }
