@@ -1,5 +1,7 @@
 use std::io;
 
+use indexmap::IndexMap;
+
 fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Vec<String> {
     input
         .map(|line| line.to_string())
@@ -21,11 +23,49 @@ fn part_1(input: &[String]) -> usize {
     input.iter().map(|step| hash(step) as usize).sum::<usize>()
 }
 
+fn part_2(input: &[String]) -> usize {
+    let mut boxes: Vec<IndexMap<&str, usize>> = (0..=u8::MAX).map(|_| IndexMap::new()).collect();
+
+    input.iter().for_each(|step| {
+        let (label, focal_length) = step
+            .split_once('-')
+            .or_else(|| step.split_once('='))
+            .unwrap();
+        let label_hash = hash(label) as usize;
+        let operation = step.chars().find(|c| c == &'-' || c == &'=').unwrap();
+
+        if operation == '=' {
+            let focal_length: usize = focal_length.parse().expect("Invalid focal length");
+
+            if let Some(existing_focal_length) = boxes[label_hash].get_mut(label) {
+                *existing_focal_length = focal_length;
+            } else {
+                boxes[label_hash].insert(label, focal_length);
+            }
+        } else {
+            boxes[label_hash].shift_remove(label);
+        }
+    });
+
+    (1usize..)
+        .zip(boxes)
+        .flat_map(move |(box_number, r#box)| {
+            // `box` is a keyword, apparently
+            (1usize..)
+                .zip(r#box)
+                .map(move |(slot, (_, focal_length))| box_number * slot * focal_length)
+        })
+        .sum()
+}
+
 fn main() {
     let input = parse(io::stdin().lines().map(|result| result.expect("I/O error")));
 
     let part_1 = part_1(&input);
     println!("Part 1: {part_1}");
+
+    let part_2 = part_2(&input);
+    println!("Part 2: {part_2}");
 }
 
 #[cfg(test)]
@@ -40,5 +80,13 @@ mod tests {
         let result = part_1(&input);
 
         assert_eq!(result, 1320);
+    }
+
+    #[test]
+    fn test_part_2() {
+        let input = parse(INPUT.lines());
+        let result = part_2(&input);
+
+        assert_eq!(result, 145);
     }
 }
