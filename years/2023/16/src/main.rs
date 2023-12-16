@@ -203,10 +203,12 @@ fn log_grid(
     }
 }
 
-fn part_1(input: &Input) -> usize {
-    let start_position = (0, 0);
-    let (start_direction, _) = input.get(0, 0).unwrap().next_direction(Direction::Right);
-    let mut beams = vec![(start_direction, start_position)];
+fn determine_energized_cells_count(input: &Input, start: DirectedPosition) -> usize {
+    let (start_direction, _) = input
+        .get(start.1 .0, start.1 .1)
+        .unwrap()
+        .next_direction(start.0);
+    let mut beams = vec![(start_direction, start.1)];
     let mut seen_states = HashSet::new();
 
     while let Some(mut beam) = beams.pop() {
@@ -239,8 +241,27 @@ fn part_1(input: &Input) -> usize {
     energized_tiles.len()
 }
 
+fn part_1(input: &Input) -> usize {
+    determine_energized_cells_count(input, (Direction::Right, (0, 0)))
+}
+
 fn part_2(input: &Input) -> usize {
-    todo!()
+    (0..input.width())
+        .flat_map(|column| {
+            [
+                (Direction::Down, (column, 0)),
+                (Direction::Up, (column, input.height() - 1)),
+            ]
+        })
+        .chain((0..input.height()).flat_map(|row| {
+            [
+                (Direction::Right, (0, row)),
+                (Direction::Left, (input.width() - 1, row)),
+            ]
+        }))
+        .map(|start| determine_energized_cells_count(input, start))
+        .max()
+        .unwrap()
 }
 
 fn main() {
@@ -278,6 +299,6 @@ mod tests {
         let input = parse(INPUT.lines());
         let result = part_2(&input);
 
-        assert_eq!(result, 0);
+        assert_eq!(result, 51);
     }
 }
