@@ -272,6 +272,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "aoc-2022-20"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "log",
+]
+
+[[package]]
 name = "aoc-2023-01"
 version = "0.1.0"
 dependencies = [
@@ -405,6 +413,16 @@ version = "0.1.0"
 dependencies = [
  "aoc-timing",
  "env_logger",
+]
+
+[[package]]
+name = "aoc-2023-16"
+version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "env_logger",
+ "grid",
+ "log",
 ]
 
 [[package]]
