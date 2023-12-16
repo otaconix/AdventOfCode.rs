@@ -1,44 +1,43 @@
 use aoc_timing::trace::log_run;
-use std::io;
+use std::{io, iter::successors};
 
 #[derive(Debug)]
 struct Race {
-    time: usize,
-    distance: usize,
+    time: u64,
+    distance: u64,
+}
+
+fn sqrt(n: u64) -> f64 {
+    (n as f64).sqrt()
 }
 
 impl Race {
-    fn winners(&self) -> usize {
-        let discriminant = self.time * self.time - 4 * self.distance;
-        let root = (discriminant as f64).sqrt();
-        let left = (self.time as f64) - root;
-        let left = left / 2.0;
-        let left = left.ceil();
-        let right = (self.time as f64) + root;
-        let right = right / 2.0;
-        let right = right.floor() + 1.0;
-
-        (right - left) as usize
-    }
-}
-
-fn concatenate_integers(a: usize, b: usize) -> usize {
-    let mut multiplier = 1;
-
-    loop {
-        multiplier *= 10;
-
-        if multiplier > b {
-            break;
-        };
+    fn naive_winners(&self) -> u64 {
+        (1..self.time)
+            .map(|speed| (self.time - speed) * speed)
+            .skip_while(|distance| distance <= &self.distance)
+            .take_while(|distance| distance > &self.distance)
+            .count() as u64
     }
 
-    a * multiplier + b
+    /// We're basically solving a quadratic formula here
+    ///
+    /// This doesn't seem to work well for smaller numbers though, and I'm not sure why.
+    fn winners(&self) -> u64 {
+        let discriminant = (self.time * self.time) - 4 * self.distance;
+        let root = sqrt(discriminant);
+        let left = (root / 2.0).ceil();
+        let right = (root / 2.0).floor();
+
+        (left + right) as u64
+    }
 }
 
 fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Vec<Race> {
     let number_lines = input
         .map(|line| {
+            let mut full_line = line.to_string();
+            full_line.retain(|c| c.is_ascii_digit());
             line.to_string()
                 .split_whitespace()
                 .skip(1)
@@ -57,45 +56,41 @@ fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Vec<Race> {
         .collect()
 }
 
-fn part_1(input: &[Race]) -> usize {
-    input.iter().map(Race::winners).product()
+fn part_1(input: &[Race]) -> u64 {
+    input.iter().map(Race::naive_winners).product()
 }
 
-fn part_2(input: &[Race]) -> usize {
-    let (part_2_time, part_2_distance) = input
-        .iter()
-        .map(|race| (race.time, race.distance))
-        .reduce(|(time, distance), (race_time, race_distance)| {
-            (
-                concatenate_integers(time, race_time),
-                concatenate_integers(distance, race_distance),
-            )
-        })
-        .unwrap();
+fn concatenate_numbers(a: u64, b: u64) -> u64 {
+    a * successors(Some(10u64), |n| Some(n * 10))
+        .find(|n| n > &b)
+        .unwrap()
+        + b
+}
 
-    Race {
-        time: part_2_time,
-        distance: part_2_distance,
-    }
-    .winners()
+fn part_2(input: &[Race]) -> u64 {
+    let (time, distance) = input.iter().fold((0, 0), |(time, distance), race| {
+        (
+            concatenate_numbers(time, race.time),
+            concatenate_numbers(distance, race.distance),
+        )
+    });
+
+    Race { time, distance }.winners()
 }
 
 fn main() {
     env_logger::init();
-
-    let (part_1, part_2) = log_run("Full run", || {
-        let input: Vec<Race> = log_run("Parsing", || {
+    log_run("Full run", || {
+        let input = log_run("Parsing", || {
             parse(io::stdin().lines().map(|result| result.expect("I/O error")))
         });
 
         let part_1 = log_run("Part 1", || part_1(&input));
+        println!("Part 1: {part_1}");
+
         let part_2 = log_run("Part 2", || part_2(&input));
-
-        (part_1, part_2)
+        println!("Part 2: {part_2}");
     });
-
-    println!("Part 1: {part_1}");
-    println!("Part 2: {part_2}");
 }
 
 #[cfg(test)]
@@ -118,5 +113,15 @@ mod tests {
         let result = part_2(&input);
 
         assert_eq!(result, 71503);
+    }
+
+    #[allow(dead_code)]
+    // #[test]
+    fn test_naive_and_quadratic_are_equal() {
+        let input = parse(INPUT.lines());
+        let naive_results: Vec<_> = input.iter().map(Race::naive_winners).collect();
+        let better_results: Vec<_> = input.iter().map(Race::winners).collect();
+
+        assert_eq!(naive_results, better_results);
     }
 }
