@@ -1,0 +1,9 @@
+[placeholders.year]
+type = "string"
+prompt = "Year? (defaults to the current year)"
+default = ""
+
+[placeholders.day]
+type = "string"
+prompt = "Day? (defaults to today)"
+default = ""
