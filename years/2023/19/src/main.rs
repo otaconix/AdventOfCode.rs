@@ -1,10 +1,64 @@
-use std::{collections::HashMap, io, iter::successors, ops::ControlFlow};
+use std::{collections::HashMap, io, iter::successors};
 
 use aoc_timing::trace::log_run;
+use ranges::Ranges;
 
 struct Input {
     rules: HashMap<String, Rule>,
     parts: Vec<Part>,
+}
+
+impl Input {
+    const START_RULE: &'static str = "in";
+
+    fn get_chains_leading_to_accept(&self) -> Vec<Vec<Condition>> {
+        fn inner(
+            input: &Input,
+            chain: &mut Vec<Condition>,
+            destination: &Destination,
+        ) -> Vec<Vec<Condition>> {
+            match destination {
+                Destination::Reject => vec![],
+                Destination::Accept => vec![chain.clone()],
+                Destination::NextRule(next) => {
+                    let rule = &input.rules[next];
+
+                    let mut pushed_inversions = 0;
+                    let mut results = vec![];
+
+                    for ConditionalDestination {
+                        condition,
+                        destination,
+                    } in &rule.conditions
+                    {
+                        if !matches!(condition, Condition::Unconditional)
+                            && matches!(destination, Destination::Reject)
+                        {
+                            chain.push(condition.invert());
+                            pushed_inversions += 1;
+                        } else {
+                            chain.push(*condition);
+                            results.extend(inner(input, chain, destination));
+                            chain.pop();
+                        }
+                    }
+
+                    for _ in 0..pushed_inversions {
+                        chain.pop();
+                    }
+
+                    results
+                }
+            }
+        }
+
+        let mut chain = vec![];
+        inner(
+            self,
+            &mut chain,
+            &Destination::NextRule(Self::START_RULE.to_string()),
+        )
+    }
 }
 
 enum ParsingState {
@@ -12,6 +66,7 @@ enum ParsingState {
     Parts(HashMap<String, Rule>, Vec<Part>),
 }
 
+#[derive(Clone)]
 struct Rule {
     conditions: Vec<ConditionalDestination>,
 }
@@ -25,6 +80,7 @@ impl Rule {
     }
 }
 
+#[derive(Clone, Debug)]
 struct ConditionalDestination {
     condition: Condition,
     destination: Destination,
@@ -45,19 +101,45 @@ impl ConditionalDestination {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 enum Destination {
     Accept,
     Reject,
     NextRule(String),
 }
 
+#[derive(Clone, Copy, Debug)]
 enum Condition {
     LessThan(Target, usize),
     GreaterThan(Target, usize),
     Unconditional,
 }
 
+impl Condition {
+    fn invert(&self) -> Condition {
+        use Condition::*;
+
+        match *self {
+            LessThan(target, n) => GreaterThan(target, n - 1),
+            GreaterThan(target, n) => LessThan(target, n + 1),
+            Unconditional => panic!("No need to invert unconditionals"),
+        }
+    }
+
+    fn restrict_part_ranges(&self, ranges: &mut [Ranges<usize>; 4]) {
+        match self {
+            Condition::Unconditional => (),
+            Condition::LessThan(target, n) => {
+                ranges[*target as usize] &= (1..*n).into();
+            }
+            Condition::GreaterThan(target, n) => {
+                ranges[*target as usize] &= (n + 1..).into();
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 enum Target {
     X,
     M,
@@ -197,15 +279,13 @@ fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Input {
     }
 }
 
-const START_RULE: &str = "in";
-
 fn part_1(input: &Input) -> usize {
     input
         .parts
         .iter()
         .filter(|part| {
             successors(
-                Some(Destination::NextRule(START_RULE.to_string())),
+                Some(Destination::NextRule(Input::START_RULE.to_string())),
                 |prev| match prev {
                     Destination::Reject | Destination::Accept => None,
                     Destination::NextRule(rule_name) => Some(input.rules[rule_name].execute(part)),
@@ -218,7 +298,39 @@ fn part_1(input: &Input) -> usize {
 }
 
 fn part_2(input: &Input) -> usize {
-    todo!()
+    let chains = input.get_chains_leading_to_accept();
+
+    chains
+        .iter()
+        .inspect(|chain| println!("{chain:?}"))
+        .map(|chain| {
+            chain
+                .iter()
+                .fold(
+                    [
+                        Ranges::from(1..=4000),
+                        Ranges::from(1..=4000),
+                        Ranges::from(1..=4000),
+                        Ranges::from(1..=4000),
+                    ],
+                    |mut ranges, condition| {
+                        condition.restrict_part_ranges(&mut ranges);
+                        ranges
+                    },
+                )
+                .into_iter()
+                .map(|range| {
+                    range
+                        .as_slice()
+                        .iter()
+                        .inspect(|x| println!("{x}"))
+                        .map(|slice| slice.into_iter().count())
+                        .sum::<usize>()
+                })
+                .product::<usize>()
+        })
+        .inspect(|x| println!("Cardinality {x}"))
+        .sum()
 }
 
 fn main() {
