@@ -1,7 +1,11 @@
-use std::{collections::HashMap, io, iter::successors};
+use std::collections::HashMap;
+use std::fmt::Debug;
+use std::io;
+use std::iter::successors;
+use std::ops::RangeBounds;
 
 use aoc_timing::trace::log_run;
-use ranges::Ranges;
+use ranges::{GenericRange, Ranges};
 
 struct Input {
     rules: HashMap<String, Rule>,
@@ -16,6 +20,7 @@ impl Input {
             input: &Input,
             chain: &mut Vec<Condition>,
             destination: &Destination,
+            condition_index: usize, // always 0, unless we just inverted a rule
         ) -> Vec<Vec<Condition>> {
             match destination {
                 Destination::Reject => vec![],
@@ -23,28 +28,24 @@ impl Input {
                 Destination::NextRule(next) => {
                     let rule = &input.rules[next];
 
-                    let mut pushed_inversions = 0;
                     let mut results = vec![];
 
-                    for ConditionalDestination {
+                    if let Some(ConditionalDestination {
                         condition,
-                        destination,
-                    } in &rule.conditions
+                        destination: next_destination,
+                    }) = rule.conditions.get(condition_index)
                     {
-                        if !matches!(condition, Condition::Unconditional)
-                            && matches!(destination, Destination::Reject)
-                        {
-                            chain.push(condition.invert());
-                            pushed_inversions += 1;
-                        } else {
+                        if !matches!(condition, Condition::Unconditional) {
                             chain.push(*condition);
-                            results.extend(inner(input, chain, destination));
+                            results.extend(inner(input, chain, next_destination, 0));
                             chain.pop();
-                        }
-                    }
 
-                    for _ in 0..pushed_inversions {
-                        chain.pop();
+                            chain.push(condition.invert());
+                            results.extend(inner(input, chain, destination, condition_index + 1));
+                            chain.pop();
+                        } else {
+                            results.extend(inner(input, chain, next_destination, 0));
+                        }
                     }
 
                     results
@@ -57,6 +58,7 @@ impl Input {
             self,
             &mut chain,
             &Destination::NextRule(Self::START_RULE.to_string()),
+            0,
         )
     }
 }
@@ -108,11 +110,29 @@ enum Destination {
     NextRule(String),
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 enum Condition {
     LessThan(Target, usize),
     GreaterThan(Target, usize),
     Unconditional,
+}
+
+impl Debug for Condition {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Condition::LessThan(target, n) | Condition::GreaterThan(target, n) => {
+                f.write_fmt(format_args!(
+                    "{target:?}{}{n}",
+                    if matches!(self, Condition::LessThan(_, _)) {
+                        '<'
+                    } else {
+                        '>'
+                    }
+                ))
+            }
+            Condition::Unconditional => f.write_str("*=*"),
+        }
+    }
 }
 
 impl Condition {
@@ -279,6 +299,40 @@ fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Input {
     }
 }
 
+trait RangeLen {
+    fn range_len(&self) -> usize;
+}
+
+impl RangeLen for GenericRange<usize> {
+    fn range_len(&self) -> usize {
+        let start = match self.start_bound() {
+            std::ops::Bound::Included(n) => *n,
+            std::ops::Bound::Excluded(n) => n + 1,
+            std::ops::Bound::Unbounded => {
+                panic!("Length of range with unbounded start unsupported")
+            }
+        };
+
+        let end = match self.end_bound() {
+            std::ops::Bound::Included(n) => n + 1,
+            std::ops::Bound::Excluded(n) => *n,
+            std::ops::Bound::Unbounded => panic!("Length of range with unbounded end unsupported"),
+        };
+
+        if start >= end {
+            0
+        } else {
+            end - start
+        }
+    }
+}
+
+impl RangeLen for Ranges<usize> {
+    fn range_len(&self) -> usize {
+        self.as_slice().iter().map(RangeLen::range_len).sum()
+    }
+}
+
 fn part_1(input: &Input) -> usize {
     input
         .parts
@@ -298,39 +352,35 @@ fn part_1(input: &Input) -> usize {
 }
 
 fn part_2(input: &Input) -> usize {
-    let chains = input.get_chains_leading_to_accept();
+    let chains = log_run("Determine chains", || input.get_chains_leading_to_accept());
+
+    type Possibilities = [Ranges<usize>; 4];
+
+    fn cardinality(possibilities: &Possibilities) -> usize {
+        possibilities
+            .iter()
+            .map(RangeLen::range_len)
+            .product::<usize>()
+    }
 
     chains
         .iter()
-        .inspect(|chain| println!("{chain:?}"))
         .map(|chain| {
-            chain
-                .iter()
-                .fold(
-                    [
-                        Ranges::from(1..=4000),
-                        Ranges::from(1..=4000),
-                        Ranges::from(1..=4000),
-                        Ranges::from(1..=4000),
-                    ],
-                    |mut ranges, condition| {
-                        condition.restrict_part_ranges(&mut ranges);
-                        ranges
-                    },
-                )
-                .into_iter()
-                .map(|range| {
-                    range
-                        .as_slice()
-                        .iter()
-                        .inspect(|x| println!("{x}"))
-                        .map(|slice| slice.into_iter().count())
-                        .sum::<usize>()
-                })
-                .product::<usize>()
+            chain.iter().fold(
+                [
+                    Ranges::from(1..=4000),
+                    Ranges::from(1..=4000),
+                    Ranges::from(1..=4000),
+                    Ranges::from(1..=4000),
+                ],
+                |mut ranges, condition| {
+                    condition.restrict_part_ranges(&mut ranges);
+                    ranges
+                },
+            )
         })
-        .inspect(|x| println!("Cardinality {x}"))
-        .sum()
+        .map(|range| cardinality(&range))
+        .sum::<usize>()
 }
 
 fn main() {
@@ -344,7 +394,7 @@ fn main() {
         let part_1 = log_run("Part 1", || part_1(&input));
         println!("Part 1: {part_1}");
 
-        let part_2 = log_run("Part 1", || part_2(&input));
+        let part_2 = log_run("Part 2", || part_2(&input));
         println!("Part 2: {part_2}");
     });
 }
