@@ -1,39 +1,40 @@
-use std::collections::HashMap;
+use std::borrow::Borrow;
 use std::fmt::Debug;
 use std::io;
 use std::iter::successors;
 use std::ops::RangeBounds;
+use std::{collections::HashMap, ops::Index};
 
 use aoc_timing::trace::log_run;
 use ranges::{GenericRange, Ranges};
 
 struct Input {
-    rules: HashMap<String, Rule>,
+    workflows: HashMap<String, Workflow>,
     parts: Vec<Part>,
 }
 
 impl Input {
-    const START_RULE: &'static str = "in";
+    const START_WORKFLOW: &'static str = "in";
 
     fn get_chains_leading_to_accept(&self) -> Vec<Vec<Condition>> {
         fn inner(
             input: &Input,
             chain: &mut Vec<Condition>,
             destination: &Destination,
-            condition_index: usize, // always 0, unless we just inverted a rule
+            condition_index: usize, // always 0, unless we just inverted a condition
         ) -> Vec<Vec<Condition>> {
             match destination {
                 Destination::Reject => vec![],
                 Destination::Accept => vec![chain.clone()],
-                Destination::NextRule(next) => {
-                    let rule = &input.rules[next];
+                Destination::NextWorkflow(next) => {
+                    let workflow = &input.workflows[next];
 
                     let mut results = vec![];
 
                     if let Some(ConditionalDestination {
                         condition,
                         destination: next_destination,
-                    }) = rule.conditions.get(condition_index)
+                    }) = workflow.conditions.get(condition_index)
                     {
                         if !matches!(condition, Condition::Unconditional) {
                             chain.push(*condition);
@@ -57,23 +58,22 @@ impl Input {
         inner(
             self,
             &mut chain,
-            &Destination::NextRule(Self::START_RULE.to_string()),
+            &Destination::NextWorkflow(Self::START_WORKFLOW.to_string()),
             0,
         )
     }
 }
 
 enum ParsingState {
-    Rules(HashMap<String, Rule>),
-    Parts(HashMap<String, Rule>, Vec<Part>),
+    Workflows(HashMap<String, Workflow>),
+    Parts(HashMap<String, Workflow>, Vec<Part>),
 }
 
-#[derive(Clone)]
-struct Rule {
+struct Workflow {
     conditions: Vec<ConditionalDestination>,
 }
 
-impl Rule {
+impl Workflow {
     fn execute(&self, part: &Part) -> Destination {
         self.conditions
             .iter()
@@ -82,7 +82,6 @@ impl Rule {
     }
 }
 
-#[derive(Clone, Debug)]
 struct ConditionalDestination {
     condition: Condition,
     destination: Destination,
@@ -92,10 +91,10 @@ impl ConditionalDestination {
     fn get_destination(&self, part: &Part) -> Option<Destination> {
         match &self.condition {
             Condition::Unconditional => Some(self.destination.clone()),
-            Condition::LessThan(target, n) if part.get_target(target) < *n => {
+            Condition::LessThan(category, n) if part[category] < *n => {
                 Some(self.destination.clone())
             }
-            Condition::GreaterThan(target, n) if part.get_target(target) > *n => {
+            Condition::GreaterThan(category, n) if part[category] > *n => {
                 Some(self.destination.clone())
             }
             _ => None,
@@ -103,26 +102,26 @@ impl ConditionalDestination {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone)]
 enum Destination {
     Accept,
     Reject,
-    NextRule(String),
+    NextWorkflow(String),
 }
 
 #[derive(Clone, Copy)]
 enum Condition {
-    LessThan(Target, usize),
-    GreaterThan(Target, usize),
+    LessThan(Category, usize),
+    GreaterThan(Category, usize),
     Unconditional,
 }
 
 impl Debug for Condition {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Condition::LessThan(target, n) | Condition::GreaterThan(target, n) => {
+            Condition::LessThan(category, n) | Condition::GreaterThan(category, n) => {
                 f.write_fmt(format_args!(
-                    "{target:?}{}{n}",
+                    "{category:?}{}{n}",
                     if matches!(self, Condition::LessThan(_, _)) {
                         '<'
                     } else {
@@ -140,8 +139,8 @@ impl Condition {
         use Condition::*;
 
         match *self {
-            LessThan(target, n) => GreaterThan(target, n - 1),
-            GreaterThan(target, n) => LessThan(target, n + 1),
+            LessThan(category, n) => GreaterThan(category, n - 1),
+            GreaterThan(category, n) => LessThan(category, n + 1),
             Unconditional => panic!("No need to invert unconditionals"),
         }
     }
@@ -149,33 +148,35 @@ impl Condition {
     fn restrict_part_ranges(&self, ranges: &mut [Ranges<usize>; 4]) {
         match self {
             Condition::Unconditional => (),
-            Condition::LessThan(target, n) => {
-                ranges[*target as usize] &= (1..*n).into();
+            Condition::LessThan(category, n) => {
+                ranges[*category as usize] &= (1..*n).into();
             }
-            Condition::GreaterThan(target, n) => {
-                ranges[*target as usize] &= (n + 1..).into();
+            Condition::GreaterThan(category, n) => {
+                ranges[*category as usize] &= (n + 1..).into();
             }
         }
     }
 }
 
 #[derive(Debug, Clone, Copy)]
-enum Target {
+enum Category {
     X,
     M,
     A,
     S,
 }
 
-impl TryFrom<&str> for Target {
+impl TryFrom<&str> for Category {
     type Error = ();
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
+        use Category::*;
+
         match value {
-            "x" => Ok(Target::X),
-            "m" => Ok(Target::M),
-            "a" => Ok(Target::A),
-            "s" => Ok(Target::S),
+            "x" => Ok(X),
+            "m" => Ok(M),
+            "a" => Ok(A),
+            "s" => Ok(S),
             _ => Err(()),
         }
     }
@@ -183,119 +184,123 @@ impl TryFrom<&str> for Target {
 
 #[derive(Default)]
 struct Part {
-    x: usize,
-    m: usize,
-    a: usize,
-    s: usize,
+    x_rating: usize,
+    m_rating: usize,
+    a_rating: usize,
+    s_rating: usize,
 }
 
 impl Part {
-    fn get_target(&self, target: &Target) -> usize {
-        use Target::*;
-
-        match target {
-            X => self.x,
-            M => self.m,
-            A => self.a,
-            S => self.s,
-        }
+    fn sum_of_ratings(&self) -> usize {
+        self.x_rating + self.m_rating + self.a_rating + self.s_rating
     }
+}
 
-    fn sum_of_targets(&self) -> usize {
-        self.x + self.m + self.a + self.s
+impl<T: Borrow<Category>> Index<T> for Part {
+    type Output = usize;
+
+    fn index(&self, category: T) -> &Self::Output {
+        use Category::*;
+
+        match category.borrow() {
+            X => &self.x_rating,
+            M => &self.m_rating,
+            A => &self.a_rating,
+            S => &self.s_rating,
+        }
     }
 }
 
 fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Input {
     use ParsingState::*;
 
-    let end_state =
-        input
-            .map(|line| line.to_string())
-            .fold(Rules(HashMap::new()), |state, line| match state {
-                Rules(mut rules) => {
-                    if line.is_empty() {
-                        Parts(rules, vec![])
-                    } else {
-                        let (name, rest) = line.split_once('{').unwrap();
-                        let (rest, _) = rest.split_once('}').unwrap();
-                        let conditions = rest
-                            .split(',')
-                            .map(|conditional_destination| -> ConditionalDestination {
-                                if let Some((condition, destination)) =
-                                    conditional_destination.split_once(':')
-                                {
-                                    if let Some((target, n)) = condition.split_once('<') {
-                                        ConditionalDestination {
-                                            condition: Condition::LessThan(
-                                                target.try_into().unwrap(),
-                                                n.parse().unwrap(),
-                                            ),
-                                            destination: match destination {
-                                                "A" => Destination::Accept,
-                                                "R" => Destination::Reject,
-                                                _ => Destination::NextRule(destination.to_string()),
-                                            },
-                                        }
-                                    } else {
-                                        let (target, n) = condition.split_once('>').unwrap();
-                                        ConditionalDestination {
-                                            condition: Condition::GreaterThan(
-                                                target.try_into().unwrap(),
-                                                n.parse().unwrap(),
-                                            ),
-                                            destination: match destination {
-                                                "A" => Destination::Accept,
-                                                "R" => Destination::Reject,
-                                                _ => Destination::NextRule(destination.to_string()),
-                                            },
-                                        }
-                                    }
-                                } else {
+    let end_state = input.map(|line| line.to_string()).fold(
+        Workflows(HashMap::new()),
+        |state, line| match state {
+            Workflows(mut workflows) => {
+                if line.is_empty() {
+                    Parts(workflows, vec![])
+                } else {
+                    let (name, rest) = line.split_once('{').unwrap();
+                    let (rest, _) = rest.split_once('}').unwrap();
+                    let conditions = rest
+                        .split(',')
+                        .map(|conditional_destination| -> ConditionalDestination {
+                            if let Some((condition, destination)) =
+                                conditional_destination.split_once(':')
+                            {
+                                if let Some((category, n)) = condition.split_once('<') {
                                     ConditionalDestination {
-                                        condition: Condition::Unconditional,
-                                        destination: match conditional_destination {
+                                        condition: Condition::LessThan(
+                                            category.try_into().unwrap(),
+                                            n.parse().unwrap(),
+                                        ),
+                                        destination: match destination {
                                             "A" => Destination::Accept,
                                             "R" => Destination::Reject,
-                                            _ => Destination::NextRule(
-                                                conditional_destination.to_string(),
-                                            ),
+                                            _ => Destination::NextWorkflow(destination.to_string()),
+                                        },
+                                    }
+                                } else {
+                                    let (category, n) = condition.split_once('>').unwrap();
+                                    ConditionalDestination {
+                                        condition: Condition::GreaterThan(
+                                            category.try_into().unwrap(),
+                                            n.parse().unwrap(),
+                                        ),
+                                        destination: match destination {
+                                            "A" => Destination::Accept,
+                                            "R" => Destination::Reject,
+                                            _ => Destination::NextWorkflow(destination.to_string()),
                                         },
                                     }
                                 }
-                            })
-                            .collect();
+                            } else {
+                                ConditionalDestination {
+                                    condition: Condition::Unconditional,
+                                    destination: match conditional_destination {
+                                        "A" => Destination::Accept,
+                                        "R" => Destination::Reject,
+                                        _ => Destination::NextWorkflow(
+                                            conditional_destination.to_string(),
+                                        ),
+                                    },
+                                }
+                            }
+                        })
+                        .collect();
 
-                        let new_rule = Rule { conditions };
+                    let new_workflow = Workflow { conditions };
 
-                        rules.insert(name.to_string(), new_rule);
+                    workflows.insert(name.to_string(), new_workflow);
 
-                        Rules(rules)
+                    Workflows(workflows)
+                }
+            }
+            Parts(workflows, mut parts) => {
+                let mut part = Part::default();
+                line[1..line.len() - 1].split(',').for_each(|component| {
+                    let (category, rating) = component.split_once('=').unwrap();
+                    let rating = rating.parse().unwrap();
+
+                    match category {
+                        "x" => part.x_rating = rating,
+                        "m" => part.m_rating = rating,
+                        "a" => part.a_rating = rating,
+                        "s" => part.s_rating = rating,
+                        _ => panic!("Unexpected part category {category}"),
                     }
-                }
-                Parts(rules, mut parts) => {
-                    let mut part = Part::default();
-                    line[1..line.len() - 1].split(',').for_each(|component| {
-                        let (target, value) = component.split_once('=').unwrap();
-                        let value = value.parse().unwrap();
+                });
+                parts.push(part);
 
-                        match target {
-                            "x" => part.x = value,
-                            "m" => part.m = value,
-                            "a" => part.a = value,
-                            "s" => part.s = value,
-                            _ => panic!("Unexpected part target {target}"),
-                        }
-                    });
-                    parts.push(part);
-
-                    Parts(rules, parts)
-                }
-            });
+                Parts(workflows, parts)
+            }
+        },
+    );
 
     match end_state {
-        Rules(_) => panic!("Didn't reach Parts parsing stage"),
-        Parts(rules, parts) => Input { rules, parts },
+        Workflows(_) => panic!("Didn't reach Parts parsing stage"),
+        Parts(workflows, parts) => Input { workflows, parts },
     }
 }
 
@@ -339,15 +344,17 @@ fn part_1(input: &Input) -> usize {
         .iter()
         .filter(|part| {
             successors(
-                Some(Destination::NextRule(Input::START_RULE.to_string())),
+                Some(Destination::NextWorkflow(Input::START_WORKFLOW.to_string())),
                 |prev| match prev {
                     Destination::Reject | Destination::Accept => None,
-                    Destination::NextRule(rule_name) => Some(input.rules[rule_name].execute(part)),
+                    Destination::NextWorkflow(workflow_name) => {
+                        Some(input.workflows[workflow_name].execute(part))
+                    }
                 },
             )
             .any(|destination| matches!(destination, Destination::Accept))
         })
-        .map(Part::sum_of_targets)
+        .map(Part::sum_of_ratings)
         .sum()
 }
 
