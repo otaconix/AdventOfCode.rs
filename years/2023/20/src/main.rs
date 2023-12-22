@@ -1,7 +1,7 @@
-use std::collections::{BTreeMap, HashMap, VecDeque};
-use std::fmt::{Debug, Display};
+use std::cell::RefCell;
+use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
+use std::fmt::{Debug, Display, Formatter, Write};
 use std::io;
-use std::ops::ControlFlow;
 use std::rc::Rc;
 
 use aoc_timing::trace::log_run;
@@ -12,15 +12,41 @@ type Input = HashMap<String, (Module, Vec<String>)>;
 struct DependencyTree<'a> {
     name: &'a str,
     root: &'a Module,
-    dependencies: Vec<Rc<DependencyTree<'a>>>,
+    dependencies: Vec<Rc<RefCell<DependencyTree<'a>>>>,
 }
 
 impl Display for DependencyTree<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("")
-            .field(&self.name)
-            .field(self.root)
-            .finish()?;
+        fn inner<'a>(
+            tree: &DependencyTree<'a>,
+            depth: usize,
+            already_seen: &mut HashSet<&'a str>,
+            f: &mut Formatter<'_>,
+        ) -> std::fmt::Result {
+            let width = depth * 2;
+            let prefix = "";
+
+            f.write_fmt(format_args!("{:>width$}Name: {}\n", prefix, tree.name,))?;
+            f.write_fmt(format_args!("{:>width$}Module: {}\n", "", tree.root))?;
+
+            if already_seen.contains(tree.name) {
+                f.write_fmt(format_args!("{:>width$}Dependencies already seen", ""))?;
+            } else if tree.dependencies.is_empty() {
+                f.write_fmt(format_args!("{:>width$}No dependencies", ""))?;
+            } else {
+                already_seen.insert(tree.name);
+                f.write_fmt(format_args!("{:>width$}Dependencies:", ""))?;
+                for dependency in &tree.dependencies {
+                    f.write_char('\n')?;
+                    inner(&dependency.borrow(), depth + 1, already_seen, f)?;
+                }
+            }
+
+            Ok(())
+        }
+
+        let mut already_seen = HashSet::new();
+        inner(self, 0, &mut already_seen, f)?;
 
         Ok(())
     }
@@ -29,38 +55,67 @@ impl Display for DependencyTree<'_> {
 const RX_NAME: &str = "rx";
 
 fn construct_dependency_tree(input: &Input) -> DependencyTree<'_> {
-    fn inner<'a>(input: &'a Input, name: &'a str) -> DependencyTree<'a> {
-        let (root, destinations) = &input[name];
-        DependencyTree {
-            name,
-            root,
-            dependencies: input
-                .iter()
-                .filter(|(_, (_, destinations))| destinations.contains(&name.to_string()))
-                .map(|(name, _)| Rc::new(inner(input, name)))
-                .collect(),
+    fn inner<'a>(
+        input: &'a Input,
+        name: &'a str,
+        already_seen: &mut HashMap<String, Rc<RefCell<DependencyTree<'a>>>>,
+    ) -> Rc<RefCell<DependencyTree<'a>>> {
+        if let Some(already_seen) = already_seen.get(name) {
+            already_seen.clone()
+        } else {
+            let (root, _) = &input[name];
+            let result = Rc::new(RefCell::new(DependencyTree {
+                name,
+                root,
+                dependencies: vec![],
+            }));
+
+            already_seen.insert(name.to_string(), result.clone());
+            result.borrow_mut().dependencies.extend(
+                input
+                    .iter()
+                    .filter(|(_, (_, destinations))| destinations.contains(&name.to_string()))
+                    .map(|(name, _)| inner(input, name, already_seen)),
+            );
+
+            if matches!(root, Module::Broadcast) {
+                result
+                    .borrow_mut()
+                    .dependencies
+                    .push(Rc::new(RefCell::new(DependencyTree {
+                        name: "button",
+                        root: &Module::Button,
+                        dependencies: vec![],
+                    })));
+            }
+
+            result
         }
     }
 
+    let mut already_seen = HashMap::new();
+
     DependencyTree {
         name: RX_NAME,
-        root: &Module::Broadcast,
+        root: &Module::FinalDestination,
         dependencies: input
             .iter()
-            .filter(|(name, (module, destinations))| destinations.contains(&RX_NAME.to_string()))
-            .map(|(name, _)| Rc::new(inner(input, name)))
+            .filter(|(_, (_, destinations))| destinations.contains(&RX_NAME.to_string()))
+            .map(|(name, _)| inner(input, name, &mut already_seen))
             .collect(),
     }
 }
 
-#[derive(Hash, Clone, Copy, Debug)]
+#[derive(Hash, Clone, Copy, Debug, PartialEq, Eq)]
 enum Pulse {
     Low,
     High,
 }
 
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, PartialEq, Eq)]
 enum Module {
+    Button,
+    FinalDestination,
     Broadcast,
     FlipFlop {
         on: bool,
@@ -68,6 +123,18 @@ enum Module {
     Conjunction {
         last_inputs: BTreeMap<String, Pulse>,
     },
+}
+
+impl Display for Module {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Module::Button => "button",
+            Module::FinalDestination => "final destination",
+            Module::Broadcast => "broadcast",
+            Module::FlipFlop { on } => "flip-flop",
+            Module::Conjunction { last_inputs } => "conjunction",
+        })
+    }
 }
 
 impl Module {
@@ -101,6 +168,7 @@ impl Module {
 
                 Some(output_pulse)
             }
+            _ => None,
         }
     }
 
@@ -216,7 +284,6 @@ fn part_1(input: &Input) -> usize {
 fn part_2(input: &Input) -> usize {
     let dependency_tree = construct_dependency_tree(input);
 
-    println!("Dependency tree:");
     println!("{dependency_tree}");
 
     0
