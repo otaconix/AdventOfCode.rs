@@ -7,12 +7,12 @@ use std::io;
 use std::iter::successors;
 use std::ops::Index;
 use std::ops::RangeBounds;
-use std::str::FromStr;
 
 use aoc_timing::trace::log_run;
-use chumsky::Parser;
-use parser::{named_workflow_parser, part_parser};
 use ranges::{GenericRange, Ranges};
+
+use crate::parser::named_workflow_parser;
+use crate::parser::part_parser;
 
 struct Input {
     workflows: HashMap<String, Workflow>,
@@ -168,14 +168,6 @@ impl Part {
     }
 }
 
-impl FromStr for Part {
-    type Err = Vec<chumsky::error::Cheap<char>>;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        part_parser().parse(s)
-    }
-}
-
 impl<T: Borrow<Category>> Index<T> for Part {
     type Output = usize;
 
@@ -191,7 +183,7 @@ impl<T: Borrow<Category>> Index<T> for Part {
     }
 }
 
-fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Input {
+fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     enum ParsingState {
         Workflows(HashMap<String, Workflow>),
         Parts(HashMap<String, Workflow>, Vec<Part>),
@@ -203,28 +195,22 @@ fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Input {
         }
     }
 
-    impl FromStr for NamedWorkflow {
-        type Err = Vec<chumsky::error::Cheap<char>>;
-
-        fn from_str(s: &str) -> Result<Self, Self::Err> {
-            named_workflow_parser().parse(s)
-        }
-    }
-
     let end_state = input.fold(ParsingState::Workflows(HashMap::new()), |state, line| {
-        let line = line.to_string();
+        let line = line.as_ref();
         match state {
             ParsingState::Workflows(mut workflows) => {
                 if line.to_string().is_empty() {
                     ParsingState::Parts(workflows, vec![])
                 } else {
-                    let named_workflow = NamedWorkflow::from_str(&line).unwrap();
+                    let named_workflow = named_workflow_parser(line)
+                        .expect("Couldn't parse workflow")
+                        .1;
                     workflows.insert(named_workflow.name, named_workflow.workflow);
                     ParsingState::Workflows(workflows)
                 }
             }
             ParsingState::Parts(workflows, mut parts) => {
-                parts.push(Part::from_str(&line).expect("Couldn't parse part"));
+                parts.push(part_parser(line).expect("Couldn't parse part").1);
                 ParsingState::Parts(workflows, parts)
             }
         }

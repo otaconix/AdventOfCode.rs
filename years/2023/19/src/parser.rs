@@ -1,87 +1,91 @@
 use crate::*;
 
-use chumsky::error::Cheap;
-use chumsky::prelude::*;
-use std::str::FromStr;
+use nom::{
+    branch::alt,
+    bytes::complete::tag,
+    character::complete::{alphanumeric1, char, u64},
+    combinator::{opt, value},
+    multi::separated_list0,
+    sequence::{delimited, preceded, terminated, tuple},
+    IResult, Parser,
+};
 
-pub(crate) trait CharParser<T>: Parser<char, T, Error = Cheap<char>> {}
-impl<T, P: Parser<char, T, Error = Cheap<char>>> CharParser<T> for P {}
+type ParseResult<'a, T> = IResult<&'a str, T>;
 
-pub(crate) fn named_workflow_parser() -> impl CharParser<NamedWorkflow> {
-    (identifier().then(
-        conditional_destination_parser()
-            .separated_by(just(','))
-            .delimited_by(just('{'), just('}')),
+pub(crate) fn named_workflow_parser(input: &str) -> ParseResult<NamedWorkflow> {
+    tuple((
+        alphanumeric1,
+        delimited(
+            char('{'),
+            separated_list0(char(','), conditional_destination_parser),
+            char('}'),
+        ),
     ))
     .map(|(name, conditions)| NamedWorkflow {
-        name,
+        name: name.to_string(),
         workflow: Workflow { conditions },
     })
+    .parse(input)
 }
 
-pub(crate) fn part_parser() -> impl CharParser<Part> {
-    just("x=")
-        .ignore_then(number())
-        .then(just(",m=").ignore_then(number()))
-        .then(just(",a=").ignore_then(number()))
-        .then(just(",s=").ignore_then(number()))
-        .delimited_by(just("{"), just("}"))
-        .map(|(((x_rating, m_rating), a_rating), s_rating)| Part {
-            x_rating,
-            m_rating,
-            a_rating,
-            s_rating,
-        })
+pub(crate) fn part_parser(input: &str) -> ParseResult<Part> {
+    delimited(
+        char('{'),
+        tuple((
+            preceded(tag("x="), usize),
+            preceded(tag(",m="), usize),
+            preceded(tag(",a="), usize),
+            preceded(tag(",s="), usize),
+        )),
+        char('}'),
+    )
+    .map(|(x_rating, m_rating, a_rating, s_rating)| Part {
+        x_rating,
+        m_rating,
+        a_rating,
+        s_rating,
+    })
+    .parse(input)
 }
 
-fn conditional_destination_parser() -> impl CharParser<ConditionalDestination> {
-    let less_than = category_parser()
-        .then_ignore(just('<'))
-        .then(number())
+fn conditional_destination_parser(input: &str) -> ParseResult<ConditionalDestination> {
+    let less_than = tuple((terminated(category_parser, char('<')), usize))
         .map(|(category, n)| Condition::LessThan(category, n));
-    let greater_than = category_parser()
-        .then_ignore(just('>'))
-        .then(number())
+    let greater_than = tuple((terminated(category_parser, char('>')), usize))
         .map(|(category, n)| Condition::GreaterThan(category, n));
 
-    choice((less_than, greater_than))
-        .then_ignore(just(':'))
-        .or_not()
-        .then(destination_parser())
-        .map(|(condition, destination)| ConditionalDestination {
-            condition: condition.unwrap_or(Condition::Unconditional),
-            destination,
-        })
-}
-
-fn destination_parser() -> impl CharParser<Destination> {
-    choice((
-        just('A').to(Destination::Accept),
-        just('R').to(Destination::Reject),
-        identifier().map(Destination::NextWorkflow),
+    tuple((
+        opt(terminated(alt((less_than, greater_than)), char(':'))),
+        destination_parser,
     ))
+    .map(|(condition, destination)| ConditionalDestination {
+        condition: condition.unwrap_or(Condition::Unconditional),
+        destination,
+    })
+    .parse(input)
 }
 
-fn category_parser() -> impl CharParser<Category> {
-    choice([
-        just('x').to(Category::X),
-        just('m').to(Category::M),
-        just('a').to(Category::A),
-        just('s').to(Category::S),
-    ])
+fn destination_parser(input: &str) -> ParseResult<Destination> {
+    alt((
+        value(Destination::Accept, char('A')),
+        value(Destination::Reject, char('R')),
+        alphanumeric1
+            .map(str::to_string)
+            .map(Destination::NextWorkflow),
+    ))
+    .parse(input)
 }
 
-fn number<Err: Debug, T: FromStr<Err = Err>>() -> impl CharParser<T> {
-    filter(char::is_ascii_digit)
-        .repeated()
-        .at_least(1)
-        .collect::<String>()
-        .map(|n| T::from_str(&n).unwrap())
+fn category_parser(input: &str) -> ParseResult<Category> {
+    alt((
+        value(Category::X, char('x')),
+        value(Category::M, char('m')),
+        value(Category::A, char('a')),
+        value(Category::S, char('s')),
+    ))
+    .parse(input)
 }
 
-fn identifier() -> impl CharParser<String> {
-    filter(char::is_ascii_alphanumeric)
-        .repeated()
-        .at_least(1)
-        .collect()
+fn usize(input: &str) -> ParseResult<usize> {
+    u64.map(|n| n as usize).parse(input)
 }
