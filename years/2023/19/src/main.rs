@@ -1,11 +1,17 @@
+mod parser;
+
 use std::borrow::Borrow;
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::io;
 use std::iter::successors;
+use std::ops::Index;
 use std::ops::RangeBounds;
-use std::{collections::HashMap, ops::Index};
+use std::str::FromStr;
 
 use aoc_timing::trace::log_run;
+use chumsky::Parser;
+use parser::{named_workflow_parser, part_parser};
 use ranges::{GenericRange, Ranges};
 
 struct Input {
@@ -64,11 +70,6 @@ impl Input {
     }
 }
 
-enum ParsingState {
-    Workflows(HashMap<String, Workflow>),
-    Parts(HashMap<String, Workflow>, Vec<Part>),
-}
-
 struct Workflow {
     conditions: Vec<ConditionalDestination>,
 }
@@ -80,6 +81,11 @@ impl Workflow {
             .find_map(|condition| condition.get_destination(part))
             .expect("No condition matched")
     }
+}
+
+struct NamedWorkflow {
+    name: String,
+    workflow: Workflow,
 }
 
 struct ConditionalDestination {
@@ -116,24 +122,6 @@ enum Condition {
     Unconditional,
 }
 
-impl Debug for Condition {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Condition::LessThan(category, n) | Condition::GreaterThan(category, n) => {
-                f.write_fmt(format_args!(
-                    "{category:?}{}{n}",
-                    if matches!(self, Condition::LessThan(_, _)) {
-                        '<'
-                    } else {
-                        '>'
-                    }
-                ))
-            }
-            Condition::Unconditional => f.write_str("*=*"),
-        }
-    }
-}
-
 impl Condition {
     fn invert(&self) -> Condition {
         use Condition::*;
@@ -166,22 +154,6 @@ enum Category {
     S,
 }
 
-impl TryFrom<&str> for Category {
-    type Error = ();
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        use Category::*;
-
-        match value {
-            "x" => Ok(X),
-            "m" => Ok(M),
-            "a" => Ok(A),
-            "s" => Ok(S),
-            _ => Err(()),
-        }
-    }
-}
-
 #[derive(Default)]
 struct Part {
     x_rating: usize,
@@ -193,6 +165,14 @@ struct Part {
 impl Part {
     fn sum_of_ratings(&self) -> usize {
         self.x_rating + self.m_rating + self.a_rating + self.s_rating
+    }
+}
+
+impl FromStr for Part {
+    type Err = Vec<chumsky::error::Cheap<char>>;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        part_parser().parse(s)
     }
 }
 
@@ -212,95 +192,47 @@ impl<T: Borrow<Category>> Index<T> for Part {
 }
 
 fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Input {
-    use ParsingState::*;
+    enum ParsingState {
+        Workflows(HashMap<String, Workflow>),
+        Parts(HashMap<String, Workflow>, Vec<Part>),
+    }
 
-    let end_state = input.map(|line| line.to_string()).fold(
-        Workflows(HashMap::new()),
-        |state, line| match state {
-            Workflows(mut workflows) => {
-                if line.is_empty() {
-                    Parts(workflows, vec![])
+    impl From<NamedWorkflow> for (String, Workflow) {
+        fn from(val: NamedWorkflow) -> Self {
+            (val.name, val.workflow)
+        }
+    }
+
+    impl FromStr for NamedWorkflow {
+        type Err = Vec<chumsky::error::Cheap<char>>;
+
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            named_workflow_parser().parse(s)
+        }
+    }
+
+    let end_state = input.fold(ParsingState::Workflows(HashMap::new()), |state, line| {
+        let line = line.to_string();
+        match state {
+            ParsingState::Workflows(mut workflows) => {
+                if line.to_string().is_empty() {
+                    ParsingState::Parts(workflows, vec![])
                 } else {
-                    let (name, rest) = line.split_once('{').unwrap();
-                    let (rest, _) = rest.split_once('}').unwrap();
-                    let conditions = rest
-                        .split(',')
-                        .map(|conditional_destination| -> ConditionalDestination {
-                            if let Some((condition, destination)) =
-                                conditional_destination.split_once(':')
-                            {
-                                if let Some((category, n)) = condition.split_once('<') {
-                                    ConditionalDestination {
-                                        condition: Condition::LessThan(
-                                            category.try_into().unwrap(),
-                                            n.parse().unwrap(),
-                                        ),
-                                        destination: match destination {
-                                            "A" => Destination::Accept,
-                                            "R" => Destination::Reject,
-                                            _ => Destination::NextWorkflow(destination.to_string()),
-                                        },
-                                    }
-                                } else {
-                                    let (category, n) = condition.split_once('>').unwrap();
-                                    ConditionalDestination {
-                                        condition: Condition::GreaterThan(
-                                            category.try_into().unwrap(),
-                                            n.parse().unwrap(),
-                                        ),
-                                        destination: match destination {
-                                            "A" => Destination::Accept,
-                                            "R" => Destination::Reject,
-                                            _ => Destination::NextWorkflow(destination.to_string()),
-                                        },
-                                    }
-                                }
-                            } else {
-                                ConditionalDestination {
-                                    condition: Condition::Unconditional,
-                                    destination: match conditional_destination {
-                                        "A" => Destination::Accept,
-                                        "R" => Destination::Reject,
-                                        _ => Destination::NextWorkflow(
-                                            conditional_destination.to_string(),
-                                        ),
-                                    },
-                                }
-                            }
-                        })
-                        .collect();
-
-                    let new_workflow = Workflow { conditions };
-
-                    workflows.insert(name.to_string(), new_workflow);
-
-                    Workflows(workflows)
+                    let named_workflow = NamedWorkflow::from_str(&line).unwrap();
+                    workflows.insert(named_workflow.name, named_workflow.workflow);
+                    ParsingState::Workflows(workflows)
                 }
             }
-            Parts(workflows, mut parts) => {
-                let mut part = Part::default();
-                line[1..line.len() - 1].split(',').for_each(|component| {
-                    let (category, rating) = component.split_once('=').unwrap();
-                    let rating = rating.parse().unwrap();
-
-                    match category {
-                        "x" => part.x_rating = rating,
-                        "m" => part.m_rating = rating,
-                        "a" => part.a_rating = rating,
-                        "s" => part.s_rating = rating,
-                        _ => panic!("Unexpected part category {category}"),
-                    }
-                });
-                parts.push(part);
-
-                Parts(workflows, parts)
+            ParsingState::Parts(workflows, mut parts) => {
+                parts.push(Part::from_str(&line).expect("Couldn't parse part"));
+                ParsingState::Parts(workflows, parts)
             }
-        },
-    );
+        }
+    });
 
     match end_state {
-        Workflows(_) => panic!("Didn't reach Parts parsing stage"),
-        Parts(workflows, parts) => Input { workflows, parts },
+        ParsingState::Workflows(_) => panic!("Haven't reached the parsing parts stage"),
+        ParsingState::Parts(workflows, parts) => Input { workflows, parts },
     }
 }
 
