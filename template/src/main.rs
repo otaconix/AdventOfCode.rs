@@ -4,10 +4,12 @@ use aoc_timing::trace::log_run;
 
 type Input = Vec<String>;
 
-fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Input {
-    let line_iterator = input.map(|line| line.to_string());
+fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
+    input.map(|line| {
+        let line = line.as_ref();
 
-    todo!()
+        todo!()
+    })
 }
 
 fn part_1(input: &Input) -> usize {
