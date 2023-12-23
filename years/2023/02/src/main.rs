@@ -1,7 +1,13 @@
 use aoc_timing::trace::log_run;
-use std::{io, str::FromStr};
-
-use pom::utf8::*;
+use nom::{
+    branch::alt,
+    bytes::complete::tag,
+    character::complete::{char, u8},
+    multi::separated_list1,
+    sequence::{preceded, terminated, tuple},
+    IResult, Parser,
+};
+use std::io;
 
 #[derive(Debug)]
 struct Game {
@@ -16,34 +22,27 @@ struct Set {
     blue: u8,
 }
 
-fn number_parser<'a>() -> Parser<'a, u8> {
-    is_a(|c| c.is_ascii_digit())
-        .repeat(1..)
-        .collect()
-        .convert(|digits| digits.parse())
-}
-
 impl Game {
-    fn parser<'a>() -> Parser<'a, Self> {
-        let id = seq("Game ") * number_parser();
-        let sets = list(call(Set::parser), seq("; "));
+    fn parser(input: &str) -> IResult<&str, Self> {
+        let id = preceded(tag("Game "), u8);
+        let sets = separated_list1(tag("; "), Set::parser);
 
-        ((id - seq(": ")) + sets).map(|(id, sets)| Game { id, sets })
-    }
-}
-
-impl FromStr for Game {
-    type Err = pom::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Game::parser().parse_str(s)
+        tuple((terminated(id, tag(": ")), sets))
+            .map(|(id, sets)| Game { id, sets })
+            .parse(input)
     }
 }
 
 impl Set {
-    fn parser<'a>() -> Parser<'a, Self> {
-        let cubes = (number_parser() - seq(" ")) + (seq("red") | seq("green") | seq("blue"));
-        list(cubes, seq(", ")).map(|cubes_list| {
+    fn parser(input: &str) -> IResult<&str, Self> {
+        separated_list1(
+            tag(", "),
+            tuple((
+                terminated(u8, char(' ')),
+                alt((tag("red"), tag("green"), tag("blue"))),
+            )),
+        )
+        .map(|cubes_list| {
             let mut set = Set::default();
 
             for (count, color) in cubes_list {
@@ -57,12 +56,13 @@ impl Set {
 
             set
         })
+        .parse(input)
     }
 }
 
 fn parse<S: AsRef<str>, T: Iterator<Item = S>>(input: T) -> Vec<Game> {
     input
-        .map(|line| line.as_ref().parse::<Game>().expect("Failed to parse game"))
+        .map(|line| Game::parser(line.as_ref()).expect("Failed to parse game").1)
         .collect()
 }
 

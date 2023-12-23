@@ -1,7 +1,11 @@
 use aoc_timing::trace::log_run;
-use pom::utf8::*;
+use nom::bytes::complete::tag;
+use nom::character::complete::{char, space1, u8};
+use nom::combinator::all_consuming;
+use nom::multi::separated_list1;
+use nom::sequence::{pair, preceded, terminated, tuple};
+use nom::{IResult, Parser};
 use std::io;
-use std::str::FromStr;
 
 #[derive(Debug)]
 struct ScratchCard {
@@ -9,27 +13,21 @@ struct ScratchCard {
     scratched_numbers: Vec<u8>,
 }
 
-impl FromStr for ScratchCard {
-    type Err = pom::Error;
+impl ScratchCard {
+    fn parser(input: &str) -> IResult<&str, Self> {
+        let id = preceded(tag("Card").and(space1), u8);
+        let numbers = || separated_list1(space1, u8);
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let number = || {
-            sym(' ').repeat(0..)
-                * is_a(|c| c.is_ascii_digit())
-                    .repeat(1..)
-                    .collect()
-                    .convert(|digits| digits.parse::<u8>())
-        };
-        let id = seq("Card ") * call(number) - seq(": ");
-        let number_list = || list(call(number), sym(' '));
-        let scratch_card = (id * (call(number_list) - seq(" | ")) + call(number_list)).map(
-            |(winning_numbers, scratched_numbers)| ScratchCard {
-                winning_numbers,
-                scratched_numbers,
-            },
-        );
-
-        scratch_card.parse(s.as_bytes())
+        tuple((
+            terminated(id, pair(char(':'), space1)),
+            numbers(),
+            preceded(tag(" |").and(space1), all_consuming(numbers())),
+        ))
+        .map(|(_, winning_numbers, scratched_numbers)| ScratchCard {
+            winning_numbers,
+            scratched_numbers,
+        })
+        .parse(input)
     }
 }
 
@@ -44,7 +42,7 @@ impl ScratchCard {
 
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Vec<ScratchCard> {
     input
-        .map(|line| line.as_ref().to_string().parse().expect("Parse error"))
+        .map(|line| ScratchCard::parser(line.as_ref()).expect("Parse error").1)
         .collect::<Vec<ScratchCard>>()
 }
 
