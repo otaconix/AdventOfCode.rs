@@ -60,13 +60,9 @@ impl Set {
     }
 }
 
-fn parse<S: ToString, T: Iterator<Item = S>>(input: T) -> Vec<Game> {
+fn parse<S: AsRef<str>, T: Iterator<Item = S>>(input: T) -> Vec<Game> {
     input
-        .map(|line| {
-            line.to_string()
-                .parse::<Game>()
-                .expect("Failed to parse game")
-        })
+        .map(|line| line.as_ref().parse::<Game>().expect("Failed to parse game"))
         .collect()
 }
 

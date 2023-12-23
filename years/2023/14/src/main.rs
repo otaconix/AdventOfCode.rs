@@ -19,10 +19,10 @@ enum Direction {
     East,
 }
 
-fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Grid<Rock> {
+fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Grid<Rock> {
     input
         .map(|line| {
-            line.to_string()
+            line.as_ref()
                 .chars()
                 .map(|c| match c {
                     'O' => Rock::Round,

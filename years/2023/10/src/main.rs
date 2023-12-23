@@ -48,11 +48,11 @@ impl TryFrom<char> for Tile {
     }
 }
 
-fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Grid<Tile> {
+fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Grid<Tile> {
     Grid::new(
         input
             .map(|line| {
-                line.to_string()
+                line.as_ref()
                     .chars()
                     .map(|c| c.try_into().unwrap())
                     .collect()

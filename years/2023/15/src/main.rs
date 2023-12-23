@@ -2,11 +2,11 @@ use std::io;
 
 use aoc_timing::trace;
 
-fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Vec<String> {
+fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Vec<String> {
     input
-        .map(|line| line.to_string())
         .flat_map(|line| {
-            line.split(',')
+            line.as_ref()
+                .split(',')
                 .map(|step| step.to_owned())
                 .collect::<Vec<_>>()
         })

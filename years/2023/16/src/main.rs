@@ -62,10 +62,10 @@ enum Direction {
 
 type Input = Grid<Cell>;
 
-fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Input {
+fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     input
         .map(|line| {
-            line.to_string()
+            line.as_ref()
                 .chars()
                 .map(|c| match c {
                     '.' => Cell::Empty,

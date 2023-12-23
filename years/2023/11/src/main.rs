@@ -24,10 +24,10 @@ impl TryFrom<char> for Cell {
     }
 }
 
-fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Grid<Cell> {
+fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Grid<Cell> {
     input
         .map(|line| {
-            line.to_string()
+            line.as_ref()
                 .chars()
                 .map(|c| c.try_into().unwrap())
                 .collect::<Vec<_>>()

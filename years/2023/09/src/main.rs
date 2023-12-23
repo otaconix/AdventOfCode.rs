@@ -1,10 +1,10 @@
 use aoc_timing::trace::log_run;
 use std::io;
 
-fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Vec<Vec<i32>> {
+fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Vec<Vec<i32>> {
     input
         .map(|line| {
-            line.to_string()
+            line.as_ref()
                 .split_whitespace()
                 .map(|number| number.parse().expect("Couldn't parse number"))
                 .collect()

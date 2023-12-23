@@ -80,10 +80,11 @@ where
         .expect("No mirror found")
 }
 
-fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Vec<Grid<Stuff>> {
+fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Vec<Grid<Stuff>> {
     input
-        .map(|line| line.to_string())
         .fold(vec![vec![]], |mut acc, line| {
+            let line = line.as_ref();
+
             if line.is_empty() {
                 acc.push(vec![]);
             } else {

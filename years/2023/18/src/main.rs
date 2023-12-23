@@ -25,10 +25,10 @@ struct DigInstruction {
 
 type Input = Vec<DigInstruction>;
 
-fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Input {
+fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     input
         .map(|line| {
-            let line = line.to_string();
+            let line = line.as_ref();
             let split = line.split(' ').collect::<Vec<_>>();
             let (direction, distance, color) = (split[0], split[1], split[2]);
 

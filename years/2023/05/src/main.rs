@@ -125,44 +125,47 @@ fn parse_numbers_line(line: &str, skip: usize) -> Vec<u64> {
         .collect()
 }
 
-fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Input {
-    let parsing_state =
-        input
-            .map(|line| line.to_string())
-            .fold(ParsingState::Start, |state, line| match state {
-                ParsingState::Start => ParsingState::Seeds(parse_numbers_line(&line, 1)),
-                ParsingState::Seeds(seeds) => {
-                    if line.is_empty() {
-                        ParsingState::Seeds(seeds)
-                    } else {
-                        ParsingState::MapTitle(
-                            seeds,
-                            vec![],
-                            line.split(' ').next().expect("No title found").to_string(),
-                            vec![],
-                        )
-                    }
-                }
-                ParsingState::MapTitle(seeds, mut maps, title, mut ranges) => {
-                    if line.is_empty() {
-                        maps.push(Map::new(title, ranges));
-                        ParsingState::Map(seeds, maps)
-                    } else {
-                        let raw_range = parse_numbers_line(&line, 0);
-                        ranges.push(MapRange {
-                            source: raw_range[1]..raw_range[1] + raw_range[2],
-                            dest: raw_range[0]..raw_range[0] + raw_range[2],
-                        });
-                        ParsingState::MapTitle(seeds, maps, title, ranges)
-                    }
-                }
-                ParsingState::Map(seeds, maps) => ParsingState::MapTitle(
+fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
+    let parsing_state = input.fold(ParsingState::Start, |state, line| match state {
+        ParsingState::Start => ParsingState::Seeds(parse_numbers_line(line.as_ref(), 1)),
+        ParsingState::Seeds(seeds) => {
+            let line = line.as_ref();
+            if line.is_empty() {
+                ParsingState::Seeds(seeds)
+            } else {
+                ParsingState::MapTitle(
                     seeds,
-                    maps,
+                    vec![],
                     line.split(' ').next().expect("No title found").to_string(),
                     vec![],
-                ),
-            });
+                )
+            }
+        }
+        ParsingState::MapTitle(seeds, mut maps, title, mut ranges) => {
+            let line = line.as_ref();
+            if line.is_empty() {
+                maps.push(Map::new(title, ranges));
+                ParsingState::Map(seeds, maps)
+            } else {
+                let raw_range = parse_numbers_line(&line, 0);
+                ranges.push(MapRange {
+                    source: raw_range[1]..raw_range[1] + raw_range[2],
+                    dest: raw_range[0]..raw_range[0] + raw_range[2],
+                });
+                ParsingState::MapTitle(seeds, maps, title, ranges)
+            }
+        }
+        ParsingState::Map(seeds, maps) => ParsingState::MapTitle(
+            seeds,
+            maps,
+            line.as_ref()
+                .split(' ')
+                .next()
+                .expect("No title found")
+                .to_string(),
+            vec![],
+        ),
+    });
 
     match parsing_state {
         ParsingState::MapTitle(seeds, mut maps, title, ranges) => {

@@ -33,12 +33,10 @@ impl Race {
     }
 }
 
-fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Vec<Race> {
+fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Vec<Race> {
     let number_lines = input
         .map(|line| {
-            let mut full_line = line.to_string();
-            full_line.retain(|c| c.is_ascii_digit());
-            line.to_string()
+            line.as_ref()
                 .split_whitespace()
                 .skip(1)
                 .map(|number| number.parse().expect("Couldn't parse number"))

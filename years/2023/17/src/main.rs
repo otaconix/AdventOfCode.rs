@@ -11,10 +11,10 @@ use grid::Grid;
 type Input = Grid<u8>;
 type Coord = (usize, usize);
 
-fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Input {
+fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     input
         .map(|line| {
-            line.to_string()
+            line.as_ref()
                 .chars()
                 .map(|c| c.to_digit(10).unwrap() as u8)
                 .collect::<Vec<_>>()
@@ -63,8 +63,7 @@ fn shortest_path(grid: &Input, start: Coord, end: Coord) -> Option<Vec<Coord>> {
         }
 
         for neighbor @ (ncolumn, nrow) in grid.get_neighbors(column, row) {
-            if true
-                || predecessors.len() < 4
+            if predecessors.len() < 4
                 || !(predecessors.iter().all(|(pcolumn, _)| pcolumn == &ncolumn)
                     || predecessors.iter().all(|(_, prow)| prow == &nrow))
             {

@@ -34,11 +34,11 @@ struct Input {
     map: HashMap<String, Destinations>,
 }
 
-fn parse<S: ToString, I: Iterator<Item = S>>(mut input: I) -> Input {
+fn parse<S: AsRef<str>, I: Iterator<Item = S>>(mut input: I) -> Input {
     let directions = input
         .next()
         .unwrap()
-        .to_string()
+        .as_ref()
         .chars()
         .map(|c| c.try_into().expect("Invalid direction"))
         .collect();
@@ -47,7 +47,7 @@ fn parse<S: ToString, I: Iterator<Item = S>>(mut input: I) -> Input {
         .skip(1)
         .map(|line| {
             let words = line
-                .to_string()
+                .as_ref()
                 .split_ascii_whitespace()
                 .map(|word| {
                     word.chars()

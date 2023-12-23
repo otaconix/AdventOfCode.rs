@@ -42,9 +42,9 @@ impl ScratchCard {
     }
 }
 
-fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Vec<ScratchCard> {
+fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Vec<ScratchCard> {
     input
-        .map(|line| line.to_string().parse().expect("Parse error"))
+        .map(|line| line.as_ref().to_string().parse().expect("Parse error"))
         .collect::<Vec<ScratchCard>>()
 }
 

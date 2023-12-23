@@ -21,8 +21,8 @@ fn replace_spelled_digits(input: &str) -> String {
         })
 }
 
-fn input_to_number<S: ToString>(input: S) -> u16 {
-    let input = input.to_string();
+fn input_to_number<S: AsRef<str>>(input: S) -> u16 {
+    let input = input.as_ref().to_string();
     let mut digit_iter = input.chars().filter(char::is_ascii_digit);
 
     let first_digit = digit_iter.next().unwrap();

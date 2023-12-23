@@ -19,11 +19,10 @@ struct ConditionRecord {
     groups: Vec<usize>,
 }
 
-fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Vec<ConditionRecord> {
+fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Vec<ConditionRecord> {
     input
         .map(|line| {
-            let line = line.to_string();
-            let (statuses, groups) = line.split_once(' ').expect("No space in line");
+            let (statuses, groups) = line.as_ref().split_once(' ').expect("No space in line");
             let statuses = statuses
                 .chars()
                 .map(|c| match c {

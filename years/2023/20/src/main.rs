@@ -131,8 +131,8 @@ impl Display for Module {
             Module::Button => "button",
             Module::FinalDestination => "final destination",
             Module::Broadcast => "broadcast",
-            Module::FlipFlop { on } => "flip-flop",
-            Module::Conjunction { last_inputs } => "conjunction",
+            Module::FlipFlop { on: _ } => "flip-flop",
+            Module::Conjunction { last_inputs: _ } => "conjunction",
         })
     }
 }
@@ -180,11 +180,10 @@ impl Module {
     }
 }
 
-fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Input {
+fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     let mut input: Input = input
-        .map(|line| line.to_string())
         .map(|line| {
-            let (name, destinations) = line.split_once(" -> ").unwrap();
+            let (name, destinations) = line.as_ref().split_once(" -> ").unwrap();
             let destinations = destinations
                 .split(", ")
                 .map(|name| name.to_string())

@@ -59,11 +59,10 @@ fn parse_number_range(grid: &Grid<char>, coord_range: &[(usize, usize)]) -> u32 
         .expect("Couldn't parse number")
 }
 
-fn parse<S: ToString, I: Iterator<Item = S>>(input: I) -> Grid<char> {
+fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Grid<char> {
     input
-        .map(|input| input.to_string())
-        .filter(|line| !line.is_empty())
-        .map(|line| line.chars().collect())
+        .filter(|line| !line.as_ref().is_empty())
+        .map(|line| line.as_ref().chars().collect())
         .collect()
 }
 
