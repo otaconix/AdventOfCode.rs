@@ -247,18 +247,8 @@ fn part_1(input: &Input) -> usize {
 
 fn part_2(input: &Input) -> usize {
     (0..input.width())
-        .flat_map(|column| {
-            [
-                (Direction::Down, (column, 0)),
-                (Direction::Up, (column, input.height() - 1)),
-            ]
-        })
-        .chain((0..input.height()).flat_map(|row| {
-            [
-                (Direction::Right, (0, row)),
-                (Direction::Left, (input.width() - 1, row)),
-            ]
-        }))
+        .flat_map(|column| [(Direction::Down, (column, 0))])
+        .chain((0..input.height()).flat_map(|row| [(Direction::Right, (0, row))]))
         .map(|start| determine_energized_cells_count(input, start))
         .max()
         .unwrap()
@@ -275,7 +265,7 @@ fn main() {
         let part_1 = log_run("Part 1", || part_1(&input));
         println!("Part 1: {part_1}");
 
-        let part_2 = log_run("Part 1", || part_2(&input));
+        let part_2 = log_run("Part 2", || part_2(&input));
         println!("Part 2: {part_2}");
     });
 }
