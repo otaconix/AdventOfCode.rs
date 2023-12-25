@@ -3,11 +3,12 @@ mod parser;
 use aoc_macros::EnumVariants;
 use aoc_utils::EnumVariants;
 use log::debug;
+use nom::Finish;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::ops::{Add, Index, IndexMut, Mul, Sub};
 use std::str::FromStr;
 
-#[derive(Debug, PartialEq, Eq, Hash, EnumVariants)]
+#[derive(Debug, PartialEq, Eq, Hash, EnumVariants, Clone, Copy)]
 pub enum Resource {
     Ore,
     Clay,
@@ -241,8 +242,9 @@ impl FromStr for Blueprint {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        parser::blueprint_parser()
-            .parse_str(s)
+        parser::blueprint_parser(s)
+            .finish()
+            .map(|(_, blueprint)| blueprint)
             .map_err(|err| err.to_string())
     }
 }

@@ -1,27 +1,28 @@
-use super::*;
-use pom::utf8::*;
+use nom::{
+    branch::alt,
+    bytes::complete::tag,
+    character::complete::{char, u32},
+    combinator::{opt, value},
+    multi::{many0, many1},
+    sequence::{preceded, terminated, tuple},
+    IResult, Parser,
+};
 
-fn number_parser<'a>() -> Parser<'a, u32> {
-    is_a(|c| c.is_ascii_digit())
-        .repeat(1..)
-        .collect()
-        .convert(|digits| digits.parse())
+use super::{Blueprint, Resource, Resources};
+
+fn resource_parser(input: &str) -> IResult<&str, Resource> {
+    alt((
+        value(Resource::Ore, tag("ore")),
+        value(Resource::Clay, tag("clay")),
+        value(Resource::Obsidian, tag("obsidian")),
+        value(Resource::Geode, tag("geode")),
+    ))(input)
 }
 
-fn resource_parser<'a>() -> Parser<'a, Resource> {
-    let ore = seq("ore").map(|_| Resource::Ore);
-    let clay = seq("clay").map(|_| Resource::Clay);
-    let obsidian = seq("obsidian").map(|_| Resource::Obsidian);
-    let geode = seq("geode").map(|_| Resource::Geode);
+fn resources_parser(input: &str) -> IResult<&str, Resources> {
+    let single_cost = || terminated(u32, char(' ')).and(resource_parser);
 
-    (ore | clay | obsidian | geode).name("resource")
-}
-
-fn resources_parser<'a>() -> Parser<'a, Resources> {
-    let single_cost = || number_parser() - sym(' ') + resource_parser();
-    let costs = single_cost() + (seq(" and ") * single_cost()).repeat(0..);
-
-    costs
+    tuple((single_cost(), many0(preceded(tag(" and "), single_cost()))))
         .map(|(first, rest)| {
             let mut result = Resources::default();
 
@@ -31,14 +32,25 @@ fn resources_parser<'a>() -> Parser<'a, Resources> {
 
             result
         })
-        .name("cost")
+        .parse(input)
 }
 
-pub(crate) fn blueprint_parser<'a>() -> Parser<'a, Blueprint> {
-    let robot_cost_parser = seq("Each ")
-        * (resource_parser() + (seq(" robot costs ") * resources_parser())
-            - (sym('.') + sym(' ').opt()));
-    let parser = seq("Blueprint ") * number_parser() + (seq(": ") * robot_cost_parser.repeat(1..));
+pub(crate) fn blueprint_parser(input: &str) -> IResult<&str, Blueprint> {
+    let robot_cost_parser = preceded(
+        tag("Each "),
+        terminated(
+            tuple((
+                resource_parser,
+                preceded(tag(" robot costs "), resources_parser),
+            )),
+            char('.').and(opt(char(' '))),
+        ),
+    );
 
-    parser.map(|x| Blueprint::new(x.0, x.1.into_iter().collect()))
+    tuple((
+        terminated(preceded(tag("Blueprint "), u32), tag(": ")),
+        many1(robot_cost_parser),
+    ))
+    .map(|x| Blueprint::new(x.0, x.1.into_iter().collect()))
+    .parse(input)
 }

@@ -6,9 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-pom = "3.3"
 log = "0.4"
 env_logger = "0.10"
 aoc-macros = { version = "0.1", path = "../../../crates/macros" }
 aoc-utils = { version = "0.1", path = "../../../crates/utils" }
 aoc-timing = { version = "0.1.0", path = "../../../crates/timing" }
+nom = "7.1.3"
