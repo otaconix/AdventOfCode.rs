@@ -1,6 +1,6 @@
 steps:
   earthly:
-    image: earthly/earthly
+    image: earthly/earthly:v0.7.23
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     commands:
