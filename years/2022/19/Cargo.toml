@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 log = "0.4"
-env_logger = "0.10"
+env_logger = "0.11"
 aoc-macros = { version = "0.1", path = "../../../crates/macros" }
 aoc-utils = { version = "0.1", path = "../../../crates/utils" }
 aoc-timing = { version = "0.1.0", path = "../../../crates/timing" }
