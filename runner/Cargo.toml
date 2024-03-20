@@ -8,5 +8,5 @@ edition = "2021"
 [dependencies]
 directories = "5"
 dotenvy = "0.15"
-reqwest = { version = "0.11", features = ["blocking", "stream", "cookies"] }
+reqwest = { version = "0.12", features = ["blocking", "stream", "cookies"] }
 clap = { version = "4", features = ["derive", "color"] }
