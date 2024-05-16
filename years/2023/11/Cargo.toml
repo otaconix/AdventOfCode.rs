@@ -9,4 +9,4 @@ edition = "2021"
 aoc-timing = { version = "0.1.0", path = "../../../crates/timing" }
 env_logger = "0.11.3"
 grid = { version = "0.1.0", path = "../../../crates/grid" }
-itertools = "0.12.1"
+itertools = "0.13.0"
