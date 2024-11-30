@@ -1,5 +1,5 @@
 VERSION 0.7
-FROM rust:1.75
+FROM rust:1.82
 WORKDIR /build
 
 install-chef:
