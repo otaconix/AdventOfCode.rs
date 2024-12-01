@@ -46,9 +46,13 @@ fn part_2(input: &Input) -> u32 {
     let right_counts = right
         .iter()
         .fold(HashMap::<u32, u32>::new(), |mut map, right| {
-            let count = map.get(right);
+            let count = map.get_mut(right);
 
-            map.insert(*right, count.map(|count| *count + 1).unwrap_or(1));
+            if let Some(count) = count {
+                *count += 1;
+            } else {
+                map.insert(*right, 1);
+            }
 
             map
         });
