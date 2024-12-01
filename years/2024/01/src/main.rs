@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io;
 
 use aoc_timing::trace::log_run;
@@ -39,8 +40,22 @@ fn part_1(input: &Input) -> u32 {
         .sum()
 }
 
-fn part_2(input: &Input) -> usize {
-    todo!()
+fn part_2(input: &Input) -> u32 {
+    let (left, right) = (input.left.clone(), input.right.clone());
+
+    let right_counts = right
+        .iter()
+        .fold(HashMap::<u32, u32>::new(), |mut map, right| {
+            let count = map.get(right);
+
+            map.insert(*right, count.map(|count| *count + 1).unwrap_or(1));
+
+            map
+        });
+
+    left.iter()
+        .map(|left| left * right_counts.get(left).unwrap_or(&0))
+        .sum()
 }
 
 fn main() {
