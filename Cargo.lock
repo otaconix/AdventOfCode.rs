@@ -487,6 +487,7 @@ version = "0.1.0"
 dependencies = [
  "aoc-timing",
  "env_logger",
+ "grid",
 ]
 
 [[package]]
