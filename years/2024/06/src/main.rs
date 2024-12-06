@@ -128,35 +128,38 @@ fn part_1(input: &Input) -> Output {
 }
 
 fn part_2(input: &Input) -> Output {
-    input
-        .lab
-        .coordinates()
-        .filter(|coord @ (col, row)| {
-            coord != &input.guard_start_position.coordinates
-                && input.lab.get(*col, *row).unwrap() == &LabCell::Empty
-        })
-        .map(|(col, row)| {
-            let mut lab = input.lab.clone();
+    successors(Some(input.guard_start_position), |guard_pos| {
+        guard_pos.next(&input.lab)
+    })
+    .map(|pos| pos.coordinates)
+    .collect::<HashSet<_>>()
+    .into_iter()
+    .filter(|coord @ (col, row)| {
+        coord != &input.guard_start_position.coordinates
+            && input.lab.get(*col, *row).unwrap() == &LabCell::Empty
+    })
+    .map(|(col, row)| {
+        let mut lab = input.lab.clone();
 
-            lab.update(col, row, LabCell::Obstruction);
+        lab.update(col, row, LabCell::Obstruction);
 
-            lab
-        })
-        .filter(|lab| {
-            let mut past_guard_positions = HashSet::new();
-            for guard_pos in successors(Some(input.guard_start_position), |guard_pos| {
-                guard_pos.next(lab)
-            }) {
-                if past_guard_positions.contains(&guard_pos) {
-                    return true;
-                } else {
-                    past_guard_positions.insert(guard_pos);
-                }
+        lab
+    })
+    .filter(|lab| {
+        let mut past_guard_positions = HashSet::new();
+        for guard_pos in successors(Some(input.guard_start_position), |guard_pos| {
+            guard_pos.next(lab)
+        }) {
+            if past_guard_positions.contains(&guard_pos) {
+                return true;
+            } else {
+                past_guard_positions.insert(guard_pos);
             }
+        }
 
-            false
-        })
-        .count()
+        false
+    })
+    .count()
 }
 
 fn main() {
