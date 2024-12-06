@@ -104,27 +104,6 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
                             };
                             LabCell::Empty
                         }
-                        'v' => {
-                            start_position = GuardPosition {
-                                coordinates: (column, row),
-                                direction: Direction::Down,
-                            };
-                            LabCell::Empty
-                        }
-                        '<' => {
-                            start_position = GuardPosition {
-                                coordinates: (column, row),
-                                direction: Direction::Left,
-                            };
-                            LabCell::Empty
-                        }
-                        '>' => {
-                            start_position = GuardPosition {
-                                coordinates: (column, row),
-                                direction: Direction::Right,
-                            };
-                            LabCell::Empty
-                        }
                         _ => panic!("Unsupported character found in input: {c}"),
                     })
                     .collect()
