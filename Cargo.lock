@@ -505,6 +505,7 @@ dependencies = [
  "aoc-timing",
  "env_logger",
  "grid",
+ "rayon",
 ]
 
 [[package]]

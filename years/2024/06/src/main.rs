@@ -4,6 +4,7 @@ use std::iter::successors;
 
 use aoc_timing::trace::log_run;
 use grid::Grid;
+use rayon::prelude::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Direction {
@@ -133,7 +134,7 @@ fn part_2(input: &Input) -> Output {
     })
     .map(|pos| pos.coordinates)
     .collect::<HashSet<_>>()
-    .into_iter()
+    .into_par_iter()
     .filter(|coord @ (col, row)| {
         coord != &input.guard_start_position.coordinates
             && input.lab.get(*col, *row).unwrap() == &LabCell::Empty
