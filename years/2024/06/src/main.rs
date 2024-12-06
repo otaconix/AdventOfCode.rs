@@ -146,7 +146,7 @@ fn part_2(input: &Input) -> Output {
         lab
     })
     .filter(|lab| {
-        let mut past_guard_positions = HashSet::new();
+        let mut past_guard_positions = HashSet::with_capacity(5000);
         for guard_pos in successors(Some(input.guard_start_position), |guard_pos| {
             guard_pos.next(lab)
         }) {
