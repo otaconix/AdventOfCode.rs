@@ -48,14 +48,16 @@ impl Update {
         sorted.push(self.pages[0]);
 
         for n in &self.pages[1..] {
-            if let Some(nexts) = input.page_order.get(n) {
-                if let Some((i, _)) = sorted.iter().enumerate().find(|(_, m)| nexts.contains(m)) {
-                    sorted.insert(i, *n);
-                } else {
-                    sorted.push(*n);
-                }
-            } else {
-                sorted.push(*n);
+            match input
+                .page_order
+                .get(n)
+                .into_iter()
+                .flat_map(|nexts| sorted.iter().enumerate().find(|(_, m)| nexts.contains(m)))
+                .map(|(i, _)| i)
+                .next()
+            {
+                Some(i) => sorted.insert(i, *n),
+                _ => sorted.push(*n),
             }
         }
 
