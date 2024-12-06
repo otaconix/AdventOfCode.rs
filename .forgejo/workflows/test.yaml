@@ -1,0 +1,14 @@
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: docker
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup rust toolchain
+        uses: https://github.com/dtolnay/rust-toolchain@stable
+      - name: Test
+        run: |
+          cargo test
