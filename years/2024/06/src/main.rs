@@ -60,7 +60,7 @@ impl GuardPosition {
                     .map(|pos| (dir, pos))
             })
             .find(|maybe_next| match maybe_next {
-                None => true,
+                None => true, // Guard got out of the lab
                 Some((_, pos)) if *lab.get(pos.0, pos.1).unwrap() != LabCell::Obstruction => true,
                 _ => false,
             })
@@ -135,10 +135,7 @@ fn part_2(input: &Input) -> Output {
     .map(|pos| pos.coordinates)
     .collect::<HashSet<_>>()
     .into_par_iter()
-    .filter(|coord @ (col, row)| {
-        coord != &input.guard_start_position.coordinates
-            && input.lab.get(*col, *row).unwrap() == &LabCell::Empty
-    })
+    .filter(|coord| coord != &input.guard_start_position.coordinates)
     .map(|(col, row)| {
         let mut lab = input.lab.clone();
 
