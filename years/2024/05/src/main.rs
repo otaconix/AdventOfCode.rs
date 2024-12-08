@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use std::io;
 
 use aoc_timing::trace::log_run;
+use itertools::Itertools;
 
 #[derive(Debug, Clone, Copy)]
 struct PageOrderingPair {
@@ -85,19 +86,11 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
         if line.is_empty() {
             ParsingState::Updates(LaunchSafetyManual {
                 page_order: match state {
-                    ParsingState::OrderingPairs(pairs) => {
-                        pairs
-                            .iter()
-                            .fold(HashMap::new(), |mut map, PageOrderingPair { x, y }| {
-                                if let Some(nexts) = map.get_mut(x) {
-                                    nexts.insert(*y);
-                                } else {
-                                    map.insert(*x, HashSet::from([*y]));
-                                }
-
-                                map
-                            })
-                    }
+                    ParsingState::OrderingPairs(pairs) => pairs
+                        .into_iter()
+                        .map(|PageOrderingPair { x, y }| (x, y))
+                        .into_grouping_map()
+                        .collect::<HashSet<_>>(),
                     _ => panic!("In wrong parsing state when encountering empty line"),
                 },
                 updates: vec![],
