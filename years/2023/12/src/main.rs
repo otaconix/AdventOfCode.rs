@@ -118,7 +118,7 @@ fn possible_statuses(record: &ConditionRecord) -> u64 {
         &record
             .statuses
             .iter()
-            .group_by(|s| *s)
+            .chunk_by(|s| *s)
             .into_iter()
             .fold(Vec::<(Status, Range<usize>)>::new(), |mut acc, (s, g)| {
                 let index = acc.last().map(|(_, g)| g.end).unwrap_or(0);
