@@ -1,3 +1,4 @@
+use std::hash::Hash;
 use std::io;
 use std::iter::successors;
 
@@ -52,7 +53,10 @@ fn antinode_line(antenna_a: &ICoords, antenna_b: &ICoords, map: &Input) -> Vec<I
     .collect()
 }
 
-fn part_1(input: &Input) -> Output {
+fn solution<K: Clone + Eq + Hash, T: IntoIterator<Item = K>>(
+    input: &Input,
+    f: fn(&ICoords, &ICoords, &Input) -> T,
+) -> usize {
     input
         .coordinates()
         .map(|(column, row)| {
@@ -68,32 +72,18 @@ fn part_1(input: &Input) -> Output {
             coord_list
                 .iter()
                 .permutations(2)
-                .flat_map(|coords| antinode_coords(coords[0], coords[1], input))
+                .flat_map(|coords| f(coords[0], coords[1], input))
         })
         .unique()
         .count()
 }
 
+fn part_1(input: &Input) -> Output {
+    solution(input, antinode_coords)
+}
+
 fn part_2(input: &Input) -> Output {
-    input
-        .coordinates()
-        .map(|(column, row)| {
-            (
-                input.get(column, row).unwrap(),
-                (column as isize, row as isize),
-            )
-        })
-        .filter(|(key, _)| **key != '.')
-        .into_group_map()
-        .values()
-        .flat_map(|coord_list| {
-            coord_list
-                .iter()
-                .permutations(2)
-                .flat_map(|coords| antinode_line(coords[0], coords[1], input))
-        })
-        .unique()
-        .count()
+    solution(input, antinode_line)
 }
 
 fn main() {
