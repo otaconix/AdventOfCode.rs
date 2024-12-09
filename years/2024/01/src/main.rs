@@ -41,11 +41,11 @@ fn part_1(input: &Input) -> u32 {
 }
 
 fn part_2(input: &Input) -> u32 {
-    let (left, right) = (input.left.clone(), input.right.clone());
+    let right_counts = input.right.iter().counts();
 
-    let right_counts = right.iter().counts();
-
-    left.iter()
+    input
+        .left
+        .iter()
         .map(|left| left * *right_counts.get(left).unwrap_or(&0) as u32)
         .sum()
 }
