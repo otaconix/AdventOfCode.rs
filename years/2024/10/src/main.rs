@@ -6,12 +6,15 @@ use grid::Grid;
 use itertools::Either;
 use itertools::Itertools;
 
-type Input = Grid<Output>;
+struct Input {
+    grid: Grid<Output>,
+    trail_starts: Vec<Vec<Coord>>,
+}
 type Output = usize;
 type Coord = (usize, usize);
 
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
-    Grid::new(
+    let grid = Grid::new(
         input
             .map(|line| {
                 let line = line.as_ref();
@@ -22,7 +25,15 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
             })
             .collect(),
     )
-    .unwrap()
+    .unwrap();
+
+    let trail_starts: Vec<_> = grid
+        .coordinates()
+        .filter(|(column, row)| grid.get(*column, *row).unwrap() == &0)
+        .map(|start| vec![start])
+        .collect();
+
+    Input { grid, trail_starts }
 }
 
 fn find_trails(
@@ -36,17 +47,19 @@ fn find_trails(
         let (next_trails, completed_trails): (Vec<Vec<_>>, Vec<_>) =
             current_trails.into_iter().partition_map(|current_trail| {
                 let (column, row) = current_trail.last().unwrap();
-                let current_height = *input.get(*column, *row).unwrap();
+                let current_height = *input.grid.get(*column, *row).unwrap();
 
                 if current_height == 9 {
                     Either::Right(current_trail)
                 } else {
                     Either::Left(
                         input
+                            .grid
                             .get_neighbors(*column, *row)
                             .into_iter()
                             .filter(|(next_column, next_row)| {
-                                *input.get(*next_column, *next_row).unwrap() == current_height + 1
+                                *input.grid.get(*next_column, *next_row).unwrap()
+                                    == current_height + 1
                             })
                             .map(|next_position| {
                                 let mut next_trail = current_trail.clone();
@@ -64,13 +77,7 @@ fn find_trails(
 }
 
 fn part_1(input: &Input) -> Output {
-    let trail_starts: Vec<_> = input
-        .coordinates()
-        .filter(|(column, row)| input.get(*column, *row).unwrap() == &0)
-        .map(|start| vec![start])
-        .collect();
-
-    let trails = find_trails(input, trail_starts, HashSet::new());
+    let trails = find_trails(input, input.trail_starts.clone(), HashSet::new());
 
     trails
         .into_iter()
@@ -81,13 +88,7 @@ fn part_1(input: &Input) -> Output {
 }
 
 fn part_2(input: &Input) -> Output {
-    let trail_starts: Vec<_> = input
-        .coordinates()
-        .filter(|(column, row)| input.get(*column, *row).unwrap() == &0)
-        .map(|start| vec![start])
-        .collect();
-
-    let trails = find_trails(input, trail_starts, HashSet::new());
+    let trails = find_trails(input, input.trail_starts.clone(), HashSet::new());
 
     trails.len()
 }
