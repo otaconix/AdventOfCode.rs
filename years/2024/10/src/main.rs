@@ -31,7 +31,6 @@ fn find_trails(
     mut trails: HashSet<Vec<Coord>>,
 ) -> HashSet<Vec<Coord>> {
     if current_trails.is_empty() {
-        println!("At end, returning trails!");
         trails
     } else {
         let (next_trails, completed_trails): (Vec<Vec<_>>, Vec<_>) =
