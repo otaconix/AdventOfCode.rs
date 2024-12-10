@@ -1,20 +1,16 @@
 use std::io;
 
-use aoc_timing::debug::log_run;
+use aoc_timing::trace::log_run;
 
 type Input = Vec<BlockSequence>;
 type Output = usize;
 
 #[derive(Debug, Clone, Copy)]
-struct File {
-    index: usize,
+struct BlockSequence {
+    is_file: bool,
     block_count: usize,
-}
-
-#[derive(Debug, Clone, Copy)]
-enum BlockSequence {
-    Empty(usize),
-    File(File),
+    original_block_count: usize,
+    index: usize,
 }
 
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
@@ -25,15 +21,13 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
             line.chars()
                 .enumerate()
                 .map(|(index, c)| {
-                    let block_count = format!("{c}").parse::<usize>().unwrap();
+                    let block_count = c.to_digit(10).unwrap() as usize;
 
-                    if index % 2 == 0 {
-                        BlockSequence::File(File {
-                            block_count,
-                            index: index / 2,
-                        })
-                    } else {
-                        BlockSequence::Empty(block_count)
+                    BlockSequence {
+                        is_file: index % 2 == 0,
+                        block_count,
+                        original_block_count: block_count,
+                        index: index / 2,
                     }
                 })
                 .collect()
@@ -42,52 +36,65 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
         .unwrap()
 }
 
-fn part_1(input: &Input) -> Output {
+trait Helper {
+    fn last_file_index(&self) -> usize;
+}
+
+impl Helper for Vec<BlockSequence> {
     // Make sure that, if the last element in the input is empty space, we don't use it as though
     // it were a file.
-    let mut end_index = (input.len() - 1) & !1;
+    fn last_file_index(&self) -> usize {
+        (self.len() - 1) & !1
+    }
+}
+
+fn part_1(input: &Input) -> Output {
+    let mut end_index = input.last_file_index();
     let mut result = 0;
     let mut block_position = 0;
-    let mut input = input.clone();
+    let mut sequences = input.clone();
 
     for start_index in 0..input.len() {
         if start_index > end_index {
             break;
         }
 
-        match input[start_index] {
-            BlockSequence::Empty(mut empty_block_count) => {
-                while start_index < end_index && empty_block_count > 0 {
-                    if let BlockSequence::File(ref mut file) = input[end_index] {
-                        let moved_block_count = if empty_block_count > file.block_count {
-                            file.block_count
+        let current_sequence = sequences[start_index];
+
+        if current_sequence.is_file {
+            result += current_sequence.index
+                * (block_position..)
+                    .take(current_sequence.block_count)
+                    .sum::<usize>();
+            block_position += current_sequence.block_count;
+        } else {
+            let mut empty_block_count = current_sequence.block_count;
+
+            while start_index < end_index && empty_block_count > 0 {
+                let file = &mut sequences[end_index];
+                let moved_block_count = if empty_block_count > file.block_count {
+                    file.block_count
+                } else {
+                    empty_block_count
+                };
+
+                file.block_count -= moved_block_count;
+                empty_block_count -= moved_block_count;
+
+                result += file.index * (block_position..).take(moved_block_count).sum::<usize>();
+                block_position += moved_block_count;
+
+                end_index = sequences[start_index..=end_index]
+                    .iter()
+                    .rev()
+                    .find_map(|next_file| {
+                        if next_file.is_file && next_file.block_count > 0 {
+                            Some(next_file.index * 2)
                         } else {
-                            empty_block_count
-                        };
-
-                        file.block_count -= moved_block_count;
-                        empty_block_count -= moved_block_count;
-
-                        result +=
-                            file.index * (block_position..).take(moved_block_count).sum::<usize>();
-                        block_position += moved_block_count;
-
-                        while end_index > 0
-                            && match input[end_index] {
-                                BlockSequence::File(file) if file.block_count == 0 => true,
-                                BlockSequence::Empty(_) => true,
-                                _ => false,
-                            }
-                        {
-                            end_index -= 1;
+                            None
                         }
-                    }
-                }
-            }
-            BlockSequence::File(ref mut file) => {
-                result += file.index * (block_position..).take(file.block_count).sum::<usize>();
-                block_position += file.block_count;
-                file.block_count = 0;
+                    })
+                    .unwrap_or(0);
             }
         }
     }
@@ -95,30 +102,29 @@ fn part_1(input: &Input) -> Output {
     result
 }
 
-fn part_2(input: &Input) -> Output {
+#[allow(dead_code)]
+fn part_2_cleaner_but_slower(input: &Input) -> Output {
     let mut sequences: Vec<_> = input.clone();
-    let end_index = (sequences.len() - 1) & !1;
+    let end_index = input.last_file_index();
 
     for index in (1..=end_index).rev() {
-        let file = if let BlockSequence::File(file) = sequences[index] {
-            file
-        } else {
+        let file = sequences[index];
+
+        if !file.is_file {
             continue;
-        };
+        }
 
         for empty_index in 0..index {
-            match sequences[empty_index] {
-                BlockSequence::Empty(ref mut empty_block_count)
-                    if *empty_block_count >= file.block_count =>
-                {
-                    *empty_block_count -= file.block_count;
+            let empty = &mut sequences[empty_index];
+            if !empty.is_file && empty.block_count >= file.block_count {
+                empty.block_count -= file.block_count;
 
-                    sequences[index] = BlockSequence::Empty(file.block_count);
-                    sequences.insert(empty_index, BlockSequence::File(file));
-
-                    break;
-                }
-                _ => {}
+                sequences[index] = BlockSequence {
+                    is_file: false,
+                    ..file
+                };
+                sequences.insert(empty_index, file);
+                break;
             }
         }
     }
@@ -126,12 +132,86 @@ fn part_2(input: &Input) -> Output {
     let mut result = 0;
     let mut block_position = 0;
     for sequence in sequences {
-        match sequence {
-            BlockSequence::Empty(block_count) => block_position += block_count,
-            BlockSequence::File(file) => {
-                result += file.index * (block_position..).take(file.block_count).sum::<usize>();
+        if sequence.is_file {
+            result += sequence.index * (block_position..).take(sequence.block_count).sum::<usize>();
+        }
 
-                block_position += file.block_count;
+        block_position += sequence.block_count;
+    }
+
+    result
+}
+
+fn part_2(input: &Input) -> Output {
+    let mut end_index = input.last_file_index();
+    let mut result = 0;
+    let mut block_position = 0;
+    let mut sequences = input.clone();
+
+    for start_index in 0..sequences.len() {
+        // Let's find the first file from the end that still has to be moved
+        // This is an optimalization: if the file has already been moved, its block_count is set to
+        // 0, after which there's no point checking if it should be moved again.
+        end_index = (start_index + 1..=end_index)
+            .rev()
+            .find(|index| {
+                let next_file = sequences[*index];
+
+                next_file.is_file && next_file.block_count > 0
+            })
+            .unwrap_or(0);
+
+        let sequence = &mut sequences[start_index];
+
+        if sequence.is_file {
+            if sequence.block_count == 0 {
+                // There is now a hole where a file used to be. Increase block_position by the
+                // original block count.
+                block_position += sequence.original_block_count;
+            } else {
+                // Unmoved original file
+                result +=
+                    sequence.index * (block_position..).take(sequence.block_count).sum::<usize>();
+                block_position += sequence.block_count;
+                sequence.block_count = 0;
+            }
+        } else {
+            let mut empty_block_count = sequence.block_count;
+            // We need a copy of the last index to check for files that can be moved, since we may
+            // have to skip over a bunch of them, and still check them for later empty sequences.
+            let mut loop_end_index = end_index;
+            while start_index < loop_end_index && empty_block_count > 0 {
+                if let Some(file_to_move) = sequences[start_index + 1..=loop_end_index]
+                    .iter_mut()
+                    .rev()
+                    .find(|file_to_move| {
+                        file_to_move.is_file
+                            && (1..=empty_block_count).contains(&file_to_move.block_count)
+                    })
+                {
+                    result += file_to_move.index
+                        * (block_position..)
+                            .take(file_to_move.block_count)
+                            .sum::<usize>();
+                    empty_block_count -= file_to_move.block_count;
+                    block_position += file_to_move.block_count;
+                    file_to_move.block_count = 0;
+
+                    loop_end_index = (start_index + 1..loop_end_index)
+                        .rev()
+                        .find(|index| {
+                            let next_file = sequences[*index];
+
+                            next_file.is_file && next_file.block_count > 0
+                        })
+                        .unwrap_or(0);
+                } else {
+                    break;
+                }
+            }
+
+            if empty_block_count != 0 {
+                block_position += empty_block_count;
             }
         }
     }
@@ -167,6 +247,14 @@ mod tests {
         let result = part_1(&input);
 
         assert_eq!(result, 1928);
+    }
+
+    #[test]
+    fn test_part_2_cleaner_but_slower() {
+        let input = parse(INPUT.lines());
+        let result = part_2_cleaner_but_slower(&input);
+
+        assert_eq!(result, 2858);
     }
 
     #[test]
