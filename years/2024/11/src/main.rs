@@ -100,20 +100,20 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     }
 }
 
-fn part_1(input: &mut Input) -> Output {
+fn do_part(input: &mut Input, steps: usize) -> Output {
     input
         .stones
         .iter()
-        .map(|stone| stone.count_after_steps(25, &mut input.cache))
+        .map(|stone| stone.count_after_steps(steps, &mut input.cache))
         .sum()
 }
 
+fn part_1(input: &mut Input) -> Output {
+    do_part(input, 25)
+}
+
 fn part_2(input: &mut Input) -> Output {
-    input
-        .stones
-        .iter()
-        .map(|stone| stone.count_after_steps(75, &mut input.cache))
-        .sum()
+    do_part(input, 75)
 }
 
 fn main() {
