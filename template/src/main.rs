@@ -6,11 +6,13 @@ type Input = Vec<String>;
 type Output = usize;
 
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
-    input.map(|line| {
-        let line = line.as_ref();
+    input
+        .map(|line| {
+            let line = line.as_ref();
 
-        todo!()
-    })
+            todo!()
+        })
+        .collect()
 }
 
 fn part_1(input: &Input) -> Output {
