@@ -108,43 +108,43 @@ fn region_perimeter(region: &FxHashSet<Coord>) -> usize {
 /// where we're trying to figure out if there's a corner at the north-west of the cell in the
 /// south-east (same letters indicate they're in the same region):
 /// - ```
-///   YY
-///   YX
+///   yy
+///   yX
 ///   ```
 ///   ✅
 /// - ```
-///   XY
-///   YX
+///   xy
+///   yX
 ///   ```
 ///   ✅
 /// - ```
-///   XY
-///   YX
+///   xy
+///   yX
 ///   ```
 ///   ✅
 /// - ```
-///   XX
-///   XX
+///   xx
+///   xX
 ///   ```
 ///   ❌
 /// - ```
-///   XX
-///   YX
+///   xx
+///   yX
 ///   ```
 ///   ❌
 /// - ```
-///   YY
-///   XX
+///   yy
+///   xX
 ///   ```
 ///   ❌
 /// - ```
-///   XY
-///   XX
+///   xy
+///   xX
 ///   ```
 ///   ❌
 /// - ```
-///   YX
-///   YX
+///   yx
+///   yX
 ///   ```
 ///   ❌
 ///
@@ -155,51 +155,70 @@ fn region_sides(region: &FxHashSet<Coord>) -> usize {
     region
         .par_iter()
         .map(|cell| {
-            let north = cell
-                .1
-                .checked_sub(1)
-                .map(|row| region.contains(&(cell.0, row)))
-                .unwrap_or(false);
-            let north_east = cell
-                .1
-                .checked_sub(1)
-                .map(|row| region.contains(&(cell.0 + 1, row)))
-                .unwrap_or(false);
+            let (north, north_east, north_west) = if cell.1 > 0 {
+                (
+                    region.contains(&(cell.0, cell.1 - 1)),
+                    region.contains(&(cell.0 + 1, cell.1 - 1)),
+                    if cell.0 > 0 {
+                        region.contains(&(cell.0 - 1, cell.1 - 1))
+                    } else {
+                        false
+                    },
+                )
+            } else {
+                (false, false, false)
+            };
+
+            let south_west = if cell.0 > 0 {
+                region.contains(&(cell.0 - 1, cell.1 + 1))
+            } else {
+                false
+            };
             let east = region.contains(&(cell.0 + 1, cell.1));
             let south_east = region.contains(&(cell.0 + 1, cell.1 + 1));
             let south = region.contains(&(cell.0, cell.1 + 1));
-            let south_west = cell
-                .0
-                .checked_sub(1)
-                .map(|column| region.contains(&(column, cell.1 + 1)))
-                .unwrap_or(false);
             let west = cell
                 .0
                 .checked_sub(1)
                 .map(|column| region.contains(&(column, cell.1)))
                 .unwrap_or(false);
-            let north_west = cell
-                .0
-                .checked_sub(1)
-                .and_then(|column| {
-                    cell.1
-                        .checked_sub(1)
-                        .map(|row| region.contains(&(column, row)))
-                })
-                .unwrap_or(false);
 
             [
+                // yy
+                // Xy
                 [!north, !north_east, !east],
+                // xy
+                // Xx
                 [north, !north_east, east],
+                // yx
+                // Xy
                 [!north, north_east, !east],
+                // Xy
+                // yy
                 [!east, !south_east, !south],
+                // Xx
+                // xy
                 [east, !south_east, south],
+                // Xy
+                // yx
                 [!east, south_east, !south],
+                // yX
+                // yy
                 [!south, !south_west, !west],
+                // xX
+                // yx
                 [south, !south_west, west],
+                // yX
+                // xy
                 [!south, south_west, !west],
+                // yy
+                // yx
                 [!west, !north_west, !north],
+                // yx
+                // xX
                 [west, !north_west, north],
+                // xy
+                // yX
                 [!west, north_west, !north],
             ]
             .into_iter()
