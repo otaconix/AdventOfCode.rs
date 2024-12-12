@@ -47,14 +47,14 @@ fn flood_group(grid: &Grid<char>) -> HashMap<char, Vec<HashSet<Coord>>> {
                 region.insert(cell.1);
 
                 queue.extend(
-                    cells
-                        .iter()
-                        .filter(|other| {
-                            (other.1 .0.abs_diff(cell.1 .0) == 1 && other.1 .1 == cell.1 .1)
-                                || (other.1 .0 == cell.1 .0 && other.1 .1.abs_diff(cell.1 .1) == 1)
-                        })
-                        .filter(|other| !region.contains(&other.1))
-                        .cloned(),
+                    orthogonal_neighbors(&cell.1)
+                        .into_iter()
+                        .flatten()
+                        .filter(|other| !region.contains(other))
+                        .flat_map(|other| {
+                            grid.get(other.0, other.1)
+                                .map(|other_plant| (other_plant, other))
+                        }),
                 );
             }
         }
@@ -67,6 +67,15 @@ fn flood_group(grid: &Grid<char>) -> HashMap<char, Vec<HashSet<Coord>>> {
     }
 
     result
+}
+
+fn orthogonal_neighbors(cell: &Coord) -> [Option<Coord>; 4] {
+    [
+        cell.1.checked_sub(1).map(|row| (cell.0, row)),
+        cell.0.checked_sub(1).map(|column| (column, cell.1)),
+        Some((cell.0 + 1, cell.1)),
+        Some((cell.0, cell.1 + 1)),
+    ]
 }
 
 /// Basically, the perimeter of a cell is 4 minus the count of neighboring cells in the same
