@@ -5,6 +5,7 @@ use std::io;
 
 use aoc_timing::trace::log_run;
 use grid::Grid;
+use rayon::prelude::*;
 
 type Coord = (usize, usize);
 type Input = HashMap<char, Vec<HashSet<Coord>>>;
@@ -49,7 +50,6 @@ fn flood_group(grid: &Grid<char>) -> HashMap<char, Vec<HashSet<Coord>>> {
                 queue.extend(
                     orthogonal_neighbors(&cell.1)
                         .into_iter()
-                        .flatten()
                         .filter(|other| !region.contains(other))
                         .flat_map(|other| {
                             grid.get(other.0, other.1)
@@ -69,13 +69,18 @@ fn flood_group(grid: &Grid<char>) -> HashMap<char, Vec<HashSet<Coord>>> {
     result
 }
 
-fn orthogonal_neighbors(cell: &Coord) -> [Option<Coord>; 4] {
-    [
-        cell.1.checked_sub(1).map(|row| (cell.0, row)),
-        cell.0.checked_sub(1).map(|column| (column, cell.1)),
-        Some((cell.0 + 1, cell.1)),
-        Some((cell.0, cell.1 + 1)),
-    ]
+fn orthogonal_neighbors(cell: &Coord) -> Vec<Coord> {
+    let mut result = Vec::with_capacity(4);
+    result.push((cell.0 + 1, cell.1));
+    result.push((cell.0, cell.1 + 1));
+    if cell.0 > 0 {
+        result.push((cell.0 - 1, cell.1));
+    }
+    if cell.1 > 0 {
+        result.push((cell.0, cell.1 - 1));
+    }
+
+    result
 }
 
 /// Basically, the perimeter of a cell is 4 minus the count of neighboring cells in the same
@@ -147,7 +152,7 @@ fn region_perimeter(region: &HashSet<Coord>) -> usize {
 /// the
 fn region_sides(region: &HashSet<Coord>) -> usize {
     region
-        .iter()
+        .par_iter()
         .map(|cell| {
             let north = cell
                 .1
@@ -205,10 +210,10 @@ fn region_sides(region: &HashSet<Coord>) -> usize {
 
 fn part_1(input: &Input) -> Output {
     input
-        .iter()
+        .par_iter()
         .flat_map(|(_, regions)| {
             regions
-                .iter()
+                .par_iter()
                 .map(|region| region.len() * region_perimeter(region))
         })
         .sum()
@@ -216,10 +221,10 @@ fn part_1(input: &Input) -> Output {
 
 fn part_2(input: &Input) -> Output {
     input
-        .iter()
+        .par_iter()
         .flat_map(|(_, regions)| {
             regions
-                .iter()
+                .par_iter()
                 .map(|region| region.len() * region_sides(region))
         })
         .sum()
