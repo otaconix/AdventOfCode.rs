@@ -1,14 +1,14 @@
 use std::collections::BTreeSet;
-use std::collections::HashMap;
-use std::collections::HashSet;
 use std::io;
 
 use aoc_timing::trace::log_run;
+use fxhash::FxHashMap;
+use fxhash::FxHashSet;
 use grid::Grid;
 use rayon::prelude::*;
 
 type Coord = (usize, usize);
-type Input = HashMap<char, Vec<HashSet<Coord>>>;
+type Input = FxHashMap<char, Vec<FxHashSet<Coord>>>;
 type Output = usize;
 
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
@@ -30,16 +30,17 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
 ///
 /// Basically, pick any cell, flood to find all other cells part of that region, and remove them
 /// all from the grid. Continue until the grid is empty.
-fn flood_group(grid: &Grid<char>) -> HashMap<char, Vec<HashSet<Coord>>> {
+fn flood_group(grid: &Grid<char>) -> FxHashMap<char, Vec<FxHashSet<Coord>>> {
     let mut cells: BTreeSet<_> = grid
         .coordinates()
         .map(|coord @ (column, row)| (grid.get(column, row).unwrap(), coord))
         .collect();
-    let mut result: HashMap<char, Vec<HashSet<Coord>>> = HashMap::new();
+    let mut result: FxHashMap<char, Vec<FxHashSet<Coord>>> =
+        FxHashMap::with_hasher(Default::default());
 
     while let Some(current) = cells.pop_first() {
         let plant = current.0;
-        let mut region = HashSet::new();
+        let mut region = FxHashSet::with_hasher(Default::default());
         let mut queue = vec![current];
 
         while let Some(cell) = queue.pop() {
@@ -85,7 +86,7 @@ fn orthogonal_neighbors(cell: &Coord) -> Vec<Coord> {
 
 /// Basically, the perimeter of a cell is 4 minus the count of neighboring cells in the same
 /// region.
-fn region_perimeter(region: &HashSet<Coord>) -> usize {
+fn region_perimeter(region: &FxHashSet<Coord>) -> usize {
     region
         .iter()
         .map(|cell| {
@@ -150,7 +151,7 @@ fn region_perimeter(region: &HashSet<Coord>) -> usize {
 /// In a nutshell: either all three of north, north-west and west are not part of the same region,
 /// or north and west are part of the same region and north-west isn't, or north-west is part of
 /// the
-fn region_sides(region: &HashSet<Coord>) -> usize {
+fn region_sides(region: &FxHashSet<Coord>) -> usize {
     region
         .par_iter()
         .map(|cell| {
