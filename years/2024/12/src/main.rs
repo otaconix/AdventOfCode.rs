@@ -183,47 +183,25 @@ fn region_sides(region: &FxHashSet<Coord>) -> usize {
                 .map(|column| region.contains(&(column, cell.1)))
                 .unwrap_or(false);
 
-            [
-                // yy
-                // Xy
-                [!north, !north_east, !east],
-                // xy
-                // Xx
-                [north, !north_east, east],
-                // yx
-                // Xy
-                [!north, north_east, !east],
-                // Xy
-                // yy
-                [!east, !south_east, !south],
-                // Xx
-                // xy
-                [east, !south_east, south],
-                // Xy
-                // yx
-                [!east, south_east, !south],
-                // yX
-                // yy
-                [!south, !south_west, !west],
-                // xX
-                // yx
-                [south, !south_west, west],
-                // yX
-                // xy
-                [!south, south_west, !west],
-                // yy
-                // yx
-                [!west, !north_west, !north],
-                // yx
-                // xX
-                [west, !north_west, north],
-                // xy
-                // yX
-                [!west, north_west, !north],
-            ]
-            .into_iter()
-            .filter(|corner| corner.iter().all(|b| *b))
-            .count()
+            let mut corners = 0;
+
+            if (north == west) && (!north_west || !north) {
+                corners += 1;
+            }
+
+            if (north == east) && (!north_east || !north) {
+                corners += 1;
+            }
+
+            if (south == east) && (!south_east || !south) {
+                corners += 1;
+            }
+
+            if (south == west) && (!south_west || !south) {
+                corners += 1;
+            }
+
+            corners
         })
         .sum()
 }
