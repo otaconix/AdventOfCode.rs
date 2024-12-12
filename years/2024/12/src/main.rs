@@ -107,46 +107,46 @@ fn region_perimeter(region: &FxHashSet<Coord>) -> usize {
 /// This is probably a whole lot uglier than it has to be, but it comes down to the following,
 /// where we're trying to figure out if there's a corner at the north-west of the cell in the
 /// south-east (same letters indicate they're in the same region):
-/// - ✅
-///   ```
+/// - ```
 ///   YY
 ///   YX
 ///   ```
-/// - ✅
-///   ```
+///   ✅
+/// - ```
 ///   XY
 ///   YX
 ///   ```
-/// - ✅
-///   ```
+///   ✅
+/// - ```
 ///   XY
 ///   YX
 ///   ```
-/// - ❌
-///   ```
+///   ✅
+/// - ```
 ///   XX
 ///   XX
 ///   ```
-/// - ❌
-///   ```
+///   ❌
+/// - ```
 ///   XX
 ///   YX
 ///   ```
-/// - ❌
-///   ```
+///   ❌
+/// - ```
 ///   YY
 ///   XX
 ///   ```
-/// - ❌
-///   ```
+///   ❌
+/// - ```
 ///   XY
 ///   XX
 ///   ```
-/// - ❌
-///   ```
+///   ❌
+/// - ```
 ///   YX
 ///   YX
 ///   ```
+///   ❌
 ///
 /// In a nutshell: either all three of north, north-west and west are not part of the same region,
 /// or north and west are part of the same region and north-west isn't, or north-west is part of
