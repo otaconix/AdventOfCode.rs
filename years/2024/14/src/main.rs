@@ -5,6 +5,7 @@ use aoc_timing::trace::log_run;
 const WIDTH: isize = 101;
 const HEIGHT: isize = 103;
 
+#[derive(Clone, Copy)]
 struct Robot {
     x: isize,
     y: isize,
@@ -13,11 +14,16 @@ struct Robot {
 }
 
 impl Robot {
-    fn move_for(&self, duration: isize, width: isize, height: isize) -> (isize, isize) {
-        (
-            (self.x + self.vx * duration).rem_euclid(width),
-            (self.y + self.vy * duration).rem_euclid(height),
-        )
+    fn move_for(self, duration: isize, width: isize, height: isize) -> Self {
+        Self {
+            x: (self.x + self.vx * duration).rem_euclid(width),
+            y: (self.y + self.vy * duration).rem_euclid(height),
+            ..self
+        }
+    }
+
+    fn move_once(self) -> Self {
+        self.move_for(1, WIDTH, HEIGHT)
     }
 }
 
@@ -46,7 +52,9 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
 fn part_1(input: &Input, width: isize, height: isize) -> Output {
     let (top, bottom): (Vec<_>, Vec<_>) = input
         .iter()
+        .copied()
         .map(|robot| robot.move_for(100, width, height))
+        .map(|Robot { x, y, .. }| (x, y))
         .filter(|(x, y)| *x != width / 2 && *y != height / 2)
         .partition(|(_, y)| *y < height / 2);
 
@@ -58,8 +66,38 @@ fn part_1(input: &Input, width: isize, height: isize) -> Output {
     top_left.len() * top_right.len() * bottom_left.len() * bottom_right.len()
 }
 
+fn print_image(input: &Input) {
+    for y in 0..HEIGHT {
+        for x in 0..WIDTH {
+            if input.iter().any(|robot| robot.x == x && robot.y == y) {
+                print!("#");
+            } else {
+                print!(" ");
+            }
+        }
+        println!();
+    }
+    println!();
+}
+
 fn part_2(input: &Input) -> Output {
-    todo!()
+    let mut input = input.clone();
+
+    for seconds in 0.. {
+        // Silly heuristics that happen to work for my input
+        if (0..WIDTH).any(|x| {
+            input.iter().filter(|Robot { x: rx, .. }| *rx == x).count() as isize >= HEIGHT / 3
+        }) && (0..HEIGHT).any(|y| {
+            input.iter().filter(|Robot { y: ry, .. }| *ry == y).count() as isize >= WIDTH / 4
+        }) {
+            print_image(&input);
+            return seconds as usize;
+        }
+
+        input = input.into_iter().map(Robot::move_once).collect();
+    }
+
+    panic!()
 }
 
 fn main() {
@@ -90,13 +128,5 @@ mod tests {
         let result = part_1(&input, 11, 7);
 
         assert_eq!(result, 12);
-    }
-
-    #[test]
-    fn test_part_2() {
-        let input = parse(INPUT.lines());
-        let result = part_2(&input);
-
-        assert_eq!(result, 0);
     }
 }
