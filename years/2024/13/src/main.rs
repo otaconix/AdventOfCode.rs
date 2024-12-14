@@ -86,6 +86,28 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
         .0
 }
 
+/// We're trying to solve a system of two linear equations here.
+///
+/// To reach the prize location, we need the press button A `a` times, and button B `b` times.
+/// So, we're left with the following two equations:
+/// ```
+/// button_a_delta_x*a + button_b_delta_x*b = prize_location_x
+/// button_a_delta_y*a + button_b_delta_y*b = prize_location_y
+/// ```
+///
+/// We can isolate `a` in the first equation like to:
+/// ```
+/// a = (prize_location_x - button_b_delta_x*b) / button_a_delta_x
+/// ```
+///
+/// Then substitute that into the second equation:
+/// ```
+/// button_a_delta_y*((prize_location_x - button_b_delta_x*b) / button_a_delta_x) + button_b_delta_y*b = prize_location_y
+/// ```
+///
+/// If this has an integral solution, plug that back into the first equation.
+///
+/// Finally, if _that_ has an integral solution, the machine is "solvable", and we're done.
 fn solve_machine<M>(machine: M) -> Option<(isize, isize)>
 where
     M: Borrow<Machine>, // Don't really care whether I take ownership or not
@@ -104,7 +126,6 @@ where
         let denominator = machine.button_a.delta_x;
 
         if numerator % denominator == 0 {
-            let a_presses = numerator / denominator;
             return Some((numerator / denominator, b_presses));
         }
     }
