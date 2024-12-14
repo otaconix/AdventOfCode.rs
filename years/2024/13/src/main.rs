@@ -1,21 +1,21 @@
+use std::borrow::Borrow;
 use std::io;
-use std::iter::successors;
 
 use aoc_timing::trace::log_run;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 struct PrizeLocation {
-    x: usize,
-    y: usize,
+    x: isize,
+    y: isize,
 }
 
 #[derive(Debug, Clone, Copy)]
 struct Button {
-    delta_x: usize,
-    delta_y: usize,
+    delta_x: isize,
+    delta_y: isize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 struct Machine {
     button_a: Button,
     button_b: Button,
@@ -23,7 +23,7 @@ struct Machine {
 }
 
 type Input = Vec<Machine>;
-type Output = usize;
+type Output = isize;
 
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     enum ParseState {
@@ -86,42 +86,53 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
         .0
 }
 
-fn solve_machine(machine: &Machine) -> Option<usize> {
-    successors(Some((0, (0, 0))), |(cost, (x, y))| {
-        Some((
-            cost + 3,
-            (x + machine.button_a.delta_x, y + machine.button_a.delta_y),
-        ))
-    })
-    .take_while(|(_, (x, y))| *x <= machine.prize_location.x && *y <= machine.prize_location.y)
-    .flat_map(|(cost, (x, y))| {
-        let x_distance = machine.prize_location.x - x;
-        let y_distance = machine.prize_location.y - y;
+fn solve_machine<M>(machine: M) -> Option<(isize, isize)>
+where
+    M: Borrow<Machine>, // Don't really care whether I take ownership or not
+{
+    let machine: &Machine = machine.borrow();
 
-        let (bx, rest_x) = (
-            x_distance / machine.button_b.delta_x,
-            x_distance % machine.button_b.delta_x,
-        );
-        let (by, rest_y) = (
-            y_distance / machine.button_b.delta_y,
-            y_distance % machine.button_b.delta_y,
-        );
+    let b_multiplier = machine.button_b.delta_y * machine.button_a.delta_x
+        - machine.button_a.delta_y * machine.button_b.delta_x;
+    let cumulative_distance_b = machine.prize_location.y * machine.button_a.delta_x
+        - machine.prize_location.x * machine.button_a.delta_y;
 
-        if rest_x == 0 && rest_y == 0 && bx == by {
-            Some(cost + bx)
-        } else {
-            None
+    if cumulative_distance_b % b_multiplier == 0 {
+        let b_presses = cumulative_distance_b / b_multiplier;
+
+        let numerator = machine.prize_location.x - machine.button_b.delta_x * b_presses;
+        let denominator = machine.button_a.delta_x;
+
+        if numerator % denominator == 0 {
+            let a_presses = numerator / denominator;
+            return Some((numerator / denominator, b_presses));
         }
-    })
-    .min()
+    }
+
+    None
 }
 
 fn part_1(input: &Input) -> Output {
-    input.iter().flat_map(solve_machine).sum()
+    input
+        .iter()
+        .flat_map(solve_machine)
+        .map(|(a, b)| a * 3 + b)
+        .sum()
 }
 
 fn part_2(input: &Input) -> Output {
-    todo!()
+    input
+        .iter()
+        .map(|machine| Machine {
+            prize_location: PrizeLocation {
+                x: machine.prize_location.x + 10000000000000,
+                y: machine.prize_location.y + 10000000000000,
+            },
+            ..*machine
+        })
+        .flat_map(solve_machine)
+        .map(|(a, b)| a * 3 + b)
+        .sum()
 }
 
 fn main() {
