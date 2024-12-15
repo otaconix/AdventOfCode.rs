@@ -10,6 +10,7 @@ pub struct GridRow<'a, T> {
     grid: &'a Grid<T>,
     row: usize,
     index: usize,
+    index_back: usize,
 }
 
 impl<'a, T> Iterator for GridRow<'a, T> {
@@ -20,6 +21,33 @@ impl<'a, T> Iterator for GridRow<'a, T> {
         self.index += 1;
 
         self.grid.rows.get(self.row).and_then(|row| row.get(index))
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.len();
+
+        (len, Some(len))
+    }
+}
+
+impl<T> ExactSizeIterator for GridRow<'_, T> {
+    fn len(&self) -> usize {
+        self.index_back - self.index
+    }
+}
+
+impl<T> DoubleEndedIterator for GridRow<'_, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.index == self.index_back {
+            None
+        } else {
+            self.index_back -= 1;
+
+            self.grid
+                .rows
+                .get(self.row)
+                .and_then(|row| row.get(self.index_back))
+        }
     }
 }
 
@@ -42,15 +70,20 @@ impl<'a, T> Iterator for GridColumn<'a, T> {
             .get(index)
             .and_then(|row| row.get(self.column))
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.len();
+        (len, Some(len))
+    }
 }
 
-impl<'a, T> ExactSizeIterator for GridColumn<'a, T> {
+impl<T> ExactSizeIterator for GridColumn<'_, T> {
     fn len(&self) -> usize {
         self.index_back - self.index
     }
 }
 
-impl<'a, T> DoubleEndedIterator for GridColumn<'a, T> {
+impl<T> DoubleEndedIterator for GridColumn<'_, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.index == self.index_back {
             None
@@ -72,7 +105,7 @@ pub struct GridCoordinates<'a, T> {
     row: usize,
 }
 
-impl<'a, T> Iterator for GridCoordinates<'a, T> {
+impl<T> Iterator for GridCoordinates<'_, T> {
     type Item = (usize, usize);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -138,6 +171,7 @@ impl<T> Grid<T> {
             grid: self,
             row,
             index: 0,
+            index_back: self.width(),
         }
     }
 
