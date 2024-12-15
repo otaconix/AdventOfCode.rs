@@ -5,3 +5,7 @@ members = [
   "years/*/*",
 ]
 resolver = "2"
+
+[profile.test.package.aoc-2022-19]
+# Otherwise these tests run dog slow
+opt-level = 3
