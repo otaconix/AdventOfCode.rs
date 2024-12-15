@@ -103,28 +103,30 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
 }
 
 fn print_map(level: log::Level, map: &Grid<Cell>, robot_position: Coord) {
-    log!(
-        level,
-        "\n{}",
-        (0..map.height())
-            .map(|row| {
-                (0..map.width())
-                    .map(|column| {
-                        let cell = map.get(column, row).unwrap();
+    if log::log_enabled!(level) {
+        log!(
+            level,
+            "\n{}",
+            (0..map.height())
+                .map(|row| {
+                    (0..map.width())
+                        .map(|column| {
+                            let cell = map.get(column, row).unwrap();
 
-                        match cell {
-                            _ if robot_position == (column, row) => '@',
-                            Cell::Empty => '.',
-                            Cell::Wall => '#',
-                            Cell::Box => 'O',
-                            Cell::BoxLeft => '[',
-                            Cell::BoxRight => ']',
-                        }
-                    })
-                    .collect::<String>()
-            })
-            .join("\n")
-    );
+                            match cell {
+                                _ if robot_position == (column, row) => '@',
+                                Cell::Empty => '.',
+                                Cell::Wall => '#',
+                                Cell::Box => 'O',
+                                Cell::BoxLeft => '[',
+                                Cell::BoxRight => ']',
+                            }
+                        })
+                        .collect::<String>()
+                })
+                .join("\n")
+        );
+    }
 }
 
 fn do_the_shifting(
