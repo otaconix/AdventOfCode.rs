@@ -1,6 +1,9 @@
 use std::io;
 
 use aoc_timing::trace::log_run;
+use itertools::Itertools;
+use log::info;
+use log::log_enabled;
 
 const WIDTH: isize = 101;
 const HEIGHT: isize = 103;
@@ -67,17 +70,24 @@ fn part_1(input: &Input, width: isize, height: isize) -> Output {
 }
 
 fn print_image(input: &Input) {
-    for y in 0..HEIGHT {
-        for x in 0..WIDTH {
-            if input.iter().any(|robot| robot.x == x && robot.y == y) {
-                print!("#");
-            } else {
-                print!(" ");
-            }
-        }
-        println!();
+    if log_enabled!(log::Level::Info) {
+        info!(
+            "\n{}",
+            (0..HEIGHT)
+                .map(|y| {
+                    (0..WIDTH)
+                        .map(|x| {
+                            if input.iter().any(|robot| robot.x == x && robot.y == y) {
+                                '#'
+                            } else {
+                                ' '
+                            }
+                        })
+                        .collect::<String>()
+                })
+                .join("\n")
+        );
     }
-    println!();
 }
 
 fn part_2(input: &Input) -> Output {
