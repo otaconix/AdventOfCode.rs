@@ -1,77 +1,92 @@
+use std::collections::BTreeSet;
+use std::io;
+
 use aoc_timing::trace::log_run;
-use std::{
-    collections::{HashMap, HashSet},
-    io,
-    ops::ControlFlow,
-};
+use itertools::Itertools;
+
+type Input = Vec<String>;
+
+fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
+    input.map(|line| line.as_ref().to_string()).collect()
+}
+
+fn part_1(input: &Input) -> usize {
+    let (twos, threes) = input
+        .iter()
+        .map(|id| {
+            id.chars()
+                .counts()
+                .values()
+                .unique()
+                .copied()
+                .collect::<BTreeSet<_>>()
+        })
+        .fold((0, 0), |(twos, threes), counts| {
+            (
+                twos + if counts.contains(&2) { 1 } else { 0 },
+                threes + if counts.contains(&3) { 1 } else { 0 },
+            )
+        });
+
+    twos * threes
+}
+
+fn part_2(input: &Input) -> String {
+    input
+        .iter()
+        .tuple_combinations::<(_, _)>()
+        .find(|(id_a, id_b)| {
+            id_a.chars()
+                .zip(id_b.chars())
+                .filter(|(a, b)| a != b)
+                .count()
+                == 1
+        })
+        .map(|(id_a, id_b)| {
+            id_a.chars()
+                .zip(id_b.chars())
+                .filter_map(|(a, b)| if a == b { Some(a) } else { None })
+                .collect()
+        })
+        .unwrap()
+}
 
 fn main() {
     env_logger::init();
 
-    let input = io::stdin()
-        .lines()
-        .map(|result| result.expect("I/O error"))
-        .collect::<Vec<_>>();
-
-    let part_1 = log_run("Part 1", || {
-        let letter_counts = input
-            .iter()
-            .map(|line| {
-                line.chars()
-                    .fold(HashMap::new(), |mut counts, char| {
-                        if let Some(char_count) = counts.get_mut(&char) {
-                            *char_count += 1;
-                        } else {
-                            counts.insert(char, 1);
-                        }
-
-                        counts
-                    })
-                    .into_values()
-                    .collect::<HashSet<_>>()
-            })
-            .collect::<Vec<_>>();
-        let twos = letter_counts
-            .iter()
-            .filter(|counts| counts.contains(&2))
-            .count();
-        let threes = letter_counts
-            .iter()
-            .filter(|counts| counts.contains(&3))
-            .count();
-
-        twos * threes
-    });
-
-    println!("Part 1: {part_1:#?}");
-
-    let part_2 = log_run("Part 2", || {
-        let correct_boxes = input.iter().enumerate().try_fold((), |_, (index, box_a)| {
-            if let Some(box_b) = input.iter().skip(index + 1).find(|box_b| {
-                box_a
-                    .chars()
-                    .zip(box_b.chars())
-                    .filter(|(a, b)| a != b)
-                    .count()
-                    == 1
-            }) {
-                ControlFlow::Break((box_a, box_b))
-            } else {
-                ControlFlow::Continue(())
-            }
+    log_run("Full run", || {
+        let input = log_run("Parsing", || {
+            parse(io::stdin().lines().map(|result| result.expect("I/O error")))
         });
 
-        if let ControlFlow::Break((box_a, box_b)) = correct_boxes {
-            box_a
-                .chars()
-                .zip(box_b.chars())
-                .filter(|(a, b)| a == b)
-                .map(|(a, _)| a)
-                .collect::<String>()
-        } else {
-            panic!("No correct boxes found!")
-        }
-    });
+        let part_1 = log_run("Part 1", || part_1(&input));
+        println!("Part 1: {part_1}");
 
-    println!("Part 2: {part_2}");
+        let part_2 = log_run("Part 2", || part_2(&input));
+        println!("Part 2: {part_2}");
+    });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const INPUT: &str = include_str!("test-input");
+    const INPUT2: &str = include_str!("test-input2");
+
+    #[test]
+    fn test_part_1() {
+        let input = parse(INPUT.lines());
+        let result = part_1(&input);
+
+        assert_eq!(result, 12);
+    }
+
+    #[test]
+    fn test_part_2() {
+        let input = parse(INPUT2.lines());
+        let result = part_2(&input);
+
+        assert_eq!(result, "fgij".to_string());
+    }
 }
