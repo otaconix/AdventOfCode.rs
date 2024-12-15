@@ -12,3 +12,4 @@ aoc-macros = { version = "0.1", path = "../../../crates/macros" }
 aoc-utils = { version = "0.1", path = "../../../crates/utils" }
 aoc-timing = { version = "0.1.0", path = "../../../crates/timing" }
 nom = "7.1.3"
+fxhash = "0.2.1"

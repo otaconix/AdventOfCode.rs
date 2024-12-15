@@ -2,9 +2,10 @@ mod parser;
 
 use aoc_macros::EnumVariants;
 use aoc_utils::EnumVariants;
+use fxhash::FxHashSet;
 use log::debug;
 use nom::Finish;
-use std::collections::{BinaryHeap, HashMap, HashSet};
+use std::collections::{BinaryHeap, HashMap};
 use std::ops::{Add, Index, IndexMut, Mul, Sub};
 use std::str::FromStr;
 
@@ -212,7 +213,7 @@ impl Blueprint {
     pub fn run_simulation(&self, initial_factory: Factory) -> u32 {
         debug!("Starting simulation for blueprint {}", self.id);
         let mut states_queue = BinaryHeap::from([initial_factory]);
-        let mut seen_states = HashSet::new();
+        let mut seen_states = FxHashSet::with_hasher(Default::default());
         let mut max_geodes = 0;
 
         while let Some(factory) = states_queue.pop() {
