@@ -3,7 +3,9 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::io;
 
+use aoc_macros::EnumVariants;
 use aoc_timing::trace::log_run;
+use aoc_utils::EnumVariants;
 use grid::Grid;
 
 #[derive(PartialEq, Eq)]
@@ -13,7 +15,7 @@ enum Tile {
     End,
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(PartialEq, Eq, Hash, Clone, Copy, EnumVariants)]
 enum Direction {
     North,
     East,
@@ -74,7 +76,7 @@ impl Direction {
 }
 
 type Coord = (usize, usize);
-type Input = (usize, HashMap<Coord, Coord>);
+type Input = (usize, HashSet<Coord>);
 
 type Output = usize;
 
@@ -118,9 +120,9 @@ fn dijkstra(
     map: &Grid<Tile>,
     reindeer_position: Coord,
     end_position: Coord,
-) -> (usize, HashMap<Coord, Coord>) {
-    let mut prev = HashMap::from([(reindeer_position, HashSet::new())]);
-    let mut distances = HashMap::from([(reindeer_position, 0usize)]);
+) -> (usize, HashSet<Coord>) {
+    let mut prev = HashMap::from([((reindeer_position, Direction::East), HashSet::new())]);
+    let mut distances = HashMap::from([((reindeer_position, Direction::East), 0usize)]);
     let mut queue = BinaryHeap::from([Queued {
         priority: 0,
         coord: reindeer_position,
@@ -134,7 +136,7 @@ fn dijkstra(
             continue;
         }
 
-        let prev_distance = distances[&next.coord];
+        let prev_distance = distances[&(next.coord, next.direction)];
 
         let potential_nexts = [
             next.direction
@@ -156,13 +158,20 @@ fn dijkstra(
             .filter(|(_, (column, row), _)| map.get(*column, *row).unwrap() != &Tile::Wall)
         {
             {
-                if distances
-                    .get(&next_coord)
-                    .map(|original| next_distance < *original)
-                    .unwrap_or(true)
-                {
-                    prev.entry(next_coord).or_default().insert(next.coord);
-                    distances.insert(next_coord, next_distance);
+                let distance_compared_to_original = distances
+                    .get(&(next_coord, next_direction))
+                    .map(|original| next_distance.cmp(original))
+                    .unwrap_or(std::cmp::Ordering::Less);
+
+                if distance_compared_to_original.is_le() {
+                    let prevs = prev.entry((next_coord, next_direction)).or_default();
+
+                    if distance_compared_to_original.is_lt() {
+                        prevs.clear();
+                    }
+                    prevs.insert((next.coord, next.direction));
+
+                    distances.insert((next_coord, next_direction), next_distance);
                     queue.push(Queued {
                         priority: next_distance,
                         coord: next_coord,
@@ -173,7 +182,31 @@ fn dijkstra(
         }
     }
 
-    (distances[&end_position], HashMap::new())
+    let minimal_distance = Direction::variants()
+        .into_iter()
+        .flat_map(|direction| distances.get(&(end_position, direction)))
+        .copied()
+        .min()
+        .unwrap();
+
+    let mut tiles_in_optimal_paths = HashSet::new();
+    let mut queue = Direction::variants()
+        .into_iter()
+        .map(|direction| (end_position, direction))
+        .filter(|directed_tile| {
+            distances
+                .get(directed_tile)
+                .map(|distance| *distance == minimal_distance)
+                .unwrap_or(false)
+        })
+        .collect::<Vec<_>>();
+    while let Some(directed_tile) = queue.pop() {
+        tiles_in_optimal_paths.insert(directed_tile.0);
+
+        queue.extend(prev[&directed_tile].iter());
+    }
+
+    (minimal_distance, tiles_in_optimal_paths)
 }
 
 fn part_1((shortest_distance, _): &Input) -> Output {
