@@ -1,5 +1,6 @@
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::io;
 
 use aoc_timing::trace::log_run;
@@ -76,14 +77,15 @@ type Coord = (usize, usize);
 struct Input {
     map: Grid<Tile>,
     reindeer_position: Coord,
+    end_position: Coord,
 }
 
 type Output = usize;
 
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
-    let (rows, reindeer_position) = input.enumerate().fold(
-        (vec![], None),
-        |(mut rows, mut reindeer_position), (row, line)| {
+    let (rows, reindeer_position, end_position) = input.enumerate().fold(
+        (vec![], None, None),
+        |(mut rows, mut reindeer_position, mut end_position), (row, line)| {
             let line = line.as_ref();
 
             rows.push(
@@ -92,7 +94,10 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
                     .map(|(column, c)| match c {
                         '#' => Tile::Wall,
                         '.' => Tile::Empty,
-                        'E' => Tile::End,
+                        'E' => {
+                            end_position = Some((column, row));
+                            Tile::End
+                        }
                         'S' => {
                             reindeer_position = Some((column, row));
                             Tile::Empty
@@ -102,17 +107,18 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
                     .collect(),
             );
 
-            (rows, reindeer_position)
+            (rows, reindeer_position, end_position)
         },
     );
 
     Input {
         map: Grid::new(rows).unwrap(),
         reindeer_position: reindeer_position.unwrap(),
+        end_position: end_position.unwrap(),
     }
 }
 
-fn part_1(input: &Input) -> Output {
+fn dijkstra(input: &Input) -> (usize, HashMap<Coord, Coord>) {
     let mut prev = HashMap::new();
     prev.insert(input.reindeer_position, None);
     let mut distances = HashMap::new();
@@ -126,7 +132,9 @@ fn part_1(input: &Input) -> Output {
 
     while let Some(next) = queue.pop() {
         if input.map.get(next.coord.0, next.coord.1).unwrap() == &Tile::End {
-            return distances[&next.coord];
+            // We've found the end! Don't stop entirely, but there's no point in going further
+            // along this path.
+            continue;
         }
 
         let prev_distance = distances[&next.coord];
@@ -196,7 +204,13 @@ fn part_1(input: &Input) -> Output {
         }
     }
 
-    0
+    (distances[&input.end_position], HashMap::new())
+}
+
+fn part_1(input: &Input) -> Output {
+    let (shortest_distance, _) = dijkstra(input);
+
+    shortest_distance
 }
 
 fn part_2(input: &Input) -> Output {
