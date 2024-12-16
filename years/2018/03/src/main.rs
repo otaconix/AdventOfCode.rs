@@ -4,7 +4,6 @@ use aoc_timing::trace::log_run;
 use geo::Area;
 use geo::BooleanOps;
 use geo::HasDimensions;
-use geo::Intersects;
 use geo::MultiPolygon;
 use geo::Polygon;
 use geo::Rect;
@@ -83,7 +82,7 @@ fn part_2(input: &Input) -> Output {
             input
                 .iter()
                 .filter(|other| claim.id != other.id)
-                .none(|other| claim.rect.intersects(&other.rect))
+                .none(|other| !claim.rect.intersection(&other.rect).is_empty())
         })
         .map(|claim| claim.id)
         .unwrap()
