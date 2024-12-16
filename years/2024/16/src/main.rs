@@ -74,11 +74,7 @@ impl Direction {
 }
 
 type Coord = (usize, usize);
-struct Input {
-    map: Grid<Tile>,
-    reindeer_position: Coord,
-    end_position: Coord,
-}
+type Input = (usize, HashMap<Coord, Coord>);
 
 type Output = usize;
 
@@ -111,51 +107,53 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
         },
     );
 
-    Input {
-        map: Grid::new(rows).unwrap(),
-        reindeer_position: reindeer_position.unwrap(),
-        end_position: end_position.unwrap(),
-    }
+    dijkstra(
+        &Grid::new(rows).unwrap(),
+        reindeer_position.unwrap(),
+        end_position.unwrap(),
+    )
 }
 
-fn dijkstra(input: &Input) -> (usize, HashMap<Coord, Coord>) {
-    let mut prev = HashMap::new();
-    prev.insert(input.reindeer_position, HashSet::new());
-    let mut distances = HashMap::new();
-    distances.insert(input.reindeer_position, 0usize);
-    let mut queue = BinaryHeap::new();
-    queue.push(Queued {
+fn dijkstra(
+    map: &Grid<Tile>,
+    reindeer_position: Coord,
+    end_position: Coord,
+) -> (usize, HashMap<Coord, Coord>) {
+    let mut prev = HashMap::from([(reindeer_position, HashSet::new())]);
+    let mut distances = HashMap::from([(reindeer_position, 0usize)]);
+    let mut queue = BinaryHeap::from([Queued {
         priority: 0,
-        coord: input.reindeer_position,
+        coord: reindeer_position,
         direction: Direction::East,
-    });
+    }]);
 
     while let Some(next) = queue.pop() {
-        if input.map.get(next.coord.0, next.coord.1).unwrap() == &Tile::End {
+        if next.coord == end_position {
             // We've found the end! Don't stop entirely, but there's no point in going further
             // along this path.
             continue;
         }
 
         let prev_distance = distances[&next.coord];
+
         let potential_nexts = [
             next.direction
-                .advance(&next.coord, &input.map)
+                .advance(&next.coord, map)
                 .map(|advanced| (prev_distance + 1, advanced, next.direction)),
             next.direction
                 .turn_left()
-                .advance(&next.coord, &input.map)
+                .advance(&next.coord, map)
                 .map(|advanced| (prev_distance + 1001, advanced, next.direction.turn_left())),
             next.direction
                 .turn_right()
-                .advance(&next.coord, &input.map)
+                .advance(&next.coord, map)
                 .map(|advanced| (prev_distance + 1001, advanced, next.direction.turn_right())),
         ];
 
         for (next_distance, next_coord, next_direction) in potential_nexts
             .into_iter()
             .flatten()
-            .filter(|(_, (column, row), _)| input.map.get(*column, *row).unwrap() != &Tile::Wall)
+            .filter(|(_, (column, row), _)| map.get(*column, *row).unwrap() != &Tile::Wall)
         {
             {
                 if distances
@@ -175,17 +173,15 @@ fn dijkstra(input: &Input) -> (usize, HashMap<Coord, Coord>) {
         }
     }
 
-    (distances[&input.end_position], HashMap::new())
+    (distances[&end_position], HashMap::new())
 }
 
-fn part_1(input: &Input) -> Output {
-    let (shortest_distance, _) = dijkstra(input);
-
-    shortest_distance
+fn part_1((shortest_distance, _): &Input) -> Output {
+    *shortest_distance
 }
 
-fn part_2(input: &Input) -> Output {
-    todo!()
+fn part_2((_, prev): &Input) -> Output {
+    prev.len()
 }
 
 fn main() {
@@ -223,6 +219,6 @@ mod tests {
         let input = parse(INPUT.lines());
         let result = part_2(&input);
 
-        assert_eq!(result, 0);
+        assert_eq!(result, 64);
     }
 }
