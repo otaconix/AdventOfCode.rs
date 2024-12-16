@@ -120,7 +120,7 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
 
 fn dijkstra(input: &Input) -> (usize, HashMap<Coord, Coord>) {
     let mut prev = HashMap::new();
-    prev.insert(input.reindeer_position, None);
+    prev.insert(input.reindeer_position, HashSet::new());
     let mut distances = HashMap::new();
     distances.insert(input.reindeer_position, 0usize);
     let mut queue = BinaryHeap::new();
@@ -138,68 +138,39 @@ fn dijkstra(input: &Input) -> (usize, HashMap<Coord, Coord>) {
         }
 
         let prev_distance = distances[&next.coord];
-        if let Some((next_distance, next_coord, next_direction)) = next
-            .direction
-            .advance(&next.coord, &input.map)
-            .map(|advanced| (prev_distance + 1, advanced, next.direction))
-        {
-            if input.map.get(next_coord.0, next_coord.1).unwrap() != &Tile::Wall
-                && distances
-                    .get(&next_coord)
-                    .map(|original| next_distance < *original)
-                    .unwrap_or(true)
-            {
-                prev.insert(next_coord, Some(next.coord));
-                distances.insert(next_coord, next_distance);
-                queue.push(Queued {
-                    priority: next_distance,
-                    coord: next_coord,
-                    direction: next_direction,
-                });
-            }
-        }
+        let potential_nexts = [
+            next.direction
+                .advance(&next.coord, &input.map)
+                .map(|advanced| (prev_distance + 1, advanced, next.direction)),
+            next.direction
+                .turn_left()
+                .advance(&next.coord, &input.map)
+                .map(|advanced| (prev_distance + 1001, advanced, next.direction.turn_left())),
+            next.direction
+                .turn_right()
+                .advance(&next.coord, &input.map)
+                .map(|advanced| (prev_distance + 1001, advanced, next.direction.turn_right())),
+        ];
 
-        if let Some((next_distance, next_coord, next_direction)) = next
-            .direction
-            .turn_left()
-            .advance(&next.coord, &input.map)
-            .map(|advanced| (prev_distance + 1001, advanced, next.direction.turn_left()))
+        for (next_distance, next_coord, next_direction) in potential_nexts
+            .into_iter()
+            .flatten()
+            .filter(|(_, (column, row), _)| input.map.get(*column, *row).unwrap() != &Tile::Wall)
         {
-            if input.map.get(next_coord.0, next_coord.1).unwrap() != &Tile::Wall
-                && distances
+            {
+                if distances
                     .get(&next_coord)
                     .map(|original| next_distance < *original)
                     .unwrap_or(true)
-            {
-                prev.insert(next_coord, Some(next.coord));
-                distances.insert(next_coord, next_distance);
-                queue.push(Queued {
-                    priority: next_distance,
-                    coord: next_coord,
-                    direction: next_direction,
-                });
-            }
-        }
-
-        if let Some((next_distance, next_coord, next_direction)) = next
-            .direction
-            .turn_right()
-            .advance(&next.coord, &input.map)
-            .map(|advanced| (prev_distance + 1001, advanced, next.direction.turn_right()))
-        {
-            if input.map.get(next_coord.0, next_coord.1).unwrap() != &Tile::Wall
-                && distances
-                    .get(&next_coord)
-                    .map(|original| next_distance < *original)
-                    .unwrap_or(true)
-            {
-                prev.insert(next_coord, Some(next.coord));
-                distances.insert(next_coord, next_distance);
-                queue.push(Queued {
-                    priority: next_distance,
-                    coord: next_coord,
-                    direction: next_direction,
-                });
+                {
+                    prev.entry(next_coord).or_default().insert(next.coord);
+                    distances.insert(next_coord, next_distance);
+                    queue.push(Queued {
+                        priority: next_distance,
+                        coord: next_coord,
+                        direction: next_direction,
+                    });
+                }
             }
         }
     }
