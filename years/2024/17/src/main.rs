@@ -7,7 +7,7 @@ use itertools::Itertools;
 use log::debug;
 
 #[derive(Default, Debug, Clone, Copy)]
-struct Registers([isize; 3]);
+struct Registers([usize; 3]);
 
 enum Register {
     A,
@@ -16,7 +16,7 @@ enum Register {
 }
 
 impl Index<Register> for Registers {
-    type Output = isize;
+    type Output = usize;
 
     fn index(&self, index: Register) -> &Self::Output {
         &self.0[match index {
@@ -37,77 +37,16 @@ impl IndexMut<Register> for Registers {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-struct ComboOperand(isize);
-
-impl ComboOperand {
-    fn value(&self, computer: &Computer) -> isize {
-        match self.0 {
-            0..=3 => self.0,
-            4 => computer.registers[Register::A],
-            5 => computer.registers[Register::B],
-            6 => computer.registers[Register::C],
-            _ => panic!("Invalid combo operand {}", self.0),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-enum Instruction {
-    Adv(ComboOperand),
-    Bxl(isize),
-    Bst(ComboOperand),
-    Jnz(isize),
-    Bxc,
-    Out(ComboOperand),
-    Bdv(ComboOperand),
-    Cdv(ComboOperand),
-}
-
-impl Instruction {
-    fn evaluate(&self, computer: &mut Computer) -> bool {
-        let mut jumped = false;
-
-        match *self {
-            Instruction::Adv(operand) => {
-                computer.registers[Register::A] /= 1 << operand.value(computer)
-            }
-            Instruction::Bxl(operand) => computer.registers[Register::B] ^= operand,
-            Instruction::Bst(operand) => {
-                computer.registers[Register::B] = operand.value(computer) & 0b111
-            }
-            Instruction::Jnz(operand) => {
-                if computer.registers[Register::A] != 0 {
-                    computer.instruction_pointer = operand as usize;
-                    jumped = true;
-                }
-            }
-            Instruction::Bxc => computer.registers[Register::B] ^= computer.registers[Register::C],
-            Instruction::Out(operand) => computer.output.push(operand.value(computer) & 0b111),
-            Instruction::Bdv(operand) => {
-                computer.registers[Register::B] =
-                    computer.registers[Register::A] / (1 << operand.value(computer))
-            }
-            Instruction::Cdv(operand) => {
-                computer.registers[Register::C] =
-                    computer.registers[Register::A] / (1 << operand.value(computer))
-            }
-        }
-
-        jumped
-    }
-}
-
 struct Computer {
     registers: Registers,
-    instructions: Vec<Instruction>,
+    instructions: Vec<usize>,
     instruction_pointer: usize,
-    output: Vec<isize>,
+    output: Vec<usize>,
     instruction_counter: usize,
 }
 
 impl Computer {
-    fn new(registers: Registers, instructions: Vec<Instruction>) -> Self {
+    fn new(registers: Registers, instructions: Vec<usize>) -> Self {
         Self {
             registers,
             instructions,
@@ -119,33 +58,67 @@ impl Computer {
 
     fn run(&mut self) -> String {
         while self.instruction_pointer < self.instructions.len() {
-            let jumped = self.instructions[self.instruction_pointer]
-                .clone()
-                .evaluate(self);
+            let instruction = self.instructions[self.instruction_pointer];
+            let operand = self.instructions[self.instruction_pointer + 1];
 
-            if !jumped {
-                self.instruction_pointer += 1;
+            let mut jumped = false;
+            match instruction {
+                0 => self.registers[Register::A] >>= self.combo_value(operand),
+                1 => self.registers[Register::B] ^= operand,
+                2 => self.registers[Register::B] = self.combo_value(operand) % 8,
+                3 => {
+                    if self.registers[Register::A] != 0 {
+                        self.instruction_pointer = operand as usize;
+                        jumped = true;
+                    }
+                }
+                4 => self.registers[Register::B] ^= self.registers[Register::C],
+                5 => self.output.push(self.combo_value(operand) % 8),
+                6 => {
+                    self.registers[Register::B] =
+                        self.registers[Register::A] >> self.combo_value(operand)
+                }
+                7 => {
+                    self.registers[Register::C] =
+                        self.registers[Register::A] >> self.combo_value(operand)
+                }
+                _ => {
+                    panic!("Unknown instruction {instruction}")
+                }
             }
 
+            if !jumped {
+                self.instruction_pointer += 2;
+            }
             self.instruction_counter += 1;
         }
 
         debug!("Ran {} instructions.", self.instruction_counter);
         self.output.iter().join(",")
     }
+
+    fn combo_value(&self, combo: usize) -> usize {
+        match combo {
+            0..=3 => combo,
+            4 => self.registers[Register::A],
+            5 => self.registers[Register::B],
+            6 => self.registers[Register::C],
+            _ => panic!("Invalid combo operand {}", combo),
+        }
+    }
 }
 
 #[derive(Debug)]
 struct Input {
     registers: Registers,
-    instructions: Vec<Instruction>,
+    instructions: Vec<usize>,
 }
 type Output = String;
 
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     enum State {
         Registers(Registers),
-        Instructions(Registers, Vec<Instruction>),
+        Instructions(Registers, Vec<usize>),
     }
     let end_state = input.fold(State::Registers(Registers::default()), |state, line| {
         let line = line.as_ref();
@@ -174,19 +147,7 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
                 instructions.extend(
                     raw_instructions
                         .split(',')
-                        .map(|n| n.parse::<isize>().unwrap())
-                        .tuple_windows()
-                        .map(|(instruction, operand)| match instruction {
-                            0 => Instruction::Adv(ComboOperand(operand)),
-                            1 => Instruction::Bxl(operand),
-                            2 => Instruction::Bst(ComboOperand(operand)),
-                            3 => Instruction::Jnz(operand),
-                            4 => Instruction::Bxc,
-                            5 => Instruction::Out(ComboOperand(operand)),
-                            6 => Instruction::Bdv(ComboOperand(operand)),
-                            7 => Instruction::Cdv(ComboOperand(operand)),
-                            _ => panic!("Unknown instruction {instruction}"),
-                        }),
+                        .map(|n| n.parse::<usize>().unwrap()),
                 );
 
                 State::Instructions(registers, instructions)
@@ -204,9 +165,7 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
 }
 
 fn part_1(input: &Input) -> Output {
-    let mut computer = Computer::new(input.registers, input.instructions.clone());
-
-    computer.run()
+    Computer::new(input.registers, input.instructions.clone()).run()
 }
 
 fn part_2(input: &Input) -> Output {
@@ -253,10 +212,7 @@ mod tests {
 
     #[test]
     fn example_1() {
-        let mut computer = Computer::new(
-            Registers([0, 0, 9]),
-            vec![Instruction::Bst(ComboOperand(6))],
-        );
+        let mut computer = Computer::new(Registers([0, 0, 9]), vec![2, 6]);
         computer.run();
 
         assert_eq!(computer.registers[Register::B], 1);
@@ -264,14 +220,7 @@ mod tests {
 
     #[test]
     fn example_2() {
-        let mut computer = Computer::new(
-            Registers([10, 0, 0]),
-            vec![
-                Instruction::Out(ComboOperand(0)),
-                Instruction::Out(ComboOperand(1)),
-                Instruction::Out(ComboOperand(4)),
-            ],
-        );
+        let mut computer = Computer::new(Registers([10, 0, 0]), vec![5, 0, 5, 1, 5, 4]);
         let result = computer.run();
 
         assert_eq!(result, "0,1,2");
@@ -279,14 +228,7 @@ mod tests {
 
     #[test]
     fn example_3() {
-        let mut computer = Computer::new(
-            Registers([2024, 0, 0]),
-            vec![
-                Instruction::Adv(ComboOperand(1)),
-                Instruction::Out(ComboOperand(4)),
-                Instruction::Jnz(0),
-            ],
-        );
+        let mut computer = Computer::new(Registers([2024, 0, 0]), vec![0, 1, 5, 4, 3, 0]);
         let result = computer.run();
 
         assert_eq!(result, "4,2,5,6,7,7,7,7,3,1,0");
@@ -295,7 +237,7 @@ mod tests {
 
     #[test]
     fn example_4() {
-        let mut computer = Computer::new(Registers([0, 29, 0]), vec![Instruction::Bxl(7)]);
+        let mut computer = Computer::new(Registers([0, 29, 0]), vec![1, 7]);
         computer.run();
 
         assert_eq!(computer.registers[Register::B], 26);
@@ -303,7 +245,7 @@ mod tests {
 
     #[test]
     fn example_5() {
-        let mut computer = Computer::new(Registers([0, 2024, 43690]), vec![Instruction::Bxc]);
+        let mut computer = Computer::new(Registers([0, 2024, 43690]), vec![4, 0]);
         computer.run();
 
         assert_eq!(computer.registers[Register::B], 44354);
