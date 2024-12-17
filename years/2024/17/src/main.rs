@@ -210,7 +210,7 @@ fn part_1(input: &Input) -> Output {
 }
 
 fn part_2(input: &Input) -> Output {
-    todo!()
+    "".to_string()
 }
 
 fn main() {
