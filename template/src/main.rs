@@ -3,7 +3,8 @@ use std::io;
 use aoc_timing::trace::log_run;
 
 type Input = Vec<String>;
-type Output = usize;
+type Output1 = usize;
+type Output2 = Output1;
 
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     input
@@ -15,11 +16,11 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
         .collect()
 }
 
-fn part_1(input: &Input) -> Output {
+fn part_1(input: &Input) -> Output1 {
     todo!()
 }
 
-fn part_2(input: &Input) -> Output {
+fn part_2(input: &Input) -> Output2 {
     todo!()
 }
 
