@@ -663,7 +663,7 @@ version = "0.1.0"
 dependencies = [
  "aoc-timing",
  "env_logger",
- "itertools 0.13.0",
+ "fxhash",
 ]
 
 [[package]]

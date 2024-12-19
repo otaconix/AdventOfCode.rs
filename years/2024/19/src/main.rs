@@ -1,8 +1,8 @@
-use std::collections::HashMap;
-use std::collections::HashSet;
 use std::io;
 
 use aoc_timing::trace::log_run;
+use fxhash::FxHashMap;
+use fxhash::FxHashSet;
 
 type Input = Vec<usize>;
 type Output1 = usize;
@@ -10,10 +10,10 @@ type Output2 = usize;
 
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     enum State {
-        Towels(HashSet<String>),
-        Designs(HashSet<String>, Vec<String>),
+        Towels(FxHashSet<String>),
+        Designs(FxHashSet<String>, Vec<String>),
     }
-    let end_state = input.fold(State::Towels(HashSet::new()), |state, line| {
+    let end_state = input.fold(State::Towels(Default::default()), |state, line| {
         let line = line.as_ref();
 
         match state {
@@ -34,10 +34,19 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
 
     if let State::Designs(towels, designs) = end_state {
         let mut cache = Default::default();
+        let towels: FxHashMap<_, Vec<_>> =
+            towels
+                .into_iter()
+                .fold(Default::default(), |mut map, towel| {
+                    let ts = map.entry(towel.as_bytes()[0]).or_default();
+                    ts.push(towel);
+
+                    map
+                });
 
         designs
             .iter()
-            .map(|design| design_combinations(&design, &towels, &mut cache))
+            .map(|design| design_combinations(design, &towels, &mut cache))
             .collect()
     } else {
         panic!("Didn't reach the designs part of the input?");
@@ -46,8 +55,8 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
 
 fn design_combinations<'a>(
     design: &'a str,
-    towels: &HashSet<String>,
-    cache: &mut HashMap<&'a str, usize>,
+    towels: &FxHashMap<u8, Vec<String>>,
+    cache: &mut FxHashMap<&'a str, usize>,
 ) -> usize {
     if let Some(result) = cache.get(design) {
         *result
@@ -55,10 +64,14 @@ fn design_combinations<'a>(
         1
     } else {
         let result = towels
-            .iter()
-            .filter(|t| design.starts_with(*t))
-            .map(|t| design_combinations(&design[t.len()..], towels, cache))
-            .sum();
+            .get(&design.as_bytes()[0])
+            .map(|ts| {
+                ts.iter()
+                    .filter(|t| design.starts_with(*t))
+                    .map(|t| design_combinations(&design[t.len()..], towels, cache))
+                    .sum()
+            })
+            .unwrap_or(0);
         cache.insert(design, result);
 
         result
