@@ -1,3 +1,4 @@
+use std::iter::successors;
 use std::{fmt::Debug, hash::Hash};
 
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -144,6 +145,22 @@ impl<T> Grid<T> {
         } else {
             Ok(Grid { rows, width })
         }
+    }
+
+    pub fn with_size(width: usize, height: usize) -> Self
+    where
+        T: Sized + Default,
+    {
+        Self::new(
+            (0..height)
+                .map(|_| {
+                    successors(Some(T::default()), |_| Some(T::default()))
+                        .take(width)
+                        .collect()
+                })
+                .collect(),
+        )
+        .unwrap()
     }
 
     pub fn width(&self) -> usize {
