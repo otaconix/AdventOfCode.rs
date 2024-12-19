@@ -64,7 +64,6 @@ impl GuardPosition {
                 Some((_, pos)) if *lab.get(pos.0, pos.1).unwrap() != LabCell::Obstruction => true,
                 _ => false,
             })
-            // .inspect(|next| println!("Found next: {next:?}"))
             .flatten()
             .map(|(dir, pos)| Self {
                 coordinates: pos,
@@ -77,6 +76,7 @@ impl GuardPosition {
 struct Input {
     lab: Lab,
     guard_start_position: GuardPosition,
+    guard_positions: HashSet<Coordinates>,
 }
 
 type Output = usize;
@@ -114,50 +114,46 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     .expect("Invalid grid");
 
     Input {
-        lab: grid,
         guard_start_position: start_position,
+        guard_positions: successors(Some(start_position), |guard_pos| guard_pos.next(&grid))
+            .map(|pos| pos.coordinates)
+            .collect::<HashSet<_>>(),
+        lab: grid,
     }
 }
 
 fn part_1(input: &Input) -> Output {
-    successors(Some(input.guard_start_position), |guard_pos| {
-        guard_pos.next(&input.lab)
-    })
-    .map(|pos| pos.coordinates)
-    .collect::<HashSet<_>>()
-    .len()
+    input.guard_positions.len()
 }
 
 fn part_2(input: &Input) -> Output {
-    successors(Some(input.guard_start_position), |guard_pos| {
-        guard_pos.next(&input.lab)
-    })
-    .map(|pos| pos.coordinates)
-    .collect::<HashSet<_>>()
-    .into_par_iter()
-    .filter(|coord| coord != &input.guard_start_position.coordinates)
-    .map(|(col, row)| {
-        let mut lab = input.lab.clone();
+    input
+        .guard_positions
+        .par_iter()
+        .copied()
+        .filter(|coord| coord != &input.guard_start_position.coordinates)
+        .map(|(col, row)| {
+            let mut lab = input.lab.clone();
 
-        lab.update(col, row, LabCell::Obstruction);
+            lab.update(col, row, LabCell::Obstruction);
 
-        lab
-    })
-    .filter(|lab| {
-        let mut past_guard_positions = HashSet::with_capacity(5000);
-        for guard_pos in successors(Some(input.guard_start_position), |guard_pos| {
-            guard_pos.next(lab)
-        }) {
-            if past_guard_positions.contains(&guard_pos) {
-                return true;
-            } else {
-                past_guard_positions.insert(guard_pos);
+            lab
+        })
+        .filter(|lab| {
+            let mut past_guard_positions = HashSet::with_capacity(5000);
+            for guard_pos in successors(Some(input.guard_start_position), |guard_pos| {
+                guard_pos.next(lab)
+            }) {
+                if past_guard_positions.contains(&guard_pos) {
+                    return true;
+                } else {
+                    past_guard_positions.insert(guard_pos);
+                }
             }
-        }
 
-        false
-    })
-    .count()
+            false
+        })
+        .count()
 }
 
 fn main() {
