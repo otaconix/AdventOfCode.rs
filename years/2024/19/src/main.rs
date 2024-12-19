@@ -11,7 +11,7 @@ struct Input {
 type Output1 = usize;
 type Output2 = usize;
 
-fn parse<'a, S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
+fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     enum State {
         Towels(HashSet<String>),
         Designs(HashSet<String>, Vec<String>),
@@ -42,20 +42,21 @@ fn parse<'a, S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     }
 }
 
-fn design_is_possible<'a>(
+fn design_combinations<'a>(
     design: &'a str,
     towels: &HashSet<String>,
-    cache: &mut HashMap<&'a str, bool>,
-) -> bool {
+    cache: &mut HashMap<&'a str, usize>,
+) -> usize {
     if let Some(result) = cache.get(design) {
         *result
     } else if design.is_empty() {
-        true
+        1
     } else {
         let result = towels
             .iter()
             .filter(|t| design.starts_with(*t))
-            .any(|t| design_is_possible(&design[t.len()..], towels, cache));
+            .map(|t| design_combinations(&design[t.len()..], towels, cache))
+            .sum();
         cache.insert(design, result);
 
         result
@@ -68,12 +69,18 @@ fn part_1(input: &Input) -> Output1 {
     input
         .designs
         .iter()
-        .filter(|design| design_is_possible(design, &input.towels, &mut cache))
+        .filter(|design| design_combinations(design, &input.towels, &mut cache) > 0)
         .count()
 }
 
 fn part_2(input: &Input) -> Output2 {
-    todo!()
+    let mut cache = Default::default();
+
+    input
+        .designs
+        .iter()
+        .map(|design| design_combinations(design, &input.towels, &mut cache))
+        .sum()
 }
 
 fn main() {
@@ -111,6 +118,6 @@ mod tests {
         let input = parse(INPUT.lines());
         let result = part_2(&input);
 
-        assert_eq!(result, 0);
+        assert_eq!(result, 16);
     }
 }
