@@ -30,14 +30,46 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
         .collect()
 }
 
+#[derive(PartialEq, Eq)]
+struct QueueItem {
+    distance: usize,
+    position: Coord,
+}
+
+impl QueueItem {
+    fn new(priority: usize, position: Coord) -> Self {
+        Self {
+            distance: priority,
+            position,
+        }
+    }
+}
+
+impl Ord for QueueItem {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        other
+            .distance
+            .cmp(&self.distance)
+            .then_with(|| self.position.cmp(&other.position))
+    }
+}
+
+impl PartialOrd for QueueItem {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 fn dijkstra(map: &Grid<Cell>, start_position: Coord, end_position: Coord) -> Option<usize> {
-    let mut prev = FxHashMap::default();
-    prev.insert(start_position, None);
     let mut distances = FxHashMap::default();
     distances.insert(start_position, 0usize);
-    let mut queue = BTreeSet::from([(0, start_position)]);
+    let mut queue = BTreeSet::from([QueueItem::new(0, start_position)]);
 
-    while let Some((distance, position @ (x, y))) = queue.pop_first() {
+    while let Some(QueueItem {
+        distance,
+        position: position @ (x, y),
+    }) = queue.pop_last()
+    {
         if position == end_position {
             // We've found the end!
             return Some(distance);
@@ -57,14 +89,9 @@ fn dijkstra(map: &Grid<Cell>, start_position: Coord, end_position: Coord) -> Opt
                 && map.get(*column, *row).unwrap() != &Cell::Corrupted
         }) {
             {
-                if distances
-                    .get(&potential_next)
-                    .filter(|original| distance >= **original)
-                    .is_none()
-                {
-                    prev.insert(potential_next, Some(position));
+                if distances.get(&potential_next).unwrap_or(&usize::MAX) > &distance {
                     distances.insert(potential_next, distance + 1);
-                    queue.insert((distance + 1, potential_next));
+                    queue.insert(QueueItem::new(distance + 1, potential_next));
                 }
             }
         }
