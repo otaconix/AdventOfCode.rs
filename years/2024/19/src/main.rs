@@ -4,10 +4,7 @@ use std::io;
 
 use aoc_timing::trace::log_run;
 
-struct Input {
-    towels: HashSet<String>,
-    designs: Vec<String>,
-}
+type Input = Vec<usize>;
 type Output1 = usize;
 type Output2 = usize;
 
@@ -36,7 +33,12 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     });
 
     if let State::Designs(towels, designs) = end_state {
-        Input { towels, designs }
+        let mut cache = Default::default();
+
+        designs
+            .iter()
+            .map(|design| design_combinations(&design, &towels, &mut cache))
+            .collect()
     } else {
         panic!("Didn't reach the designs part of the input?");
     }
@@ -64,23 +66,14 @@ fn design_combinations<'a>(
 }
 
 fn part_1(input: &Input) -> Output1 {
-    let mut cache = Default::default();
-
     input
-        .designs
         .iter()
-        .filter(|design| design_combinations(design, &input.towels, &mut cache) > 0)
+        .filter(|combinations| **combinations > 0)
         .count()
 }
 
 fn part_2(input: &Input) -> Output2 {
-    let mut cache = Default::default();
-
-    input
-        .designs
-        .iter()
-        .map(|design| design_combinations(design, &input.towels, &mut cache))
-        .sum()
+    input.iter().sum()
 }
 
 fn main() {
