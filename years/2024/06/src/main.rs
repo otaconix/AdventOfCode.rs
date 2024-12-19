@@ -79,6 +79,13 @@ struct Input {
     guard_positions: HashSet<Coordinates>,
 }
 
+fn all_guard_positions(
+    guard_start_position: GuardPosition,
+    lab: &Lab,
+) -> impl Iterator<Item = GuardPosition> + use<'_> {
+    successors(Some(guard_start_position), |guard_pos| guard_pos.next(lab))
+}
+
 type Output = usize;
 
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
@@ -126,6 +133,9 @@ fn part_1(input: &Input) -> Output {
     input.guard_positions.len()
 }
 
+/// Uses the [Tortoise & Hare algorithm]
+///
+/// [Tortoise & Hare algorithm]: https://en.wikipedia.org/wiki/Cycle_detection#Floyd's_tortoise_and_hare
 fn part_2(input: &Input) -> Output {
     input
         .guard_positions
@@ -140,18 +150,13 @@ fn part_2(input: &Input) -> Output {
             lab
         })
         .filter(|lab| {
-            let mut past_guard_positions = HashSet::with_capacity(5000);
-            for guard_pos in successors(Some(input.guard_start_position), |guard_pos| {
-                guard_pos.next(lab)
-            }) {
-                if past_guard_positions.contains(&guard_pos) {
-                    return true;
-                } else {
-                    past_guard_positions.insert(guard_pos);
-                }
-            }
-
-            false
+            all_guard_positions(input.guard_start_position, lab)
+                .zip(
+                    all_guard_positions(input.guard_start_position, lab)
+                        .skip(1)
+                        .step_by(2),
+                )
+                .any(|(tortoise, hare)| tortoise == hare)
         })
         .count()
 }
