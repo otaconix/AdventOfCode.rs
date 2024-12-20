@@ -276,7 +276,6 @@ name = "aoc-2022-17"
 version = "0.1.0"
 dependencies = [
  "aoc-timing",
- "coord",
  "env_logger",
  "log",
 ]
@@ -632,7 +631,6 @@ dependencies = [
  "aoc-macros",
  "aoc-timing",
  "aoc-utils",
- "comparable",
  "env_logger",
  "grid",
 ]
@@ -678,8 +676,6 @@ dependencies = [
 name = "aoc-macros"
 version = "0.1.0"
 dependencies = [
- "aoc-utils",
- "proc-macro2",
  "quote",
  "syn",
 ]
