@@ -33,7 +33,7 @@ impl Monkey {
     }
 }
 
-fn play_round<F>(monkeys: &mut Vec<Monkey>, common_divisor: u64, f: F)
+fn play_round<F>(monkeys: &mut [Monkey], common_divisor: u64, f: F)
 where
     F: Fn(u64) -> u64,
 {

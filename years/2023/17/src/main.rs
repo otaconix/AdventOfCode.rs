@@ -139,9 +139,9 @@ fn part_1(input: &Input) -> usize {
         .sum()
 }
 
-fn part_2(input: &Input) -> usize {
-    todo!()
-}
+// fn part_2(input: &Input) -> usize {
+//     todo!()
+// }
 
 fn main() {
     env_logger::init();

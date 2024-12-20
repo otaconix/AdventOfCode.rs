@@ -31,7 +31,7 @@ mod solution {
         }
     }
 
-    impl<'a> Iterator for JetIterator<'a> {
+    impl Iterator for JetIterator<'_> {
         type Item = Jet;
 
         fn next(&mut self) -> Option<Self::Item> {

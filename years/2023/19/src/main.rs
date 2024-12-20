@@ -88,6 +88,12 @@ struct NamedWorkflow {
     workflow: Workflow,
 }
 
+impl From<NamedWorkflow> for (String, Workflow) {
+    fn from(val: NamedWorkflow) -> Self {
+        (val.name, val.workflow)
+    }
+}
+
 struct ConditionalDestination {
     condition: Condition,
     destination: Destination,
@@ -189,12 +195,6 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
         Parts(HashMap<String, Workflow>, Vec<Part>),
     }
 
-    impl From<NamedWorkflow> for (String, Workflow) {
-        fn from(val: NamedWorkflow) -> Self {
-            (val.name, val.workflow)
-        }
-    }
-
     let end_state = input.fold(ParsingState::Workflows(HashMap::new()), |state, line| {
         let line = line.as_ref();
         match state {
@@ -242,11 +242,7 @@ impl RangeLen for GenericRange<usize> {
             std::ops::Bound::Unbounded => panic!("Length of range with unbounded end unsupported"),
         };
 
-        if start >= end {
-            0
-        } else {
-            end - start
-        }
+        end.saturating_sub(start)
     }
 }
 

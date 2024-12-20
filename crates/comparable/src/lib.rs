@@ -66,27 +66,27 @@ impl<T: Eq, C: Comparator<T>> DerefMut for ComparableBy<'_, T, C> {
     }
 }
 
-impl<'a, T: Eq, C: Comparator<T>> PartialEq for ComparableBy<'a, T, C> {
+impl<T: Eq, C: Comparator<T>> PartialEq for ComparableBy<'_, T, C> {
     fn eq(&self, other: &Self) -> bool {
         self.t == other.t
     }
 }
 
-impl<'a, T: Eq, C: Comparator<T>> Eq for ComparableBy<'a, T, C> {}
+impl<T: Eq, C: Comparator<T>> Eq for ComparableBy<'_, T, C> {}
 
-impl<'a, T: Eq, C: Comparator<T>> Ord for ComparableBy<'a, T, C> {
+impl<T: Eq, C: Comparator<T>> Ord for ComparableBy<'_, T, C> {
     fn cmp(&self, other: &Self) -> Ordering {
         (self.cmp)(&self.t, &other.t)
     }
 }
 
-impl<'a, T: Eq, C: Comparator<T>> PartialOrd for ComparableBy<'a, T, C> {
+impl<T: Eq, C: Comparator<T>> PartialOrd for ComparableBy<'_, T, C> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<'a, T: Eq + Debug, C: Comparator<T>> Debug for ComparableBy<'a, T, C> {
+impl<T: Eq + Debug, C: Comparator<T>> Debug for ComparableBy<'_, T, C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.t.fmt(f)
     }

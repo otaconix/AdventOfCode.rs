@@ -6,7 +6,7 @@ use std::ops::Range;
 enum ParsingState {
     Start,
     Seeds(Vec<u64>),
-    MapTitle(Vec<u64>, Vec<Map>, String, Vec<MapRange>),
+    MapTitle(Vec<u64>, Vec<Map>, Vec<MapRange>),
     Map(Vec<u64>, Vec<Map>),
 }
 
@@ -51,7 +51,6 @@ impl MapRange {
 
 #[derive(Debug)]
 struct Map {
-    title: String,
     ranges: Vec<MapRange>,
 }
 
@@ -62,10 +61,10 @@ struct MapRangeResult {
 }
 
 impl Map {
-    fn new(title: String, mut ranges: Vec<MapRange>) -> Self {
+    fn new(mut ranges: Vec<MapRange>) -> Self {
         ranges.sort_by_key(|range| range.source.start);
 
-        Map { title, ranges }
+        Map { ranges }
     }
 
     fn map(&self, input: &u64) -> u64 {
@@ -133,43 +132,29 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
             if line.is_empty() {
                 ParsingState::Seeds(seeds)
             } else {
-                ParsingState::MapTitle(
-                    seeds,
-                    vec![],
-                    line.split(' ').next().expect("No title found").to_string(),
-                    vec![],
-                )
+                ParsingState::MapTitle(seeds, vec![], vec![])
             }
         }
-        ParsingState::MapTitle(seeds, mut maps, title, mut ranges) => {
+        ParsingState::MapTitle(seeds, mut maps, mut ranges) => {
             let line = line.as_ref();
             if line.is_empty() {
-                maps.push(Map::new(title, ranges));
+                maps.push(Map::new(ranges));
                 ParsingState::Map(seeds, maps)
             } else {
-                let raw_range = parse_numbers_line(&line, 0);
+                let raw_range = parse_numbers_line(line, 0);
                 ranges.push(MapRange {
                     source: raw_range[1]..raw_range[1] + raw_range[2],
                     dest: raw_range[0]..raw_range[0] + raw_range[2],
                 });
-                ParsingState::MapTitle(seeds, maps, title, ranges)
+                ParsingState::MapTitle(seeds, maps, ranges)
             }
         }
-        ParsingState::Map(seeds, maps) => ParsingState::MapTitle(
-            seeds,
-            maps,
-            line.as_ref()
-                .split(' ')
-                .next()
-                .expect("No title found")
-                .to_string(),
-            vec![],
-        ),
+        ParsingState::Map(seeds, maps) => ParsingState::MapTitle(seeds, maps, vec![]),
     });
 
     match parsing_state {
-        ParsingState::MapTitle(seeds, mut maps, title, ranges) => {
-            maps.push(Map::new(title, ranges));
+        ParsingState::MapTitle(seeds, mut maps, ranges) => {
+            maps.push(Map::new(ranges));
             Input { seeds, maps }
         }
         _ => panic!("Unexpected parsing state: {parsing_state:?}"),

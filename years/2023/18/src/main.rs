@@ -3,12 +3,6 @@ use std::io;
 use aoc_timing::trace::log_run;
 use itertools::Itertools;
 
-struct Color {
-    red: u8,
-    green: u8,
-    blue: u8,
-}
-
 #[derive(PartialEq)]
 enum Direction {
     Left,
