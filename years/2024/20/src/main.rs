@@ -5,85 +5,70 @@ use std::iter::successors;
 use aoc_timing::trace::log_run;
 
 type Coord = (usize, usize);
-
-struct Input {
-    road: Vec<Coord>,
-    start_position: Coord,
-    end_position: Coord,
-}
-
+type Input = Vec<Coord>;
 type Output1 = usize;
 type Output2 = Output1;
 
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
-    let (road, start_position, end_position) = input.enumerate().fold(
-        (HashSet::new(), None, None),
-        |(mut road, mut start_position, mut end_position), (row, line)| {
+    let (road, start_position) = input.enumerate().fold(
+        (HashSet::new(), None),
+        |(mut road, mut start_position), (row, line)| {
             let line = line.as_ref();
 
             for (column, char) in line.chars().enumerate() {
                 match char {
                     '#' => {}
-                    '.' => {
+                    '.' | 'E' => {
                         road.insert((column, row));
                     }
                     'S' => {
                         road.insert((column, row));
                         start_position = Some((column, row));
                     }
-                    'E' => {
-                        road.insert((column, row));
-                        end_position = Some((column, row));
-                    }
                     _ => panic!("Unexpected character in map: {char}"),
                 }
             }
 
-            (road, start_position, end_position)
+            (road, start_position)
         },
     );
 
     let start_position = start_position.unwrap();
-    let end_position = end_position.unwrap();
 
-    Input {
-        road: successors(
-            Some((None as Option<Coord>, start_position)),
-            |(prev, current @ (column, row))| {
-                let mut nexts = vec![(column + 1, *row), (*column, row + 1)];
-                if column > &0 {
-                    nexts.push((column - 1, *row));
-                }
-                if row > &0 {
-                    nexts.push((*column, row - 1));
-                }
+    successors(
+        Some((None as Option<Coord>, start_position)),
+        |(prev, current @ (column, row))| {
+            let mut nexts = vec![(column + 1, *row), (*column, row + 1)];
+            if column > &0 {
+                nexts.push((column - 1, *row));
+            }
+            if row > &0 {
+                nexts.push((*column, row - 1));
+            }
 
-                nexts
-                    .into_iter()
-                    .find(|next| prev != &Some(*next) && road.contains(next))
-                    .map(|next| (Some(*current), next))
-            },
-        )
-        .map(|(_, coord)| coord)
-        .collect(),
-        start_position,
-        end_position,
-    }
+            nexts
+                .into_iter()
+                .find(|next| prev != &Some(*next) && road.contains(next))
+                .map(|next| (Some(*current), next))
+        },
+    )
+    .map(|(_, coord)| coord)
+    .collect()
 }
 
-fn coord_distance(from: &Coord, to: &Coord) -> usize {
+fn manhattan_distance(from: &Coord, to: &Coord) -> usize {
     from.0.abs_diff(to.0) + from.1.abs_diff(to.1)
 }
 
 fn count_cheats(road: &[Coord], cheat_picoseconds: usize, minimal_savings: usize) -> usize {
     road.iter()
         .enumerate()
-        .map(|(ns, position)| {
-            road[ns + 1..]
+        .map(|(picoseconds, position)| {
+            road[picoseconds + 1..]
                 .iter()
                 .enumerate()
                 .filter(|(delta_picoseconds, next)| {
-                    coord_distance(position, next) <= cheat_picoseconds
+                    manhattan_distance(position, next) <= cheat_picoseconds
                         && delta_picoseconds >= &minimal_savings
                 })
                 .count()
@@ -92,11 +77,11 @@ fn count_cheats(road: &[Coord], cheat_picoseconds: usize, minimal_savings: usize
 }
 
 fn part_1(input: &Input, minimal_savings: usize) -> Output1 {
-    count_cheats(&input.road, 2, minimal_savings)
+    count_cheats(input, 2, minimal_savings)
 }
 
 fn part_2(input: &Input, minimal_savings: usize) -> Output2 {
-    count_cheats(&input.road, 20, minimal_savings)
+    count_cheats(input, 20, minimal_savings)
 }
 
 fn main() {
@@ -135,5 +120,10 @@ mod tests {
         let result = part_2(&input, 50);
 
         assert_eq!(result, 285);
+    }
+
+    #[test]
+    fn manhattan_distance() {
+        assert_eq!(super::manhattan_distance(&(0, 0), &(20, 20)), 40);
     }
 }
