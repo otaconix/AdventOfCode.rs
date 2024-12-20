@@ -63,13 +63,15 @@ fn manhattan_distance(from: &Coord, to: &Coord) -> usize {
 fn count_cheats(road: &[Coord], cheat_picoseconds: usize, minimal_savings: usize) -> usize {
     road.iter()
         .enumerate()
+        .take(road.len() - minimal_savings)
         .map(|(picoseconds, position)| {
-            road[picoseconds + 1..]
+            road[picoseconds..]
                 .iter()
                 .enumerate()
-                .filter(|(delta_picoseconds, next)| {
-                    manhattan_distance(position, next) <= cheat_picoseconds
-                        && delta_picoseconds >= &minimal_savings
+                .skip(minimal_savings)
+                .filter(|(savings, next)| {
+                    let distance = manhattan_distance(position, next);
+                    distance <= cheat_picoseconds && savings - distance >= minimal_savings
                 })
                 .count()
         })
