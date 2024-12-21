@@ -110,12 +110,13 @@ impl<T> Iterator for GridCoordinates<'_, T> {
     type Item = (usize, usize);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.row >= self.grid.rows.len() {
+        if self.row >= self.grid.height() {
             None
         } else {
             let coord = (self.column, self.row);
-            self.column = (self.column + 1) % self.grid.width;
-            if self.column == 0 {
+            self.column += 1;
+            if self.column == self.grid.width() {
+                self.column = 0;
                 self.row += 1;
             }
 
