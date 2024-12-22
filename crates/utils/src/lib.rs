@@ -31,3 +31,28 @@ impl<T, I: Iterator<Item = T> + Sized> PartitionEnumerated<T> for I {
         (left, right)
     }
 }
+
+#[allow(dead_code)]
+trait AoCInspector {
+    /// Allows inspecting a value, while also returning it
+    ///
+    /// Note that you cannot modify the value using this function.
+    ///
+    /// Contrived example:
+    /// ```
+    /// use aoc_utils::AoCInspector;
+    ///
+    /// assert_eq!([1, 2, 3].aoc_inspect(|array| println!("{array:?}")).iter().sum::<usize>(), 6)
+    /// ```
+    fn aoc_inspect<F>(self, f: F) -> Self
+    where
+        Self: Sized,
+        F: Fn(&Self),
+    {
+        f(&self);
+
+        self
+    }
+}
+
+impl<T> AoCInspector for T {}
