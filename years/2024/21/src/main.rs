@@ -147,21 +147,13 @@ fn path_movement(path: &str) -> usize {
         .map(|(a, b)| a.0.abs_diff(b.0) + a.1.abs_diff(b.1))
         .sum::<usize>()
         + path.chars().dedup().count()
+        + path // prefer going right first
+            .chars()
+            .rev()
+            .enumerate()
+            .map(|(index, c)| if c == '>' { index } else { 0 })
+            .sum::<usize>()
 }
-
-trait MyInspector {
-    fn my_inspect<F>(self, f: F) -> Self
-    where
-        Self: Sized,
-        F: Fn(&Self),
-    {
-        f(&self);
-
-        self
-    }
-}
-
-impl<T> MyInspector for T {}
 
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     let codes = input.map(|line| line.as_ref().to_string()).collect();
@@ -189,16 +181,7 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
                         path.push('A');
                         path
                     })
-                    .min_set_by_key(|path| path_movement(path))
-                    .my_inspect(|set| {
-                        println!(
-                            "directional {}->{}: {set:?}",
-                            directional_grid.get(from_to[0].0, from_to[0].1).unwrap(),
-                            directional_grid.get(from_to[1].0, from_to[1].1).unwrap()
-                        )
-                    })
-                    .into_iter()
-                    .next()
+                    .min_by_key(|path| path_movement(path))
                     .unwrap(),
             )
         })
@@ -227,16 +210,7 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
                         path.push('A');
                         path
                     })
-                    .min_set_by_key(|path| path_movement(path))
-                    .my_inspect(|set| {
-                        println!(
-                            "numeric {}->{}: {set:?}",
-                            numeric_grid.get(from_to[0].0, from_to[0].1).unwrap(),
-                            numeric_grid.get(from_to[1].0, from_to[1].1).unwrap()
-                        )
-                    })
-                    .into_iter()
-                    .next()
+                    .min_by_key(|path| path_movement(path))
                     .unwrap(),
             )
         })
