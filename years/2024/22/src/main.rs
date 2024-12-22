@@ -2,12 +2,11 @@ use std::io;
 
 use aoc_timing::trace::log_run;
 use itertools::Itertools;
+use rapidhash::RapidBuildHasher;
 use rapidhash::RapidHashMap;
-use rapidhash::RapidHashSet;
-use rayon::prelude::*;
 
-type Input = Vec<isize>;
-type Output1 = isize;
+type Input = Vec<usize>;
+type Output1 = usize;
 type Output2 = Output1;
 
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
@@ -20,20 +19,20 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
         .collect()
 }
 
-const PRUNER: isize = 16777216;
+const PRUNER: usize = 16777216;
 
 struct SecretIterator {
-    secret: isize,
+    secret: usize,
 }
 
-impl From<isize> for SecretIterator {
-    fn from(secret: isize) -> Self {
+impl From<usize> for SecretIterator {
+    fn from(secret: usize) -> Self {
         SecretIterator { secret }
     }
 }
 
 impl Iterator for SecretIterator {
-    type Item = isize;
+    type Item = usize;
 
     fn next(&mut self) -> Option<Self::Item> {
         let result = self.secret;
@@ -54,50 +53,64 @@ fn part_1(input: &Input) -> Output1 {
         .sum()
 }
 
-fn sequence_earnings(
-    sequence: &[isize; 4],
-    delta_sequences: &[RapidHashMap<[isize; 4], isize>],
-) -> isize {
-    delta_sequences
-        .iter()
-        .map(|delta_sequence| delta_sequence.get(sequence).unwrap_or(&0))
-        .sum()
+/// Pack a diff sequence into a single number.
+///
+/// Since each diff is in the range `-9..=9`, which has 19 values, we know there are at most 19
+/// raised to the 4th power unique diffs. 19 happens to fit in 5 bits (2^5 = 32), so the four diffs
+/// fit in 20 bits.
+///
+/// NB: the diffs as they come in here fall in the range `0..=18` so they can all be unsigned.
+fn diff_sequence_key(diff: &(usize, usize, usize, usize)) -> usize {
+    ((diff.0) << 15) | ((diff.1) << 10) | ((diff.2) << 5) | diff.3
 }
 
+/// The idea is to:
+///
+/// 1. Loop over each secret, generate both a list of the amount of bananas to be had at each step,
+///    and a list of windows of 4 diffs.
+/// 2. Keep a map of diff to the sum of bananas it results in
+/// 3. Loop over each secret's diffs, and add the amount of bananas it results in for that list in
+///    the map
+/// 4. Loop over the entries in the map, and find the max value
 fn part_2(input: &Input) -> Output2 {
-    let secret_sequences = input
-        .iter()
-        .copied()
-        .map(|secret| {
-            SecretIterator::from(secret)
-                .take(2001)
-                .map(|n| n % 10)
-                .tuple_windows()
-                .map(|(a, b)| (a - b, b))
-                .tuple_windows::<(_, _, _, _)>()
-                .map(|window| {
-                    (
-                        Into::<[_; 4]>::into(window).map(|(delta, _bananas)| delta),
-                        window.3 .1,
-                    )
-                })
-                .fold(RapidHashMap::default(), |mut map, (window, bananas)| {
-                    map.entry(window).or_insert(bananas);
-                    map
-                })
-        })
-        .collect_vec();
+    let (prices, diffs) = input.iter().fold(
+        (vec![], vec![]),
+        |(mut prices, mut diffs): (Vec<Vec<usize>>, Vec<RapidHashMap<usize, usize>>), secret| {
+            let secrets = SecretIterator::from(*secret).take(2001).collect_vec();
+            prices.push(secrets.iter().map(|price| price % 10).collect());
+            diffs.push(
+                secrets
+                    .iter()
+                    .map(|price| price % 10)
+                    .tuple_windows()
+                    .map(|(a, b)| b + 9 - a)
+                    .tuple_windows::<(_, _, _, _)>()
+                    .enumerate()
+                    .map(|(diff_index, diff_window)| (diff_sequence_key(&diff_window), diff_index))
+                    .fold(
+                        RapidHashMap::with_capacity_and_hasher(2000, RapidBuildHasher::default()),
+                        |mut diffs, (diff_key, diff_index)| {
+                            diffs.entry(diff_key).or_insert(diff_index);
 
-    let combined_sequences = secret_sequences
-        .iter()
-        .flat_map(|secret_sequence| secret_sequence.keys())
-        .collect::<RapidHashSet<_>>();
+                            diffs
+                        },
+                    ),
+            );
 
-    combined_sequences
-        .into_par_iter()
-        .map(|sequence| sequence_earnings(sequence, &secret_sequences))
-        .max()
-        .unwrap()
+            (prices, diffs)
+        },
+    );
+
+    let mut sums: RapidHashMap<usize, usize> =
+        RapidHashMap::with_capacity_and_hasher(10_000, RapidBuildHasher::default());
+
+    for (index, diffs) in diffs.iter().enumerate() {
+        for (diff, diff_index) in diffs {
+            *sums.entry(*diff).or_default() += prices[index][diff_index + 4];
+        }
+    }
+
+    *sums.values().max().unwrap()
 }
 
 fn main() {
