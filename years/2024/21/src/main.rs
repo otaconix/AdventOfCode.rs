@@ -38,13 +38,12 @@ impl PartialOrd for Queued {
 
 struct Input {
     codes: Vec<String>,
-    numeric_paths: HashMap<(char, char), Vec<String>>,
-    directional_paths: HashMap<(char, char), Vec<String>>,
+    numeric_paths: HashMap<(char, char), String>,
+    directional_paths: HashMap<(char, char), String>,
 }
 
 type Coord = (usize, usize);
-type Output1 = usize;
-type Output2 = Output1;
+type Output = usize;
 
 const NUMERIC_KEYPAD: &str = include_str!("numeric_keypad");
 const DIRECTIONAL_KEYPAD: &str = include_str!("directional_keypad");
@@ -133,6 +132,37 @@ fn dijkstra_paths(map: &Grid<char>, start_position: Coord, end_position: Coord) 
         .collect()
 }
 
+fn path_movement(path: &str) -> usize {
+    path.chars()
+        .dedup()
+        .map(|c| match c {
+            '^' => (1usize, 0usize),
+            'A' => (2, 0),
+            '<' => (0, 1),
+            'v' => (1, 1),
+            '>' => (2, 1),
+            _ => panic!("Invalid movement character: {c}"),
+        })
+        .tuple_windows()
+        .map(|(a, b)| a.0.abs_diff(b.0) + a.1.abs_diff(b.1))
+        .sum::<usize>()
+        + path.chars().dedup().count()
+}
+
+trait MyInspector {
+    fn my_inspect<F>(self, f: F) -> Self
+    where
+        Self: Sized,
+        F: Fn(&Self),
+    {
+        f(&self);
+
+        self
+    }
+}
+
+impl<T> MyInspector for T {}
+
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     let codes = input.map(|line| line.as_ref().to_string()).collect();
 
@@ -159,7 +189,17 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
                         path.push('A');
                         path
                     })
-                    .collect(),
+                    .min_set_by_key(|path| path_movement(path))
+                    .my_inspect(|set| {
+                        println!(
+                            "directional {}->{}: {set:?}",
+                            directional_grid.get(from_to[0].0, from_to[0].1).unwrap(),
+                            directional_grid.get(from_to[1].0, from_to[1].1).unwrap()
+                        )
+                    })
+                    .into_iter()
+                    .next()
+                    .unwrap(),
             )
         })
         .collect();
@@ -187,7 +227,17 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
                         path.push('A');
                         path
                     })
-                    .collect(),
+                    .min_set_by_key(|path| path_movement(path))
+                    .my_inspect(|set| {
+                        println!(
+                            "numeric {}->{}: {set:?}",
+                            numeric_grid.get(from_to[0].0, from_to[0].1).unwrap(),
+                            numeric_grid.get(from_to[1].0, from_to[1].1).unwrap()
+                        )
+                    })
+                    .into_iter()
+                    .next()
+                    .unwrap(),
             )
         })
         .collect();
@@ -199,14 +249,41 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     }
 }
 
-fn flatten_paths(result: Vec<String>, paths: Vec<String>) -> Vec<String> {
-    result
-        .into_iter()
-        .flat_map(|result_path| paths.iter().map(move |path| result_path.clone() + path))
-        .collect()
+fn path_length(
+    path: &str,
+    directional_robot_count: usize,
+    directional_paths: &HashMap<(char, char), String>,
+    cache: &mut HashMap<((char, char), usize), usize>,
+) -> usize {
+    if directional_robot_count == 0 {
+        path.len()
+    } else if path.is_empty() {
+        0
+    } else {
+        once('A')
+            .chain(path.chars())
+            .tuple_windows()
+            .map(|from_to| {
+                if let Some(length) = cache.get(&(from_to, directional_robot_count)) {
+                    *length
+                } else {
+                    let length = path_length(
+                        directional_paths.get(&from_to).unwrap_or(&"A".to_string()),
+                        directional_robot_count - 1,
+                        directional_paths,
+                        cache,
+                    );
+
+                    cache.insert((from_to, directional_robot_count), length);
+
+                    length
+                }
+            })
+            .sum()
+    }
 }
 
-fn part_1(input: &Input) -> Output1 {
+fn solve(input: &Input, directional_robot_count: usize) -> Output {
     let numeric_paths = input
         .codes
         .iter()
@@ -215,152 +292,43 @@ fn part_1(input: &Input) -> Output1 {
                 .chain(code.chars())
                 .tuple_windows()
                 .map(|(from, to)| input.numeric_paths[&(from, to)].clone())
-                .fold(vec![String::new()], flatten_paths)
+                .join("")
         })
         .collect::<Vec<_>>();
 
-    let first_directional_paths = numeric_paths
-        .iter()
-        .map(|paths| {
-            paths
-                .iter()
-                .flat_map(|path| {
-                    once('A')
-                        .chain(path.chars())
-                        .tuple_windows()
-                        .map(|(from, to)| {
-                            input
-                                .directional_paths
-                                .get(&(from, to))
-                                .unwrap_or(&vec!["A".to_string()])
-                                .clone()
-                        })
-                        .fold(vec![String::new()], flatten_paths)
-                })
-                .collect::<Vec<_>>()
+    let mut cache = HashMap::new();
+    let path_lengths = numeric_paths
+        .into_iter()
+        .map(|path| {
+            path_length(
+                &path,
+                directional_robot_count + 1,
+                &input.directional_paths,
+                &mut cache,
+            )
         })
         .collect::<Vec<_>>();
 
-    let human_directional_paths_shortest_lengths = first_directional_paths // paths for all codes
-        .iter()
-        .flat_map(|paths| {
-            // paths per single code
-            paths
-                .iter()
-                .flat_map(|path| {
-                    // single path for single code
-                    once('A')
-                        .chain(path.chars())
-                        .tuple_windows()
-                        .map(|(from, to)| {
-                            input
-                                .directional_paths
-                                .get(&(from, to))
-                                .unwrap_or(&vec!["A".to_string()])
-                                .clone()
-                        })
-                        .fold(vec![String::new()], flatten_paths)
-                })
-                .map(|s| s.len())
-                .min()
-        })
-        .collect::<Vec<_>>();
+    println!("Path lengths:");
+    for length in &path_lengths {
+        println!("  - {length}");
+    }
 
     input
         .codes
         .iter()
         .map(|code| code[0..code.len() - 1].parse::<usize>().unwrap())
-        .zip(human_directional_paths_shortest_lengths)
-        .map(|(code, shortest_sequence_length)| code * shortest_sequence_length)
+        .zip(path_lengths)
+        .map(|(code, path_length)| code * path_length)
         .sum()
 }
 
-fn path_movement(path: &str) -> usize {
-    path.chars()
-        .map(|c| match c {
-            '#' => (0usize, 0usize),
-            '^' => (1, 0),
-            'A' => (2, 0),
-            '<' => (0, 1),
-            'v' => (1, 1),
-            '>' => (2, 1),
-            _ => panic!("Invalid movement character: {c}"),
-        })
-        .tuple_windows()
-        .map(|(a, b)| a.0.abs_diff(b.0) + a.1.abs_diff(b.1))
-        .sum()
+fn part_1(input: &Input) -> Output {
+    solve(input, 1)
 }
 
-fn part_2(input: &Input) -> Output2 {
-    // let numeric_paths = input
-    //     .codes
-    //     .iter()
-    //     .map(|code| {
-    //         once('A')
-    //             .chain(code.chars())
-    //             .tuple_windows()
-    //             .map(|(from, to)| input.numeric_paths[&(from, to)].clone())
-    //             .fold(vec![String::new()], flatten_paths)
-    //     })
-    //     .collect::<Vec<_>>();
-    //
-    // let robot_directional_paths = (0..25).fold(numeric_paths, |paths, _| {
-    //     paths
-    //         .iter()
-    //         .map(|paths| {
-    //             paths
-    //                 .iter()
-    //                 .flat_map(|path| {
-    //                     once('A')
-    //                         .chain(path.chars())
-    //                         .tuple_windows()
-    //                         .map(|(from, to)| {
-    //                             input
-    //                                 .directional_paths
-    //                                 .get(&(from, to))
-    //                                 .unwrap_or(&vec!["A".to_string()])
-    //                                 .clone()
-    //                         })
-    //                         .fold(vec![String::new()], flatten_paths)
-    //                         .into_iter()
-    //                         .min_by_key(|path| path_movement(path))
-    //                 })
-    //                 .collect::<Vec<_>>()
-    //         })
-    //         .collect::<Vec<_>>()
-    // });
-    //
-    // let human_directional_paths_shortest_lengths = robot_directional_paths
-    //     .iter()
-    //     .flat_map(|paths| {
-    //         paths
-    //             .iter()
-    //             .flat_map(|path| {
-    //                 once('A')
-    //                     .chain(path.chars())
-    //                     .tuple_windows()
-    //                     .map(|(from, to)| {
-    //                         input
-    //                             .directional_paths
-    //                             .get(&(from, to))
-    //                             .unwrap_or(&vec!["A".to_string()])
-    //                             .clone()
-    //                     })
-    //                     .fold(vec![String::new()], flatten_paths)
-    //             })
-    //             .map(|s| s.len())
-    //             .min()
-    //     })
-    //     .collect::<Vec<_>>();
-    //
-    // input
-    //     .codes
-    //     .iter()
-    //     .map(|code| code[0..code.len() - 1].parse::<usize>().unwrap())
-    //     .zip(human_directional_paths_shortest_lengths)
-    //     .map(|(code, shortest_sequence_length)| code * shortest_sequence_length)
-    //     .sum()
-    todo!()
+fn part_2(input: &Input) -> Output {
+    solve(input, 24)
 }
 
 fn main() {
@@ -386,17 +354,6 @@ mod tests {
     const INPUT: &str = include_str!("test-input");
 
     #[test]
-    fn test_paths() {
-        let input = parse(INPUT.lines());
-        let paths_from_2_to_9 = &input.numeric_paths[&('2', '9')];
-
-        assert_eq!(paths_from_2_to_9.len(), 3);
-        assert!(paths_from_2_to_9.contains(&"^^>".to_string()));
-        assert!(paths_from_2_to_9.contains(&"^>^".to_string()));
-        assert!(paths_from_2_to_9.contains(&">^^".to_string()));
-    }
-
-    #[test]
     fn test_part_1() {
         let input = parse(INPUT.lines());
         let result = part_1(&input);
@@ -409,6 +366,6 @@ mod tests {
         let input = parse(INPUT.lines());
         let result = part_2(&input);
 
-        assert_eq!(result, 0);
+        assert_eq!(result, 154115708116294);
     }
 }
