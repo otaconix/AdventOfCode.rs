@@ -1,9 +1,10 @@
-use std::collections::HashMap;
-use std::collections::HashSet;
 use std::io;
 
 use aoc_timing::trace::log_run;
 use itertools::Itertools;
+use rapidhash::RapidHashMap;
+use rapidhash::RapidHashSet;
+use rayon::prelude::*;
 
 type Input = Vec<isize>;
 type Output1 = isize;
@@ -55,7 +56,7 @@ fn part_1(input: &Input) -> Output1 {
 
 fn sequence_earnings(
     sequence: &[isize; 4],
-    delta_sequences: &[HashMap<[isize; 4], isize>],
+    delta_sequences: &[RapidHashMap<[isize; 4], isize>],
 ) -> isize {
     delta_sequences
         .iter()
@@ -76,21 +77,24 @@ fn part_2(input: &Input) -> Output2 {
                 .tuple_windows::<(_, _, _, _)>()
                 .map(|window| {
                     (
-                        [window.0 .0, window.1 .0, window.2 .0, window.3 .0],
+                        Into::<[_; 4]>::into(window).map(|(delta, _bananas)| delta),
                         window.3 .1,
                     )
                 })
-                .into_grouping_map_by(|(window, _bananas)| *window)
-                .aggregate(|acc, _, val| acc.or(Some(val.1))) // Keep the first of each sequence
+                .fold(RapidHashMap::default(), |mut map, (window, bananas)| {
+                    map.entry(window).or_insert(bananas);
+                    map
+                })
         })
         .collect_vec();
+
     let combined_sequences = secret_sequences
         .iter()
         .flat_map(|secret_sequence| secret_sequence.keys())
-        .collect::<HashSet<_>>();
+        .collect::<RapidHashSet<_>>();
 
     combined_sequences
-        .iter()
+        .into_par_iter()
         .map(|sequence| sequence_earnings(sequence, &secret_sequences))
         .max()
         .unwrap()

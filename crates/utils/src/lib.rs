@@ -33,7 +33,7 @@ impl<T, I: Iterator<Item = T> + Sized> PartitionEnumerated<T> for I {
 }
 
 #[allow(dead_code)]
-trait AoCInspector {
+pub trait AoCInspector {
     /// Allows inspecting a value, while also returning it
     ///
     /// Note that you cannot modify the value using this function.

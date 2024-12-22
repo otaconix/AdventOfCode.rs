@@ -683,6 +683,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "aoc-2024-22"
+version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "env_logger",
+ "itertools 0.13.0",
+ "rapidhash",
+ "rayon",
+]
+
+[[package]]
 name = "aoc-macros"
 version = "0.1.0"
 dependencies = [
@@ -1057,7 +1068,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33d852cb9b869c2a9b3df2f71a3074817f01e1844f839a144f5fcef059a4eb5d"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1954,6 +1965,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "350932f7e8b2d0333d2537f42671a837473576c00e128fbee84c819ea08783b5"
 
 [[package]]
+name = "rapidhash"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "02d6ba76b70191f99a2c53bb367c118d5064fa33b6aa6a102fa7751b902c7049"
+
+[[package]]
 name = "rayon"
 version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2362,7 +2379,7 @@ dependencies = [
  "fastrand",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
