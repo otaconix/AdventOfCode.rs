@@ -2,78 +2,145 @@ use std::io;
 
 use aoc_timing::trace::log_run;
 use itertools::Itertools;
-use petgraph::graph::NodeIndex;
-use petgraph::graph::UnGraph;
 use rapidhash::RapidHashMap;
+use rapidhash::RapidHashSet;
 
 struct Input {
-    computer_indices: RapidHashMap<String, NodeIndex>,
-    graph: UnGraph<String, ()>,
+    computers: RapidHashSet<String>,
+    original_map: RapidHashMap<String, RapidHashSet<String>>,
+    adjacency_map: RapidHashMap<String, RapidHashSet<String>>,
 }
 type Output1 = usize;
-type Output2 = Output1;
+type Output2 = String;
 
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
-    let (computer_indices, graph) = input.fold(
-        (RapidHashMap::default(), UnGraph::new_undirected()),
-        |(mut computer_indices, mut graph), line| {
-            let line = line.as_ref();
+    let (computers, adjacency_map, original_map) = input.fold(
+        (
+            RapidHashSet::default(),
+            RapidHashMap::<String, RapidHashSet<String>>::default(),
+            RapidHashMap::<String, RapidHashSet<String>>::default(),
+        ),
+        |(mut computers, mut adjacency_map, mut original_map), line| {
+            let (left, right) = line.as_ref().split_once('-').unwrap();
 
-            let (left, right) = line.split_once('-').unwrap();
-            let left = left.to_string();
-            let left_index = *computer_indices
-                .entry(left.clone())
-                .or_insert_with(|| graph.add_node(left));
-            let right = right.to_string();
-            let right_index = *computer_indices
-                .entry(right.clone())
-                .or_insert_with(|| graph.add_node(right));
+            adjacency_map
+                .entry(left.to_string())
+                .or_default()
+                .insert(right.to_string());
+            adjacency_map
+                .entry(right.to_string())
+                .or_default()
+                .insert(left.to_string());
+            original_map
+                .entry(left.to_string())
+                .or_default()
+                .insert(right.to_lowercase());
+            computers.insert(left.to_string());
+            computers.insert(right.to_string());
 
-            graph.add_edge(left_index, right_index, ());
-
-            (computer_indices, graph)
+            (computers, adjacency_map, original_map)
         },
     );
 
     Input {
-        computer_indices,
-        graph,
+        computers,
+        adjacency_map,
+        original_map,
     }
+}
+
+fn clusters_of_three<'a>(
+    computer: &'a str,
+    input: &'a Input,
+) -> impl Iterator<Item = Vec<String>> + use<'a> {
+    input
+        .adjacency_map
+        .get(computer)
+        .unwrap()
+        .iter()
+        .combinations(2)
+        .filter(|neighbors| {
+            input
+                .adjacency_map
+                .get(neighbors[0])
+                .unwrap()
+                .contains(neighbors[1])
+        })
+        .map(|neighbors| {
+            let mut cluster = vec![
+                computer.to_string(),
+                neighbors[0].clone(),
+                neighbors[1].clone(),
+            ];
+            cluster.sort();
+
+            cluster
+        })
+        .unique()
 }
 
 fn part_1(input: &Input) -> Output1 {
     input
-        .computer_indices
+        .computers
         .iter()
-        .filter(|(computer, _)| computer.starts_with("t"))
-        .flat_map(|(historian_computer, historian_index)| {
-            input
-                .graph
-                .neighbors(*historian_index)
-                .combinations(2)
-                .filter(|pair_of_neighbors| {
-                    input
-                        .graph
-                        .neighbors(pair_of_neighbors[0])
-                        .contains(&pair_of_neighbors[1])
-                })
-                .map(|pair_of_neighbors| {
-                    let mut cluster = vec![
-                        historian_computer.clone(),
-                        input.graph[pair_of_neighbors[0]].clone(),
-                        input.graph[pair_of_neighbors[1]].clone(),
-                    ];
-                    cluster.sort();
-
-                    cluster
-                })
-        })
+        .filter(|computer| computer.starts_with('t'))
+        .flat_map(|computer| clusters_of_three(computer, input))
         .unique()
         .count()
 }
 
+fn find_largest_mesh(
+    computer: &String,
+    seen_computers: &mut RapidHashSet<String>,
+    input: &Input,
+) -> Vec<String> {
+    // println!("Seen computers: {}", seen_computers.len());
+    seen_computers.insert(computer.to_string());
+
+    let next_in_mesh = input
+        .original_map
+        .get(computer)
+        .unwrap()
+        .iter()
+        .filter(|neighbor| {
+            !seen_computers.contains(*neighbor)
+                && input
+                    .adjacency_map
+                    .get(*neighbor)
+                    .unwrap()
+                    .is_superset(seen_computers)
+        })
+        .collect_vec();
+
+    let result = if next_in_mesh.is_empty() {
+        seen_computers.iter().cloned().collect_vec()
+    } else {
+        next_in_mesh
+            .iter()
+            .map(|neighbor| find_largest_mesh(neighbor, seen_computers, input))
+            .max_by_key(|cluster| cluster.len())
+            .unwrap_or(seen_computers.iter().cloned().collect_vec())
+    };
+
+    seen_computers.remove(computer);
+
+    result
+}
+
 fn part_2(input: &Input) -> Output2 {
-    todo!()
+    let mut largest_cluster = input
+        .computers
+        .iter()
+        .inspect(|computer| println!("=== Starting {computer} ==="))
+        .map(|computer| find_largest_mesh(computer, &mut RapidHashSet::default(), input))
+        .max_by_key(|cluster| cluster.len())
+        .unwrap();
+
+    println!("Largest cluster: {largest_cluster:#?}");
+
+    largest_cluster.sort();
+
+    largest_cluster.join(",")
 }
 
 fn main() {
@@ -111,6 +178,6 @@ mod tests {
         let input = parse(INPUT.lines());
         let result = part_2(&input);
 
-        assert_eq!(result, 0);
+        assert_eq!(result, "co,de,ka,ta");
     }
 }
