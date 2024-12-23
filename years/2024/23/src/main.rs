@@ -7,20 +7,18 @@ use rapidhash::RapidHashSet;
 
 struct Input {
     computers: RapidHashSet<String>,
-    original_map: RapidHashMap<String, RapidHashSet<String>>,
     adjacency_map: RapidHashMap<String, RapidHashSet<String>>,
 }
 type Output1 = usize;
 type Output2 = String;
 
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
-    let (computers, adjacency_map, original_map) = input.fold(
+    let (computers, adjacency_map) = input.fold(
         (
             RapidHashSet::default(),
             RapidHashMap::<String, RapidHashSet<String>>::default(),
-            RapidHashMap::<String, RapidHashSet<String>>::default(),
         ),
-        |(mut computers, mut adjacency_map, mut original_map), line| {
+        |(mut computers, mut adjacency_map), line| {
             let (left, right) = line.as_ref().split_once('-').unwrap();
 
             adjacency_map
@@ -31,21 +29,16 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
                 .entry(right.to_string())
                 .or_default()
                 .insert(left.to_string());
-            original_map
-                .entry(left.to_string())
-                .or_default()
-                .insert(right.to_lowercase());
             computers.insert(left.to_string());
             computers.insert(right.to_string());
 
-            (computers, adjacency_map, original_map)
+            (computers, adjacency_map)
         },
     );
 
     Input {
         computers,
         adjacency_map,
-        original_map,
     }
 }
 
@@ -89,58 +82,57 @@ fn part_1(input: &Input) -> Output1 {
         .count()
 }
 
-fn find_largest_mesh(
-    computer: &String,
-    seen_computers: &mut RapidHashSet<String>,
+/// Bron-Kerbosch algorithm to find maximal cliques
+fn maximal_cliques(
+    r: RapidHashSet<String>,
+    mut p: RapidHashSet<String>,
+    mut x: RapidHashSet<String>,
     input: &Input,
-) -> Vec<String> {
-    // println!("Seen computers: {}", seen_computers.len());
-    seen_computers.insert(computer.to_string());
-
-    let next_in_mesh = input
-        .original_map
-        .get(computer)
-        .unwrap()
-        .iter()
-        .filter(|neighbor| {
-            !seen_computers.contains(*neighbor)
-                && input
-                    .adjacency_map
-                    .get(*neighbor)
-                    .unwrap()
-                    .is_superset(seen_computers)
-        })
-        .collect_vec();
-
-    let result = if next_in_mesh.is_empty() {
-        seen_computers.iter().cloned().collect_vec()
+    result: &mut Vec<RapidHashSet<String>>,
+) {
+    if p.is_empty() && x.is_empty() {
+        result.push(r.clone());
     } else {
-        next_in_mesh
-            .iter()
-            .map(|neighbor| find_largest_mesh(neighbor, seen_computers, input))
-            .max_by_key(|cluster| cluster.len())
-            .unwrap_or(seen_computers.iter().cloned().collect_vec())
-    };
+        while let Some(computer) = p.iter().next().cloned() {
+            let mut new_r = r.clone();
+            new_r.insert(computer.clone());
+            maximal_cliques(
+                new_r,
+                p.intersection(input.adjacency_map.get(&computer).unwrap())
+                    .cloned()
+                    .collect(),
+                x.intersection(input.adjacency_map.get(&computer).unwrap())
+                    .cloned()
+                    .collect(),
+                input,
+                result,
+            );
 
-    seen_computers.remove(computer);
-
-    result
+            p.remove(&computer);
+            x.insert(computer.to_string());
+        }
+    }
 }
 
 fn part_2(input: &Input) -> Output2 {
-    let mut largest_cluster = input
-        .computers
+    let mut result = vec![];
+    maximal_cliques(
+        RapidHashSet::default(),
+        input.computers.clone(),
+        RapidHashSet::default(),
+        input,
+        &mut result,
+    );
+
+    let mut maximum_clique = result
         .iter()
-        .inspect(|computer| println!("=== Starting {computer} ==="))
-        .map(|computer| find_largest_mesh(computer, &mut RapidHashSet::default(), input))
-        .max_by_key(|cluster| cluster.len())
-        .unwrap();
+        .max_by_key(|clique| clique.len())
+        .unwrap()
+        .iter()
+        .collect_vec();
+    maximum_clique.sort();
 
-    println!("Largest cluster: {largest_cluster:#?}");
-
-    largest_cluster.sort();
-
-    largest_cluster.join(",")
+    maximum_clique.iter().join(",")
 }
 
 fn main() {
