@@ -100,6 +100,61 @@ fn dijkstra(map: &Grid<Cell>, start_position: Coord, end_position: Coord) -> Opt
     None
 }
 
+fn dijkstra_with_falling_blocks(
+    mut map: Grid<Cell>,
+    start_position: Coord,
+    end_position: Coord,
+    mut falling_blocks: Vec<Coord>,
+) -> Option<Coord> {
+    let mut distances = FxHashMap::default();
+    distances.insert(start_position, 0usize);
+    let mut queue = BTreeSet::from([QueueItem::new(0, start_position)]);
+    let mut last_removed_corrupted_block = None;
+
+    'outer_loop: while let Some(corrupted_block) = falling_blocks.pop() {
+        while let Some(QueueItem {
+            distance,
+            position: position @ (x, y),
+        }) = queue.pop_last()
+        {
+            if map.get(x, y).unwrap() == &Cell::Corrupted {
+                continue;
+            }
+
+            if position == end_position {
+                // We've found the end!
+                break 'outer_loop;
+            }
+
+            for potential_next in [
+                Some((x + 1, y)),
+                Some((x, y + 1)),
+                x.checked_sub(1).map(|x| (x, y)),
+                y.checked_sub(1).map(|y| (x, y)),
+            ]
+            .into_iter()
+            .flatten()
+            .filter(|(column, row)| *column < map.width() && *row < map.height())
+            {
+                {
+                    if distances.get(&potential_next).unwrap_or(&usize::MAX) > &distance {
+                        distances.insert(potential_next, distance + 1);
+                        queue.insert(QueueItem::new(distance + 1, potential_next));
+                    }
+                }
+            }
+        }
+
+        last_removed_corrupted_block = Some(corrupted_block);
+        map.update(corrupted_block.0, corrupted_block.1, Cell::Empty);
+        if distances.contains_key(&corrupted_block) {
+            queue.insert(QueueItem::new(distances[&corrupted_block], corrupted_block));
+        }
+    }
+
+    last_removed_corrupted_block
+}
+
 fn part_1(input: &Input, side: usize, bytes: usize) -> Output1 {
     let mut space = Grid::<Cell>::with_size(side, side);
 
@@ -110,22 +165,15 @@ fn part_1(input: &Input, side: usize, bytes: usize) -> Output1 {
     dijkstra(&space, (0, 0), (side - 1, side - 1)).unwrap()
 }
 
-fn part_2(input: &Input, side: usize, initial_bytes: usize) -> Output2 {
+fn part_2(input: &Input, side: usize) -> Output2 {
     let mut space = Grid::with_size(side, side);
 
-    for (x, y) in &input[..initial_bytes] {
+    for (x, y) in input {
         space.update(*x, *y, Cell::Corrupted);
     }
 
-    input
-        .iter()
-        .skip(initial_bytes)
-        .find(|(x, y)| {
-            space.update(*x, *y, Cell::Corrupted);
-
-            dijkstra(&space, (0, 0), (side - 1, side - 1)).is_none()
-        })
-        .map(|(x, y)| format!("{},{}", x, y))
+    dijkstra_with_falling_blocks(space, (0, 0), (side - 1, side - 1), input.clone())
+        .map(|(x, y)| format!("{x},{y}"))
         .unwrap()
 }
 
@@ -140,7 +188,7 @@ fn main() {
         let part_1 = log_run("Part 1", || part_1(&input, 71, 1024));
         println!("Part 1: {part_1}");
 
-        let part_2 = log_run("Part 2", || part_2(&input, 71, 1024));
+        let part_2 = log_run("Part 2", || part_2(&input, 71));
         println!("Part 2: {part_2}");
     });
 }
@@ -162,7 +210,7 @@ mod tests {
     #[test]
     fn test_part_2() {
         let input = parse(INPUT.lines());
-        let result = part_2(&input, 7, 12);
+        let result = part_2(&input, 7);
 
         assert_eq!(result, "6,1");
     }
