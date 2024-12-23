@@ -1,0 +1,13 @@
+[package]
+name = "aoc-2024-23"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+aoc-timing = { version = "0.1.0", path = "../../../crates/timing" }
+env_logger = "0.11.0"
+itertools = "0.13.0"
+petgraph = "0.6.5"
+rapidhash = "1.2.0"
