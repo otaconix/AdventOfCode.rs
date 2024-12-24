@@ -10,25 +10,52 @@ struct Wire {
 }
 
 #[derive(Debug, Clone, Copy)]
-enum Instruction {
+enum InstructionType {
     And,
     Or,
     Xor,
 }
 
+#[derive(Debug, Clone)]
+struct Instruction {
+    ty: InstructionType,
+    left: String,
+    right: String,
+    output: String,
+}
+
 impl Instruction {
-    fn evaluate(&self, left: u8, right: u8) -> u8 {
-        match self {
-            Instruction::And => left & right,
-            Instruction::Or => left | right,
-            Instruction::Xor => left ^ right,
+    fn evaluate(&self, input: &Input, wires: &mut RapidHashMap<String, u8>) -> u8 {
+        if let Some(result) = wires.get(&self.output) {
+            *result
+        } else {
+            let left = input
+                .outputs_to_instructions
+                .get(&self.left)
+                .map(|instruction| instruction.evaluate(input, wires))
+                .unwrap_or(wires[&self.left]);
+            let right = input
+                .outputs_to_instructions
+                .get(&self.right)
+                .map(|instruction| instruction.evaluate(input, wires))
+                .unwrap_or(wires[&self.right]);
+
+            let result = match self.ty {
+                InstructionType::And => left & right,
+                InstructionType::Or => left | right,
+                InstructionType::Xor => left ^ right,
+            };
+
+            wires.insert(self.output.clone(), result);
+
+            result
         }
     }
 }
 
 struct Input {
     wires: RapidHashMap<String, u8>,
-    instructions: Vec<((String, String), (Instruction, String))>,
+    outputs_to_instructions: RapidHashMap<String, Instruction>,
 }
 type Output1 = usize;
 type Output2 = Output1;
@@ -36,10 +63,7 @@ type Output2 = Output1;
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     enum ParsingState {
         Wires(RapidHashMap<String, u8>),
-        Instructions(
-            RapidHashMap<String, u8>,
-            Vec<((String, String), (Instruction, String))>,
-        ),
+        Instructions(RapidHashMap<String, u8>, Vec<Instruction>),
     }
     let end_state = input.fold(
         ParsingState::Wires(RapidHashMap::default()),
@@ -67,18 +91,17 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
                     let (left, instruction) = instruction.split_once(' ').unwrap();
                     let (instruction, right) = instruction.split_once(' ').unwrap();
 
-                    instructions.push((
-                        (left.to_string(), right.to_string()),
-                        (
-                            match instruction {
-                                "AND" => Instruction::And,
-                                "OR" => Instruction::Or,
-                                "XOR" => Instruction::Xor,
-                                _ => panic!("Unknown instruction {instruction}"),
-                            },
-                            output.to_string(),
-                        ),
-                    ));
+                    instructions.push(Instruction {
+                        ty: match instruction {
+                            "AND" => InstructionType::And,
+                            "OR" => InstructionType::Or,
+                            "XOR" => InstructionType::Xor,
+                            _ => panic!("Unknown instruction {instruction}"),
+                        },
+                        left: left.to_string(),
+                        right: right.to_string(),
+                        output: output.to_string(),
+                    });
 
                     ParsingState::Instructions(wires, instructions)
                 }
@@ -89,7 +112,14 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     match end_state {
         ParsingState::Instructions(wires, instructions) => Input {
             wires,
-            instructions,
+            outputs_to_instructions: instructions.into_iter().fold(
+                RapidHashMap::default(),
+                |mut map, instruction| {
+                    map.insert(instruction.output.clone(), instruction);
+
+                    map
+                },
+            ),
         },
         _ => panic!("Haven't reached instructions stage while parsing"),
     }
@@ -97,33 +127,19 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
 
 fn part_1(input: &Input) -> Output1 {
     let mut wires = input.wires.clone();
-    let mut instructions = input.instructions.clone();
 
-    while !instructions.is_empty() {
-        let instruction_index = instructions
-            .iter()
-            .enumerate()
-            .find(|(_index, ((left, right), _))| {
-                wires.contains_key(left) && wires.contains_key(right)
-            })
-            .unwrap()
-            .0;
-        let ((left, right), (instruction, output)) = instructions[instruction_index].clone();
-
-        instructions.remove(instruction_index);
-
-        wires.insert(
-            output.to_string(),
-            instruction.evaluate(wires[&left], wires[&right]),
-        );
-    }
-
-    wires
+    input
+        .outputs_to_instructions
         .iter()
-        .filter(|(name, _)| name.starts_with("z"))
-        .fold(0usize, |acc, (name, value)| {
-            let index: usize = name[1..].parse().unwrap();
-            let value = *value as usize;
+        .filter(|(output, _)| output.starts_with('z'))
+        .map(|(_, instruction)| {
+            (
+                instruction.output[1..].parse::<usize>().unwrap(),
+                instruction.evaluate(input, &mut wires),
+            )
+        })
+        .fold(0usize, |acc, (index, value)| {
+            let value = value as usize;
 
             acc | (value << index)
         })
