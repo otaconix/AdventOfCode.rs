@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 aoc-timing = { version = "0.1.0", path = "../../../crates/timing" }
 env_logger = "0.11.0"
-rapidhash = "1.2.0"
+itertools = "0.13.0"
