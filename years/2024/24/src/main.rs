@@ -229,6 +229,70 @@ fn is_full_adder(bit: u8, instructions_by_input: &HashMap<&str, Vec<&Instruction
     }
 }
 
+fn swap_instructions(instructions: &[Instruction], swap: &[String; 2]) -> Vec<Instruction> {
+    instructions
+        .iter()
+        .cloned()
+        .map(|instruction| {
+            if instruction.output == swap[0] {
+                Instruction {
+                    output: swap[1].clone(),
+                    ..instruction
+                }
+            } else if instruction.output == swap[1] {
+                Instruction {
+                    output: swap[0].clone(),
+                    ..instruction
+                }
+            } else {
+                instruction
+            }
+        })
+        .collect()
+}
+
+fn swapped_outputs(
+    bit: u8,
+    instructions: &[Instruction],
+    instructions_by_input: &HashMap<&str, Vec<&Instruction>>,
+) -> [String; 2] {
+    let x_wire = format!("x{bit:02}");
+    let first_instructions = instructions_by_input.get(x_wire.as_str()).unwrap();
+    let second_instructions = first_instructions
+        .iter()
+        .flat_map(|instruction| instructions_by_input.get(instruction.output.as_str()))
+        .flatten()
+        .collect_vec();
+    let third_instructions = second_instructions
+        .iter()
+        .flat_map(|instruction| instructions_by_input.get(instruction.output.as_str()))
+        .flatten()
+        .collect_vec();
+
+    first_instructions
+        .iter()
+        .chain(second_instructions)
+        .chain(third_instructions)
+        .map(|instruction| instruction.output.as_str())
+        .combinations(2)
+        .map(|swap| [swap[0].to_string(), swap[1].to_string()])
+        .find(|swap| {
+            let instructions: Vec<Instruction> = swap_instructions(instructions, swap);
+            let instructions_by_input = instructions.iter().fold(
+                HashMap::<&str, Vec<&Instruction>>::default(),
+                |mut map, instruction| {
+                    map.entry(&instruction.left).or_default().push(instruction);
+                    map.entry(&instruction.right).or_default().push(instruction);
+
+                    map
+                },
+            );
+
+            is_full_adder(bit, &instructions_by_input)
+        })
+        .unwrap()
+}
+
 fn part_2(input: &Input) -> Output2 {
     let input_bits = input
         .wires
@@ -247,13 +311,11 @@ fn part_2(input: &Input) -> Output2 {
         },
     );
 
-    let wrong_adders = (1..=input_bits)
+    (1..=input_bits)
         .filter(|bit| !is_full_adder(*bit, &instructions_by_input))
-        .collect_vec();
-
-    println!("Wrong full adders: {wrong_adders:?}");
-
-    todo!()
+        .flat_map(|bit| swapped_outputs(bit, &input.instructions, &instructions_by_input))
+        .sorted()
+        .join(",")
 }
 
 fn main() {
