@@ -283,11 +283,6 @@ fn solve(input: &Input, directional_robot_count: usize) -> Output {
         })
         .collect::<Vec<_>>();
 
-    println!("Path lengths:");
-    for length in &path_lengths {
-        println!("  - {length}");
-    }
-
     input
         .codes
         .iter()
