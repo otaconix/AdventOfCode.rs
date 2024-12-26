@@ -162,12 +162,12 @@ fn is_full_adder(bit: u8, instructions_by_input: &HashMap<&str, Vec<&Instruction
             if !((xy_xor.left == x_wire && xy_xor.right == y_wire)
                 || (xy_xor.left == y_wire && xy_xor.right == x_wire))
             {
-                println!("{bit} wrong because first XOR doesn't have x & y as inputs");
+                // println!("{bit} wrong because first XOR doesn't have x & y as inputs");
                 false
             } else if !((xy_and.left == x_wire && xy_and.right == y_wire)
                 || (xy_and.left == y_wire && xy_and.right == x_wire))
             {
-                println!("{bit} wrong because first AND doesn't have x & y as inputs");
+                // println!("{bit} wrong because first AND doesn't have x & y as inputs");
                 false
             } else {
                 let second_and =
@@ -196,34 +196,34 @@ fn is_full_adder(bit: u8, instructions_by_input: &HashMap<&str, Vec<&Instruction
                 match (second_and, second_xor, or) {
                     (Some(second_and), Some(second_xor), Some(or)) => {
                         if second_xor.output != z_wire {
-                            println!(
-                                "{bit} wrong because its second XOR doesn't output into {z_wire}"
-                            );
+                            // println!(
+                            //     "{bit} wrong because its second XOR doesn't output into {z_wire}"
+                            // );
                             false
                         } else if !((or.left == xy_and.output && or.right == second_and.output)
                             || (or.left == second_and.output && or.right == xy_and.output))
                         {
-                            println!("{bit} wrong because its second XOR doesn't have the first and second ANDs as inputs");
+                            // println!("{bit} wrong because its second XOR doesn't have the first and second ANDs as inputs");
                             false
                         } else {
                             true
                         }
                     }
                     _ => {
-                        println!(
-                            "{bit} wrong because it has no second AND ({}), second XOR ({}) or final OR ({})", second_and.is_none(), second_xor.is_none(), or.is_none()
-                        );
+                        // println!(
+                        //     "{bit} wrong because it has no second AND ({}), second XOR ({}) or final OR ({})", second_and.is_none(), second_xor.is_none(), or.is_none()
+                        // );
                         false
                     }
                 }
             }
         }
         _ => {
-            println!(
-                "{bit} wrong because x and y aren't inputs to an XOR ({}) and AND ({})",
-                xy_xor.is_none(),
-                xy_and.is_none()
-            );
+            // println!(
+            //     "{bit} wrong because x and y aren't inputs to an XOR ({}) and AND ({})",
+            //     xy_xor.is_none(),
+            //     xy_and.is_none()
+            // );
             false
         }
     }
