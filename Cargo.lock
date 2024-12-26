@@ -700,7 +700,6 @@ dependencies = [
  "env_logger",
  "itertools 0.13.0",
  "rapidhash",
- "rayon",
 ]
 
 [[package]]

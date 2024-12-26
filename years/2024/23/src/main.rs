@@ -90,20 +90,30 @@ fn maximal_cliques(
     input: &Input,
     result: &mut Vec<RapidHashSet<String>>,
 ) {
-    if p.is_empty() && x.is_empty() {
-        result.push(r.clone());
+    if p.is_empty() {
+        if x.is_empty() {
+            result.push(r.clone());
+        }
     } else {
-        while let Some(computer) = p.iter().next().cloned() {
+        let pivot = p
+            .iter()
+            .max_by_key(|computer| input.adjacency_map.get(*computer).unwrap().len())
+            .unwrap();
+        let mut todo = p
+            .iter()
+            .filter(|computer| {
+                *computer == pivot || !input.adjacency_map.get(*computer).unwrap().contains(pivot)
+            })
+            .cloned()
+            .collect_vec();
+        while let Some(computer) = todo.pop() {
             let mut new_r = r.clone();
             new_r.insert(computer.clone());
+            let neighbors = input.adjacency_map.get(&computer).unwrap();
             maximal_cliques(
                 new_r,
-                p.intersection(input.adjacency_map.get(&computer).unwrap())
-                    .cloned()
-                    .collect(),
-                x.intersection(input.adjacency_map.get(&computer).unwrap())
-                    .cloned()
-                    .collect(),
+                p.intersection(neighbors).cloned().collect(),
+                x.intersection(neighbors).cloned().collect(),
                 input,
                 result,
             );
