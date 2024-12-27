@@ -5,3 +5,6 @@ members = [
   "years/*/*",
 ]
 resolver = "2"
+
+[profile.test.package.aoc-2022-19]
+opt-level = 3
