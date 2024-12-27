@@ -3,11 +3,10 @@ use std::fmt::Display;
 use std::fmt::Write;
 use std::hash::Hash;
 use std::iter::once;
-use std::ops::Add;
-use std::{cmp::Ordering, collections::BinaryHeap, io, iter::successors};
+use std::{cmp::Ordering, io, iter::successors};
 
 use aoc_timing::trace::log_run;
-use fxhash::FxHashMap;
+use dijkstra::dijkstra;
 use grid::Grid;
 use itertools::Itertools;
 
@@ -114,77 +113,6 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
         .collect()
 }
 
-#[derive(PartialEq, Eq)]
-struct DijkstraVertex<N: Eq, P: Ord> {
-    distance: P,
-    node: N,
-}
-
-impl<T: Eq, P: Ord> PartialOrd for DijkstraVertex<T, P> {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl<T: Eq, P: Ord> Ord for DijkstraVertex<T, P> {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.distance.cmp(&other.distance).reverse()
-    }
-}
-
-fn dijkstra<
-    Node: Hash + Eq + Copy,
-    P: Add<P, Output = P> + Ord + Default + Copy,
-    I: Iterator<Item = (Node, P)>,
-    IsEnd: Fn(&Node) -> bool,
-    Neighbors: Fn(&Node) -> I,
->(
-    start: Node,
-    is_end: IsEnd,
-    neighbors: Neighbors,
-) -> Option<Vec<(Node, P)>> {
-    let mut queue: BinaryHeap<DijkstraVertex<Node, P>> = BinaryHeap::from([DijkstraVertex {
-        distance: P::default(),
-        node: start,
-    }]);
-    let mut prevs: FxHashMap<Node, Node> = FxHashMap::default();
-    let mut distances: FxHashMap<Node, P> = FxHashMap::default();
-    distances.insert(start, P::default());
-    let mut found_end = None;
-
-    while let Some(DijkstraVertex { distance, node }) = queue.pop() {
-        if is_end(&node) {
-            found_end = Some(node);
-            break;
-        }
-
-        for (neighbor, neighbor_distance) in neighbors(&node) {
-            let new_distance = neighbor_distance + distance;
-            let existing_distance = distances.get(&neighbor);
-
-            if existing_distance.is_none() || &new_distance < existing_distance.unwrap() {
-                distances.insert(neighbor, new_distance);
-                prevs.insert(neighbor, node);
-                queue.push(DijkstraVertex {
-                    distance: distance + neighbor_distance,
-                    node: neighbor,
-                });
-            }
-        }
-    }
-
-    if let Some(end) = found_end {
-        let mut path = successors(Some((end, distances[&end])), |(current, _)| {
-            prevs.remove(current).map(|prev| (prev, distances[&prev]))
-        })
-        .collect_vec();
-        path.reverse();
-        Some(path)
-    } else {
-        None
-    }
-}
-
 #[allow(unused)] // Only used for debugging
 fn print_grid_with_path(input: &Input, path: &[Coord]) {
     println!(
@@ -215,7 +143,7 @@ fn print_grid_with_path(input: &Input, path: &[Coord]) {
     );
 }
 
-fn part_1(input: &Input) -> usize {
+fn part_1(input: &Input) -> u32 {
     let end = (input.width() - 1, input.height() - 1);
     let path = dijkstra(
         ((0, 0), Direction::Down, 0),
@@ -239,7 +167,7 @@ fn part_1(input: &Input) -> usize {
             .filter(|((next_column, next_row), _, next_count)| {
                 input.is_valid_coord(*next_column, *next_row) && next_count <= &3
             })
-            .map(|node @ ((column, row), _, _)| (node, *input.get(column, row).unwrap() as usize))
+            .map(|node @ ((column, row), _, _)| (node, *input.get(column, row).unwrap()))
         },
     )
     .unwrap()
@@ -251,20 +179,23 @@ fn part_1(input: &Input) -> usize {
 
     path.into_iter()
         .skip(1)
-        .map(|(column, row)| *input.get(column, row).unwrap() as usize)
+        .map(|(column, row)| *input.get(column, row).unwrap())
         .sum()
 }
 
 fn intermediate_coords(from: &Coord, to: &Coord) -> Vec<Coord> {
-    let direction = Direction::determine(from, to).unwrap();
-    let distance = from.0.abs_diff(to.0) + from.1.abs_diff(to.1);
-    successors(Some(*from), |coord| direction.advance(coord, 1))
-        .take(distance + 1)
-        .skip(1)
-        .collect()
+    if let Some(direction) = Direction::determine(from, to) {
+        let distance = from.0.abs_diff(to.0) + from.1.abs_diff(to.1);
+        successors(Some(*from), |coord| direction.advance(coord, 1))
+            .take(distance + 1)
+            .skip(1)
+            .collect()
+    } else {
+        vec![]
+    }
 }
 
-fn part_2(input: &Input) -> usize {
+fn part_2(input: &Input) -> u32 {
     let end = (input.width() - 1, input.height() - 1);
     let path = once((0, 0))
         .chain(
@@ -296,8 +227,8 @@ fn part_2(input: &Input) -> usize {
                             (*coords.last().unwrap(), direction, count),
                             coords
                                 .into_iter()
-                                .map(|(column, row)| *input.get(column, row).unwrap() as usize)
-                                .sum::<usize>(),
+                                .map(|(column, row)| *input.get(column, row).unwrap())
+                                .sum::<u32>(),
                         )
                     })
                 },
@@ -310,11 +241,11 @@ fn part_2(input: &Input) -> usize {
         )
         .collect_vec();
 
-    // print_grid_with_path(input, &path);
+    print_grid_with_path(input, &path);
 
     path.into_iter()
         .skip(1)
-        .map(|(column, row)| *input.get(column, row).unwrap() as usize)
+        .map(|(column, row)| *input.get(column, row).unwrap())
         .sum()
 }
 
@@ -354,5 +285,13 @@ mod tests {
         let result = part_2(&input);
 
         assert_eq!(result, 94);
+    }
+
+    #[test]
+    fn test_part_2_small_map() {
+        let input = parse(include_str!("test-input-ultra-crucible-small-map").lines());
+        let result = part_2(&input);
+
+        assert_eq!(result, 71);
     }
 }

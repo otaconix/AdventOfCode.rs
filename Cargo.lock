@@ -452,8 +452,8 @@ name = "aoc-2023-17"
 version = "0.1.0"
 dependencies = [
  "aoc-timing",
+ "dijkstra",
  "env_logger",
- "fxhash",
  "grid",
  "itertools 0.13.0",
 ]
@@ -986,6 +986,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b42b6fa04a440b495c8b04d0e71b707c585f83cb9cb28cf8cd0d976c315e31b4"
 dependencies = [
  "powerfmt",
+]
+
+[[package]]
+name = "dijkstra"
+version = "0.1.0"
+dependencies = [
+ "fxhash",
 ]
 
 [[package]]
