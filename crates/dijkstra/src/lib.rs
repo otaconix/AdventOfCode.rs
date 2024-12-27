@@ -57,7 +57,7 @@ pub fn dijkstra<
                 distances.insert(neighbor, new_distance);
                 prevs.insert(neighbor, node);
                 queue.push(DijkstraVertex {
-                    distance: distance + neighbor_distance,
+                    distance: new_distance,
                     node: neighbor,
                 });
             }

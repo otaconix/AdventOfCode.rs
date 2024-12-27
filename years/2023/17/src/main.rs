@@ -214,7 +214,7 @@ fn part_2(input: &Input) -> u32 {
                         direction
                             .turn_right()
                             .advance_with_intermediate_coords(coord, 4)
-                            .map(|coords| (coords, direction.turn_left(), 4)),
+                            .map(|coords| (coords, direction.turn_right(), 4)),
                     ]
                     .into_iter()
                     .flatten()
@@ -241,7 +241,7 @@ fn part_2(input: &Input) -> u32 {
         )
         .collect_vec();
 
-    print_grid_with_path(input, &path);
+    // print_grid_with_path(input, &path);
 
     path.into_iter()
         .skip(1)
