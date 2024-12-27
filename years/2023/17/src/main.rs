@@ -3,6 +3,7 @@ use std::fmt::Display;
 use std::fmt::Write;
 use std::hash::Hash;
 use std::iter::once;
+use std::ops::Add;
 use std::{
     cmp::Ordering,
     collections::{BinaryHeap, HashMap},
@@ -117,29 +118,74 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
         .collect()
 }
 
-#[derive(PartialEq, Eq, Hash)]
-struct DijkstraVertex<T: Hash, P: Ord + Hash> {
-    priority: P,
-    value: T,
+#[derive(PartialEq, Eq)]
+struct DijkstraVertex<N: Eq, P: Ord> {
+    distance: P,
+    node: N,
 }
 
-impl<T: Eq + Hash, P: Ord + Hash> PartialOrd for DijkstraVertex<T, P> {
+impl<T: Eq, P: Ord> PartialOrd for DijkstraVertex<T, P> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<T: Eq + Hash, P: Ord + Hash> Ord for DijkstraVertex<T, P> {
+impl<T: Eq, P: Ord> Ord for DijkstraVertex<T, P> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.priority.cmp(&other.priority).reverse()
+        self.distance.cmp(&other.distance).reverse()
+    }
+}
+
+fn dijkstra<
+    'a,
+    N: Hash + Eq + 'a,
+    P: Add<P, Output = P> + Ord + Default + Copy,
+    I: Iterator<Item = (&'a N, P)>,
+>(
+    start: &'a N,
+    end: &'a N,
+    neighbors: fn(&N) -> I,
+) -> Option<Vec<&'a N>> {
+    let mut queue: BinaryHeap<DijkstraVertex<&N, P>> = BinaryHeap::from([DijkstraVertex {
+        distance: P::default(),
+        node: start,
+    }]);
+    let mut prevs: HashMap<&N, &N> = HashMap::new();
+    let mut distances: HashMap<&N, P> = HashMap::from([(start, P::default())]);
+
+    while let Some(DijkstraVertex { distance, node }) = queue.pop() {
+        if node == end {
+            break;
+        }
+
+        for (neighbor, neighbor_distance) in neighbors(node) {
+            let existing_distance = distances.get(&neighbor);
+
+            if existing_distance.is_none() || neighbor_distance < *existing_distance.unwrap() {
+                distances.insert(neighbor, distance + neighbor_distance);
+                prevs.insert(neighbor, node);
+                queue.push(DijkstraVertex {
+                    distance: distance + neighbor_distance,
+                    node: neighbor,
+                });
+            }
+        }
+    }
+
+    if distances.contains_key(end) {
+        let mut path = successors(Some(end), |current| prevs.remove(current)).collect_vec();
+        path.reverse();
+        Some(path)
+    } else {
+        None
     }
 }
 
 fn shortest_crucible_path(grid: &Input, start: Coord, end: Coord) -> Option<Vec<Coord>> {
     let mut queue: BinaryHeap<DijkstraVertex<(Coord, Direction, usize), usize>> =
         BinaryHeap::from([DijkstraVertex {
-            priority: 0,
-            value: (start, Direction::Down, 0),
+            distance: 0,
+            node: (start, Direction::Down, 0),
         }]);
     let mut prevs: HashMap<(Coord, Direction, usize), (Coord, Direction, usize)> = HashMap::new();
     let mut heat_losses: HashMap<(Coord, Direction, usize), usize> =
@@ -147,8 +193,8 @@ fn shortest_crucible_path(grid: &Input, start: Coord, end: Coord) -> Option<Vec<
     let mut found_end = None;
 
     while let Some(DijkstraVertex {
-        value: current @ (coord, direction, count),
-        priority: current_heat_loss,
+        node: current @ (coord, direction, count),
+        distance: current_heat_loss,
     }) = queue.pop()
     {
         if current.0 == end {
@@ -183,8 +229,8 @@ fn shortest_crucible_path(grid: &Input, start: Coord, end: Coord) -> Option<Vec<
                 heat_losses.insert((neighbor, new_direction, new_count), new_heat_loss);
                 prevs.insert((neighbor, new_direction, new_count), current);
                 queue.push(DijkstraVertex {
-                    value: (neighbor, new_direction, new_count),
-                    priority: new_heat_loss,
+                    node: (neighbor, new_direction, new_count),
+                    distance: new_heat_loss,
                 });
             }
         }
@@ -246,8 +292,8 @@ fn part_1(input: &Input) -> usize {
 fn shortest_ultra_crucible_path(grid: &Input, start: Coord, end: Coord) -> Option<Vec<Coord>> {
     let mut queue: BinaryHeap<DijkstraVertex<(Coord, Direction, usize), usize>> =
         BinaryHeap::from([DijkstraVertex {
-            priority: 0,
-            value: (start, Direction::Down, 0),
+            distance: 0,
+            node: (start, Direction::Down, 0),
         }]);
     let mut prevs: HashMap<(Coord, Direction, usize), (Coord, Direction, usize)> = HashMap::new();
     let mut heat_losses: HashMap<(Coord, Direction, usize), usize> =
@@ -255,8 +301,8 @@ fn shortest_ultra_crucible_path(grid: &Input, start: Coord, end: Coord) -> Optio
     let mut found_end = None;
 
     while let Some(DijkstraVertex {
-        value: current @ (coord, direction, count),
-        priority: current_heat_loss,
+        node: current @ (coord, direction, count),
+        distance: current_heat_loss,
     }) = queue.pop()
     {
         if current.0 == end {
@@ -302,8 +348,8 @@ fn shortest_ultra_crucible_path(grid: &Input, start: Coord, end: Coord) -> Optio
                     current,
                 );
                 queue.push(DijkstraVertex {
-                    value: (*neighbor.last().unwrap(), new_direction, new_count),
-                    priority: new_heat_loss,
+                    node: (*neighbor.last().unwrap(), new_direction, new_count),
+                    distance: new_heat_loss,
                 });
             }
         }
