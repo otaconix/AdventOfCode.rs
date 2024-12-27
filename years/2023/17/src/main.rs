@@ -15,7 +15,7 @@ use aoc_timing::trace::log_run;
 use grid::Grid;
 use itertools::Itertools;
 
-type Input = Grid<u8>;
+type Input = Grid<u32>;
 type Coord = (usize, usize);
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
@@ -112,7 +112,7 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
         .map(|line| {
             line.as_ref()
                 .chars()
-                .map(|c| c.to_digit(10).unwrap() as u8)
+                .map(|c| c.to_digit(10).unwrap())
                 .collect_vec()
         })
         .collect()
@@ -137,32 +137,36 @@ impl<T: Eq, P: Ord> Ord for DijkstraVertex<T, P> {
 }
 
 fn dijkstra<
-    'a,
-    N: Hash + Eq + 'a,
+    Node: Hash + Eq + Copy,
     P: Add<P, Output = P> + Ord + Default + Copy,
-    I: Iterator<Item = (&'a N, P)>,
+    I: Iterator<Item = (Node, P)>,
+    IsEnd: Fn(&Node) -> bool,
+    Neighbors: Fn(&Node) -> I,
 >(
-    start: &'a N,
-    end: &'a N,
-    neighbors: fn(&N) -> I,
-) -> Option<Vec<&'a N>> {
-    let mut queue: BinaryHeap<DijkstraVertex<&N, P>> = BinaryHeap::from([DijkstraVertex {
+    start: Node,
+    is_end: IsEnd,
+    neighbors: Neighbors,
+) -> Option<Vec<(Node, P)>> {
+    let mut queue: BinaryHeap<DijkstraVertex<Node, P>> = BinaryHeap::from([DijkstraVertex {
         distance: P::default(),
         node: start,
     }]);
-    let mut prevs: HashMap<&N, &N> = HashMap::new();
-    let mut distances: HashMap<&N, P> = HashMap::from([(start, P::default())]);
+    let mut prevs: HashMap<Node, Node> = HashMap::new();
+    let mut distances: HashMap<Node, P> = HashMap::from([(start, P::default())]);
+    let mut found_end = None;
 
     while let Some(DijkstraVertex { distance, node }) = queue.pop() {
-        if node == end {
+        if is_end(&node) {
+            found_end = Some(node);
             break;
         }
 
-        for (neighbor, neighbor_distance) in neighbors(node) {
+        for (neighbor, neighbor_distance) in neighbors(&node) {
+            let new_distance = neighbor_distance + distance;
             let existing_distance = distances.get(&neighbor);
 
-            if existing_distance.is_none() || neighbor_distance < *existing_distance.unwrap() {
-                distances.insert(neighbor, distance + neighbor_distance);
+            if existing_distance.is_none() || &new_distance < existing_distance.unwrap() {
+                distances.insert(neighbor, new_distance);
                 prevs.insert(neighbor, node);
                 queue.push(DijkstraVertex {
                     distance: distance + neighbor_distance,
@@ -172,74 +176,11 @@ fn dijkstra<
         }
     }
 
-    if distances.contains_key(end) {
-        let mut path = successors(Some(end), |current| prevs.remove(current)).collect_vec();
-        path.reverse();
-        Some(path)
-    } else {
-        None
-    }
-}
-
-fn shortest_crucible_path(grid: &Input, start: Coord, end: Coord) -> Option<Vec<Coord>> {
-    let mut queue: BinaryHeap<DijkstraVertex<(Coord, Direction, usize), usize>> =
-        BinaryHeap::from([DijkstraVertex {
-            distance: 0,
-            node: (start, Direction::Down, 0),
-        }]);
-    let mut prevs: HashMap<(Coord, Direction, usize), (Coord, Direction, usize)> = HashMap::new();
-    let mut heat_losses: HashMap<(Coord, Direction, usize), usize> =
-        HashMap::from([((start, Direction::Down, 0), 0)]);
-    let mut found_end = None;
-
-    while let Some(DijkstraVertex {
-        node: current @ (coord, direction, count),
-        distance: current_heat_loss,
-    }) = queue.pop()
-    {
-        if current.0 == end {
-            // We're done.
-            found_end = Some(current);
-            break;
-        }
-
-        for (neighbor, new_direction, new_count) in [
-            direction
-                .advance(&coord, 1)
-                .map(|coord| (coord, direction, count + 1)),
-            direction
-                .turn_left()
-                .advance(&coord, 1)
-                .map(|coord| (coord, direction.turn_left(), 1)),
-            direction
-                .turn_right()
-                .advance(&coord, 1)
-                .map(|coord| (coord, direction.turn_right(), 1)),
-        ]
-        .into_iter()
-        .flatten()
-        .filter(|((next_column, next_row), _, next_count)| {
-            grid.is_valid_coord(*next_column, *next_row) && next_count <= &3
-        }) {
-            let new_heat_loss =
-                current_heat_loss + *grid.get(neighbor.0, neighbor.1).unwrap() as usize;
-            let existing_heat_loss = heat_losses.get(&(neighbor, new_direction, new_count));
-
-            if existing_heat_loss.is_none() || &new_heat_loss < existing_heat_loss.unwrap() {
-                heat_losses.insert((neighbor, new_direction, new_count), new_heat_loss);
-                prevs.insert((neighbor, new_direction, new_count), current);
-                queue.push(DijkstraVertex {
-                    node: (neighbor, new_direction, new_count),
-                    distance: new_heat_loss,
-                });
-            }
-        }
-    }
-
     if let Some(end) = found_end {
-        let mut path = successors(Some(&end), |current| prevs.get(current))
-            .map(|x| x.0)
-            .collect_vec();
+        let mut path = successors(Some((end, distances[&end])), |(current, _)| {
+            prevs.remove(current).map(|prev| (prev, distances[&prev]))
+        })
+        .collect_vec();
         path.reverse();
         Some(path)
     } else {
@@ -258,7 +199,7 @@ fn print_grid_with_path(input: &Input, path: &[Coord]) {
                         path.iter().position(|(x, y)| x == &column && y == &row)
                     {
                         if path_position == 0 {
-                            (input.get(column, row).unwrap() + b'0') as char
+                            char::from_u32(input.get(column, row).unwrap() + (b'0' as u32)).unwrap()
                         } else {
                             char::from(
                                 Direction::determine(
@@ -269,7 +210,7 @@ fn print_grid_with_path(input: &Input, path: &[Coord]) {
                             )
                         }
                     } else {
-                        (input.get(column, row).unwrap() + b'0') as char
+                        char::from_u32(input.get(column, row).unwrap() + (b'0' as u32)).unwrap()
                     }
                 })
                 .collect::<String>())
@@ -278,8 +219,36 @@ fn print_grid_with_path(input: &Input, path: &[Coord]) {
 }
 
 fn part_1(input: &Input) -> usize {
-    let path =
-        shortest_crucible_path(input, (0, 0), (input.width() - 1, input.height() - 1)).unwrap();
+    let end = (input.width() - 1, input.height() - 1);
+    let path = dijkstra(
+        ((0, 0), Direction::Down, 0),
+        |(coord, _, _)| coord == &end,
+        |(coord, direction, count)| {
+            [
+                direction
+                    .advance(coord, 1)
+                    .map(|coord| (coord, *direction, count + 1)),
+                direction
+                    .turn_left()
+                    .advance(coord, 1)
+                    .map(|coord| (coord, direction.turn_left(), 1)),
+                direction
+                    .turn_right()
+                    .advance(coord, 1)
+                    .map(|coord| (coord, direction.turn_right(), 1)),
+            ]
+            .into_iter()
+            .flatten()
+            .filter(|((next_column, next_row), _, next_count)| {
+                input.is_valid_coord(*next_column, *next_row) && next_count <= &3
+            })
+            .map(|node @ ((column, row), _, _)| (node, *input.get(column, row).unwrap() as usize))
+        },
+    )
+    .unwrap()
+    .into_iter()
+    .map(|((coord, _, _), _)| coord)
+    .collect_vec();
 
     // print_grid_with_path(input, &path);
 
@@ -287,83 +256,6 @@ fn part_1(input: &Input) -> usize {
         .skip(1)
         .map(|(column, row)| *input.get(column, row).unwrap() as usize)
         .sum()
-}
-
-fn shortest_ultra_crucible_path(grid: &Input, start: Coord, end: Coord) -> Option<Vec<Coord>> {
-    let mut queue: BinaryHeap<DijkstraVertex<(Coord, Direction, usize), usize>> =
-        BinaryHeap::from([DijkstraVertex {
-            distance: 0,
-            node: (start, Direction::Down, 0),
-        }]);
-    let mut prevs: HashMap<(Coord, Direction, usize), (Coord, Direction, usize)> = HashMap::new();
-    let mut heat_losses: HashMap<(Coord, Direction, usize), usize> =
-        HashMap::from([((start, Direction::Down, 0), 0)]);
-    let mut found_end = None;
-
-    while let Some(DijkstraVertex {
-        node: current @ (coord, direction, count),
-        distance: current_heat_loss,
-    }) = queue.pop()
-    {
-        if current.0 == end {
-            // We're done.
-            found_end = Some(current);
-            break;
-        }
-
-        for (neighbor, new_direction, new_count) in [
-            direction
-                .advance_with_intermediate_coords(&coord, 1)
-                .map(|coords| (coords, direction, count + 1)),
-            direction
-                .turn_left()
-                .advance_with_intermediate_coords(&coord, 4)
-                .map(|coords| (coords, direction.turn_left(), 4)),
-            direction
-                .turn_right()
-                .advance_with_intermediate_coords(&coord, 4)
-                .map(|coords| (coords, direction.turn_right(), 4)),
-        ]
-        .into_iter()
-        .flatten()
-        .filter(|(coords, _, next_count)| {
-            grid.is_valid_coord(coords.last().unwrap().0, coords.last().unwrap().1)
-                && next_count <= &10
-        }) {
-            let new_heat_loss = current_heat_loss
-                + neighbor
-                    .iter()
-                    .map(|(column, row)| *grid.get(*column, *row).unwrap() as usize)
-                    .sum::<usize>();
-            let existing_heat_loss =
-                heat_losses.get(&(*neighbor.last().unwrap(), new_direction, new_count));
-
-            if existing_heat_loss.is_none() || &new_heat_loss < existing_heat_loss.unwrap() {
-                heat_losses.insert(
-                    (*neighbor.last().unwrap(), new_direction, new_count),
-                    new_heat_loss,
-                );
-                prevs.insert(
-                    (*neighbor.last().unwrap(), new_direction, new_count),
-                    current,
-                );
-                queue.push(DijkstraVertex {
-                    node: (*neighbor.last().unwrap(), new_direction, new_count),
-                    distance: new_heat_loss,
-                });
-            }
-        }
-    }
-
-    if let Some(end) = found_end {
-        let mut path = successors(Some(&end), |current| prevs.get(current))
-            .map(|x| x.0)
-            .collect_vec();
-        path.reverse();
-        Some(path)
-    } else {
-        None
-    }
 }
 
 fn intermediate_coords(from: &Coord, to: &Coord) -> Vec<Coord> {
@@ -376,13 +268,48 @@ fn intermediate_coords(from: &Coord, to: &Coord) -> Vec<Coord> {
 }
 
 fn part_2(input: &Input) -> usize {
-    let path = shortest_ultra_crucible_path(input, (0, 0), (input.width() - 1, input.height() - 1))
-        .unwrap();
+    let end = (input.width() - 1, input.height() - 1);
     let path = once((0, 0))
         .chain(
-            path.into_iter()
-                .tuple_windows()
-                .flat_map(|(from, to)| intermediate_coords(&from, &to)),
+            dijkstra(
+                ((0, 0), Direction::Down, 0),
+                |(coord, _, _)| coord == &end,
+                |(coord, direction, count)| {
+                    [
+                        direction
+                            .advance_with_intermediate_coords(coord, 1)
+                            .map(|coords| (coords, *direction, count + 1)),
+                        direction
+                            .turn_left()
+                            .advance_with_intermediate_coords(coord, 4)
+                            .map(|coords| (coords, direction.turn_left(), 4)),
+                        direction
+                            .turn_right()
+                            .advance_with_intermediate_coords(coord, 4)
+                            .map(|coords| (coords, direction.turn_left(), 4)),
+                    ]
+                    .into_iter()
+                    .flatten()
+                    .filter(|(coords, _, next_count)| {
+                        input.is_valid_coord(coords.last().unwrap().0, coords.last().unwrap().1)
+                            && next_count <= &10
+                    })
+                    .map(|(coords, direction, count)| {
+                        (
+                            (*coords.last().unwrap(), direction, count),
+                            coords
+                                .into_iter()
+                                .map(|(column, row)| *input.get(column, row).unwrap() as usize)
+                                .sum::<usize>(),
+                        )
+                    })
+                },
+            )
+            .unwrap()
+            .into_iter()
+            .map(|((coord, _, _), _)| coord)
+            .tuple_windows()
+            .flat_map(|(from, to)| intermediate_coords(&from, &to)),
         )
         .collect_vec();
 
