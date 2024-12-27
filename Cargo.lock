@@ -635,6 +635,7 @@ dependencies = [
  "aoc-timing",
  "aoc-utils",
  "dijkstra",
+ "direction",
  "env_logger",
  "grid",
 ]
@@ -1000,6 +1001,10 @@ dependencies = [
 [[package]]
 name = "direction"
 version = "0.1.0"
+dependencies = [
+ "aoc-macros",
+ "aoc-utils",
+]
 
 [[package]]
 name = "directories"

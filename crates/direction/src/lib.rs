@@ -1,9 +1,12 @@
+use aoc_utils::EnumVariants;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Write;
 use std::iter::successors;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+use aoc_macros::EnumVariants;
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, EnumVariants)]
 pub enum Direction {
     Up,
     Down,

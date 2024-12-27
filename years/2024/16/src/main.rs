@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::io;
 
-use aoc_macros::EnumVariants;
 use aoc_timing::trace::log_run;
 use aoc_utils::EnumVariants;
+use direction::Direction;
 use grid::Grid;
 
 #[derive(PartialEq, Eq)]
@@ -13,14 +13,6 @@ enum Tile {
     Wall,
     Empty,
     End,
-}
-
-#[derive(PartialEq, Eq, Hash, Clone, Copy, EnumVariants)]
-enum Direction {
-    North,
-    East,
-    South,
-    West,
 }
 
 #[derive(PartialEq, Eq)]
@@ -39,39 +31,6 @@ impl Ord for Queued {
 impl PartialOrd for Queued {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
-    }
-}
-
-impl Direction {
-    fn turn_left(self) -> Self {
-        match self {
-            Direction::North => Direction::West,
-            Direction::East => Direction::North,
-            Direction::South => Direction::East,
-            Direction::West => Direction::South,
-        }
-    }
-
-    fn turn_right(self) -> Self {
-        match self {
-            Direction::North => Direction::East,
-            Direction::East => Direction::South,
-            Direction::South => Direction::West,
-            Direction::West => Direction::North,
-        }
-    }
-
-    fn advance(&self, coord: &Coord, map: &Grid<Tile>) -> Option<Coord> {
-        match *self {
-            Direction::North if coord.1 > 0 => Some((coord.0, coord.1 - 1)),
-            Direction::East => Some((coord.0 + 1, coord.1)),
-            Direction::South => Some((coord.0, coord.1 + 1)),
-            Direction::West if coord.0 > 0 => Some((coord.0 - 1, coord.1)),
-            _ => None,
-        }
-        .filter(|(column, row)| {
-            (0..map.width()).contains(column) && (0..map.height()).contains(row)
-        })
     }
 }
 
@@ -121,12 +80,12 @@ fn dijkstra(
     reindeer_position: Coord,
     end_position: Coord,
 ) -> (usize, HashSet<Coord>) {
-    let mut prev = HashMap::from([((reindeer_position, Direction::East), HashSet::new())]);
-    let mut distances = HashMap::from([((reindeer_position, Direction::East), 0usize)]);
+    let mut prev = HashMap::from([((reindeer_position, Direction::Right), HashSet::new())]);
+    let mut distances = HashMap::from([((reindeer_position, Direction::Right), 0usize)]);
     let mut queue = BinaryHeap::from([Queued {
         priority: 0,
         coord: reindeer_position,
-        direction: Direction::East,
+        direction: Direction::Right,
     }]);
 
     while let Some(next) = queue.pop() {
@@ -140,22 +99,24 @@ fn dijkstra(
 
         let potential_nexts = [
             next.direction
-                .advance(&next.coord, map)
+                .advance(&next.coord, 1)
                 .map(|advanced| (prev_distance + 1, advanced, next.direction)),
             next.direction
                 .turn_left()
-                .advance(&next.coord, map)
+                .advance(&next.coord, 1)
                 .map(|advanced| (prev_distance + 1001, advanced, next.direction.turn_left())),
             next.direction
                 .turn_right()
-                .advance(&next.coord, map)
+                .advance(&next.coord, 1)
                 .map(|advanced| (prev_distance + 1001, advanced, next.direction.turn_right())),
         ];
 
         for (next_distance, next_coord, next_direction) in potential_nexts
             .into_iter()
             .flatten()
-            .filter(|(_, (column, row), _)| map.get(*column, *row).unwrap() != &Tile::Wall)
+            .filter(|(_, (column, row), _)| {
+                map.is_valid_coord(*column, *row) && map.get(*column, *row).unwrap() != &Tile::Wall
+            })
         {
             {
                 let distance_compared_to_original = distances
