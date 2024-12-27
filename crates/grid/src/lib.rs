@@ -243,6 +243,10 @@ impl<T> Grid<T> {
             down: remove_indices(down),
         }
     }
+
+    pub fn is_valid_coord(&self, column: usize, row: usize) -> bool {
+        column < self.width() && row < self.height()
+    }
 }
 
 impl<T: Debug> Debug for Grid<T> {

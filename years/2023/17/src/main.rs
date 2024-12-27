@@ -1,3 +1,7 @@
+use std::fmt::Debug;
+use std::fmt::Display;
+use std::fmt::Write;
+use std::hash::Hash;
 use std::{
     cmp::Ordering,
     collections::{BinaryHeap, HashMap},
@@ -11,6 +15,97 @@ use grid::Grid;
 type Input = Grid<u8>;
 type Coord = (usize, usize);
 
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
+impl Display for Direction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_char(char::from(*self))
+    }
+}
+
+impl Debug for Direction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_char(char::from(*self))
+    }
+}
+
+impl Direction {
+    fn determine(from: &Coord, to: &Coord) -> Self {
+        match (to.0.cmp(&from.0), to.1.cmp(&from.1)) {
+            (Ordering::Greater, _) => Self::Right,
+            (Ordering::Less, _) => Self::Left,
+            (_, Ordering::Greater) => Self::Down,
+            (_, Ordering::Less) => Self::Up,
+            _ => panic!("Can't go diagonally!"),
+        }
+    }
+
+    fn turn_around(&self) -> Self {
+        match self {
+            Direction::Up => Direction::Down,
+            Direction::Down => Direction::Up,
+            Direction::Left => Direction::Right,
+            Direction::Right => Direction::Left,
+        }
+    }
+
+    fn turn_left(&self) -> Self {
+        match self {
+            Direction::Up => Direction::Left,
+            Direction::Down => Direction::Right,
+            Direction::Left => Direction::Down,
+            Direction::Right => Direction::Up,
+        }
+    }
+
+    fn turn_right(&self) -> Self {
+        match self {
+            Direction::Up => Direction::Right,
+            Direction::Down => Direction::Left,
+            Direction::Left => Direction::Up,
+            Direction::Right => Direction::Down,
+        }
+    }
+
+    fn advance(&self, coord: &Coord, steps: usize) -> Option<Coord> {
+        match self {
+            Direction::Up => coord.1.checked_sub(steps).map(|y| (coord.0, y)),
+            Direction::Down => Some((coord.0, coord.1 + steps)),
+            Direction::Left => coord.0.checked_sub(steps).map(|x| (x, coord.1)),
+            Direction::Right => Some((coord.0 + steps, coord.1)),
+        }
+    }
+
+    fn advance_with_intermediate_coords(&self, coord: &Coord, steps: usize) -> Option<Vec<Coord>> {
+        let result = successors(self.advance(coord, 1), |next| self.advance(next, 1))
+            .take(steps)
+            .collect::<Vec<_>>();
+
+        if result.len() == steps {
+            Some(result)
+        } else {
+            None
+        }
+    }
+}
+
+impl From<Direction> for char {
+    fn from(val: Direction) -> Self {
+        match val {
+            Direction::Up => '^',
+            Direction::Down => 'v',
+            Direction::Left => '<',
+            Direction::Right => '>',
+        }
+    }
+}
+
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     input
         .map(|line| {
@@ -22,79 +117,84 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
         .collect()
 }
 
-#[derive(PartialEq, Eq)]
-struct DijkstraVertex<T, P: Ord> {
+#[derive(PartialEq, Eq, Hash)]
+struct DijkstraVertex<T: Hash, P: Ord + Hash> {
     priority: P,
     value: T,
 }
 
-impl<T: Eq, P: Ord> PartialOrd for DijkstraVertex<T, P> {
+impl<T: Eq + Hash, P: Ord + Hash> PartialOrd for DijkstraVertex<T, P> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<T: Eq, P: Ord> Ord for DijkstraVertex<T, P> {
+impl<T: Eq + Hash, P: Ord + Hash> Ord for DijkstraVertex<T, P> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.priority.cmp(&other.priority).reverse()
     }
 }
 
-fn shortest_path(grid: &Input, start: Coord, end: Coord) -> Option<Vec<Coord>> {
-    type Current = (Coord, Vec<Coord>);
-    let mut queue: BinaryHeap<DijkstraVertex<Current, usize>> = BinaryHeap::new();
-    queue.push(DijkstraVertex {
-        priority: 0,
-        value: (start, vec![start]), // Let's start at the end so we don't have to reverse the path at the end
-    });
-
-    let mut prevs: HashMap<Coord, Coord> = HashMap::new();
-    let mut heat_losses: HashMap<Coord, usize> = HashMap::new();
-    heat_losses.insert(start, 0);
+fn shortest_path(grid: &Input, start: Coord, end: Coord) -> Option<Vec<(Coord, Direction)>> {
+    let mut queue: BinaryHeap<DijkstraVertex<(Coord, Direction, usize), usize>> =
+        BinaryHeap::from([DijkstraVertex {
+            priority: 0,
+            value: (start, Direction::Down, 0),
+        }]);
+    let mut prevs: HashMap<(Coord, Direction, usize), (Coord, Direction, usize)> = HashMap::new();
+    let mut heat_losses: HashMap<(Coord, Direction, usize), usize> =
+        HashMap::from([((start, Direction::Down, 0), 0)]);
+    let mut found_end = None;
 
     while let Some(DijkstraVertex {
-        value: (current @ (column, row), predecessors),
+        value: current @ (coord, direction, count),
         priority: current_heat_loss,
     }) = queue.pop()
     {
-        if current == end {
+        if current.0 == end {
             // We're done.
+            found_end = Some(current);
             break;
         }
 
-        for neighbor @ (ncolumn, nrow) in grid.get_neighbors(column, row) {
-            if predecessors.len() < 4
-                || !(predecessors.iter().all(|(pcolumn, _)| pcolumn == &ncolumn)
-                    || predecessors.iter().all(|(_, prow)| prow == &nrow))
-            {
-                let new_heat_loss = current_heat_loss + *grid.get(ncolumn, nrow).unwrap() as usize;
-                let existing_heat_loss = *heat_losses.get(&neighbor).unwrap_or(&usize::MAX);
+        for (neighbor, new_direction, new_count) in [
+            direction
+                .advance(&coord, 1)
+                .map(|coord| (coord, direction, count + 1)),
+            direction
+                .turn_left()
+                .advance(&coord, 1)
+                .map(|coord| (coord, direction.turn_left(), 1)),
+            direction
+                .turn_right()
+                .advance(&coord, 1)
+                .map(|coord| (coord, direction.turn_right(), 1)),
+        ]
+        .into_iter()
+        .flatten()
+        .filter(|((next_column, next_row), _, next_count)| {
+            grid.is_valid_coord(*next_column, *next_row) && next_count <= &3
+        }) {
+            let new_heat_loss =
+                current_heat_loss + *grid.get(neighbor.0, neighbor.1).unwrap() as usize;
+            let existing_heat_loss = heat_losses.get(&(neighbor, new_direction, new_count));
 
-                if new_heat_loss < existing_heat_loss {
-                    heat_losses.insert(neighbor, new_heat_loss);
-                    prevs.insert(neighbor, current);
-                    queue.push(DijkstraVertex {
-                        value: (
-                            neighbor,
-                            predecessors
-                                .iter()
-                                .skip(predecessors.len().saturating_sub(3))
-                                .copied()
-                                .chain(Some(neighbor))
-                                .collect(),
-                        ),
-                        priority: new_heat_loss,
-                    });
-                }
+            if existing_heat_loss.is_none() || &new_heat_loss < existing_heat_loss.unwrap() {
+                heat_losses.insert((neighbor, new_direction, new_count), new_heat_loss);
+                prevs.insert((neighbor, new_direction, new_count), current);
+                queue.push(DijkstraVertex {
+                    value: (neighbor, new_direction, new_count),
+                    priority: new_heat_loss,
+                });
             }
         }
     }
 
-    if heat_losses.contains_key(&end) {
-        let mut path =
-            successors(Some(end), |current| prevs.get(current).copied()).collect::<Vec<_>>();
+    if let Some(end) = found_end {
+        let mut path = successors(Some(&end), |current| prevs.get(current))
+            .map(|x| (x.0, x.1))
+            .collect::<Vec<_>>();
         path.reverse();
-
         Some(path)
     } else {
         None
@@ -103,39 +203,29 @@ fn shortest_path(grid: &Input, start: Coord, end: Coord) -> Option<Vec<Coord>> {
 
 fn part_1(input: &Input) -> usize {
     let shortest = shortest_path(input, (0, 0), (input.width() - 1, input.height() - 1)).unwrap();
-    println!(
-        "{}",
-        (0..input.height())
-            .map(|row| (0..input.width())
-                .map(|column| {
-                    if let Some(index) =
-                        shortest.iter().position(|(x, y)| x == &column && y == &row)
-                    {
-                        if index == 0 {
-                            (input.get(shortest[0].0, shortest[0].1).unwrap() + b'0') as char
-                        } else {
-                            let current = shortest[index];
-                            let prev = shortest[index - 1];
-                            match (current.0.cmp(&prev.0), current.1.cmp(&prev.1)) {
-                                (Ordering::Greater, _) => '>',
-                                (Ordering::Less, _) => '<',
-                                (_, Ordering::Greater) => 'v',
-                                (_, Ordering::Less) => '^',
-                                _ => panic!("Can't go diagonally!"),
-                            }
-                        }
-                    } else {
-                        (input.get(column, row).unwrap() + b'0') as char
-                    }
-                })
-                .collect::<String>())
-            .collect::<Vec<_>>()
-            .join("\n")
-    );
+    // println!(
+    //     "{}",
+    //     (0..input.height())
+    //         .map(|row| (0..input.width())
+    //             .map(|column| {
+    //                 if let Some((_, direction)) = shortest
+    //                     .iter()
+    //                     .find(|((x, y), _)| x == &column && y == &row)
+    //                 {
+    //                     char::from(*direction)
+    //                 } else {
+    //                     (input.get(column, row).unwrap() + b'0') as char
+    //                 }
+    //             })
+    //             .collect::<String>())
+    //         .collect::<Vec<_>>()
+    //         .join("\n")
+    // );
+
     shortest
         .into_iter()
         .skip(1)
-        .map(|(column, row)| *input.get(column, row).unwrap() as usize)
+        .map(|((column, row), _)| *input.get(column, row).unwrap() as usize)
         .sum()
 }
 
@@ -159,25 +249,25 @@ fn main() {
     });
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//
-//     const INPUT: &str = include_str!("test-input");
-//
-//     #[test]
-//     fn test_part_1() {
-//         let input = parse(INPUT.lines());
-//         let result = part_1(&input);
-//
-//         assert_eq!(result, 102);
-//     }
-//
-//     #[test]
-//     fn test_part_2() {
-//         let input = parse(INPUT.lines());
-//         let result = part_2(&input);
-//
-//         assert_eq!(result, 0);
-//     }
-// }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const INPUT: &str = include_str!("test-input");
+
+    #[test]
+    fn test_part_1() {
+        let input = parse(INPUT.lines());
+        let result = part_1(&input);
+
+        assert_eq!(result, 102);
+    }
+
+    // #[test]
+    // fn test_part_2() {
+    //     let input = parse(INPUT.lines());
+    //     let result = part_2(&input);
+    //
+    //     assert_eq!(result, 0);
+    // }
+}
