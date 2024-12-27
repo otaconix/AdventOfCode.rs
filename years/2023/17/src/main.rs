@@ -4,14 +4,10 @@ use std::fmt::Write;
 use std::hash::Hash;
 use std::iter::once;
 use std::ops::Add;
-use std::{
-    cmp::Ordering,
-    collections::{BinaryHeap, HashMap},
-    io,
-    iter::successors,
-};
+use std::{cmp::Ordering, collections::BinaryHeap, io, iter::successors};
 
 use aoc_timing::trace::log_run;
+use fxhash::FxHashMap;
 use grid::Grid;
 use itertools::Itertools;
 
@@ -151,8 +147,9 @@ fn dijkstra<
         distance: P::default(),
         node: start,
     }]);
-    let mut prevs: HashMap<Node, Node> = HashMap::new();
-    let mut distances: HashMap<Node, P> = HashMap::from([(start, P::default())]);
+    let mut prevs: FxHashMap<Node, Node> = FxHashMap::default();
+    let mut distances: FxHashMap<Node, P> = FxHashMap::default();
+    distances.insert(start, P::default());
     let mut found_end = None;
 
     while let Some(DijkstraVertex { distance, node }) = queue.pop() {

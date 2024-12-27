@@ -453,6 +453,7 @@ version = "0.1.0"
 dependencies = [
  "aoc-timing",
  "env_logger",
+ "fxhash",
  "grid",
  "itertools 0.13.0",
 ]
