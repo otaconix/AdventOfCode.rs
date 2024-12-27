@@ -1,10 +1,7 @@
-use std::collections::BinaryHeap;
-use std::collections::HashMap;
 use std::collections::HashSet;
 use std::io;
 
 use aoc_timing::trace::log_run;
-use aoc_utils::EnumVariants;
 use direction::Direction;
 use grid::Grid;
 
@@ -13,25 +10,6 @@ enum Tile {
     Wall,
     Empty,
     End,
-}
-
-#[derive(PartialEq, Eq)]
-struct Queued {
-    priority: usize,
-    coord: Coord,
-    direction: Direction,
-}
-
-impl Ord for Queued {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.priority.cmp(&other.priority).reverse()
-    }
-}
-
-impl PartialOrd for Queued {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
 }
 
 type Coord = (usize, usize);
@@ -80,94 +58,44 @@ fn dijkstra(
     reindeer_position: Coord,
     end_position: Coord,
 ) -> (usize, HashSet<Coord>) {
-    let mut prev = HashMap::from([((reindeer_position, Direction::Right), HashSet::new())]);
-    let mut distances = HashMap::from([((reindeer_position, Direction::Right), 0usize)]);
-    let mut queue = BinaryHeap::from([Queued {
-        priority: 0,
-        coord: reindeer_position,
-        direction: Direction::Right,
-    }]);
-
-    while let Some(next) = queue.pop() {
-        if next.coord == end_position {
-            // We've found the end! Don't stop entirely, but there's no point in going further
-            // along this path.
-            continue;
-        }
-
-        let prev_distance = distances[&(next.coord, next.direction)];
-
-        let potential_nexts = [
-            next.direction
-                .advance(&next.coord, 1)
-                .map(|advanced| (prev_distance + 1, advanced, next.direction)),
-            next.direction
-                .turn_left()
-                .advance(&next.coord, 1)
-                .map(|advanced| (prev_distance + 1001, advanced, next.direction.turn_left())),
-            next.direction
-                .turn_right()
-                .advance(&next.coord, 1)
-                .map(|advanced| (prev_distance + 1001, advanced, next.direction.turn_right())),
-        ];
-
-        for (next_distance, next_coord, next_direction) in potential_nexts
+    let all_shortest_paths = dijkstra::dijkstra_all_shortest_paths(
+        (reindeer_position, Direction::Right),
+        |(position, _)| position == &end_position,
+        |(position, direction)| {
+            [
+                direction
+                    .advance(position, 1)
+                    .map(|advanced| ((advanced, *direction), 1)),
+                direction
+                    .turn_left()
+                    .advance(position, 1)
+                    .map(|advanced| ((advanced, direction.turn_left()), 1001)),
+                direction
+                    .turn_right()
+                    .advance(position, 1)
+                    .map(|advanced| ((advanced, direction.turn_right()), 1001)),
+            ]
             .into_iter()
             .flatten()
-            .filter(|(_, (column, row), _)| {
+            .filter(|(((column, row), _), _)| {
                 map.is_valid_coord(*column, *row) && map.get(*column, *row).unwrap() != &Tile::Wall
             })
-        {
-            {
-                let distance_compared_to_original = distances
-                    .get(&(next_coord, next_direction))
-                    .map(|original| next_distance.cmp(original))
-                    .unwrap_or(std::cmp::Ordering::Less);
+        },
+    )
+    .unwrap();
 
-                if distance_compared_to_original.is_le() {
-                    let prevs = prev.entry((next_coord, next_direction)).or_default();
-
-                    if distance_compared_to_original.is_lt() {
-                        prevs.clear();
-                    }
-                    prevs.insert((next.coord, next.direction));
-
-                    distances.insert((next_coord, next_direction), next_distance);
-                    queue.push(Queued {
-                        priority: next_distance,
-                        coord: next_coord,
-                        direction: next_direction,
-                    });
-                }
-            }
-        }
-    }
-
-    let minimal_distance = Direction::variants()
-        .into_iter()
-        .flat_map(|direction| distances.get(&(end_position, direction)))
-        .copied()
-        .min()
+    let shortest_distance = all_shortest_paths
+        .first()
+        .map(|path| path.last().map(|(_, distance)| distance).unwrap())
         .unwrap();
 
-    let mut tiles_in_optimal_paths = HashSet::new();
-    let mut queue = Direction::variants()
-        .into_iter()
-        .map(|direction| (end_position, direction))
-        .filter(|directed_tile| {
-            distances
-                .get(directed_tile)
-                .map(|distance| *distance == minimal_distance)
-                .unwrap_or(false)
-        })
-        .collect::<Vec<_>>();
-    while let Some(directed_tile) = queue.pop() {
-        tiles_in_optimal_paths.insert(directed_tile.0);
-
-        queue.extend(prev[&directed_tile].iter());
-    }
-
-    (minimal_distance, tiles_in_optimal_paths)
+    (
+        *shortest_distance,
+        all_shortest_paths
+            .into_iter()
+            .flat_map(|path| path.into_iter().map(|((coord, _), _)| coord))
+            .collect(),
+    )
 }
 
 fn part_1((shortest_distance, _): &Input) -> Output {
