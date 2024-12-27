@@ -2,6 +2,7 @@ use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Write;
 use std::hash::Hash;
+use std::iter::once;
 use std::{
     cmp::Ordering,
     collections::{BinaryHeap, HashMap},
@@ -11,6 +12,7 @@ use std::{
 
 use aoc_timing::trace::log_run;
 use grid::Grid;
+use itertools::Itertools;
 
 type Input = Grid<u8>;
 type Coord = (usize, usize);
@@ -36,22 +38,20 @@ impl Debug for Direction {
 }
 
 impl Direction {
-    fn determine(from: &Coord, to: &Coord) -> Self {
+    /// Determine the direction to go from `from` to `to`.
+    ///
+    /// Returns `None` if:
+    ///   - `from == to`
+    ///   - `from` and `to` aren't on either the same horizontal or vertical plane (`from.x != to.x
+    ///   && from.y != to.y`)
+    fn determine(from: &Coord, to: &Coord) -> Option<Self> {
+        use Ordering::*;
         match (to.0.cmp(&from.0), to.1.cmp(&from.1)) {
-            (Ordering::Greater, _) => Self::Right,
-            (Ordering::Less, _) => Self::Left,
-            (_, Ordering::Greater) => Self::Down,
-            (_, Ordering::Less) => Self::Up,
-            _ => panic!("Can't go diagonally!"),
-        }
-    }
-
-    fn turn_around(&self) -> Self {
-        match self {
-            Direction::Up => Direction::Down,
-            Direction::Down => Direction::Up,
-            Direction::Left => Direction::Right,
-            Direction::Right => Direction::Left,
+            (Greater, Equal) => Self::Right.into(),
+            (Less, Equal) => Self::Left.into(),
+            (Equal, Greater) => Self::Down.into(),
+            (Equal, Less) => Self::Up.into(),
+            _ => None, // Coordinates are equal or not on the same horizontal/vertical axis
         }
     }
 
@@ -112,7 +112,7 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
             line.as_ref()
                 .chars()
                 .map(|c| c.to_digit(10).unwrap() as u8)
-                .collect::<Vec<_>>()
+                .collect_vec()
         })
         .collect()
 }
@@ -135,7 +135,7 @@ impl<T: Eq + Hash, P: Ord + Hash> Ord for DijkstraVertex<T, P> {
     }
 }
 
-fn shortest_path(grid: &Input, start: Coord, end: Coord) -> Option<Vec<(Coord, Direction)>> {
+fn shortest_crucible_path(grid: &Input, start: Coord, end: Coord) -> Option<Vec<Coord>> {
     let mut queue: BinaryHeap<DijkstraVertex<(Coord, Direction, usize), usize>> =
         BinaryHeap::from([DijkstraVertex {
             priority: 0,
@@ -192,8 +192,8 @@ fn shortest_path(grid: &Input, start: Coord, end: Coord) -> Option<Vec<(Coord, D
 
     if let Some(end) = found_end {
         let mut path = successors(Some(&end), |current| prevs.get(current))
-            .map(|x| (x.0, x.1))
-            .collect::<Vec<_>>();
+            .map(|x| x.0)
+            .collect_vec();
         path.reverse();
         Some(path)
     } else {
@@ -201,37 +201,152 @@ fn shortest_path(grid: &Input, start: Coord, end: Coord) -> Option<Vec<(Coord, D
     }
 }
 
-fn part_1(input: &Input) -> usize {
-    let shortest = shortest_path(input, (0, 0), (input.width() - 1, input.height() - 1)).unwrap();
-    // println!(
-    //     "{}",
-    //     (0..input.height())
-    //         .map(|row| (0..input.width())
-    //             .map(|column| {
-    //                 if let Some((_, direction)) = shortest
-    //                     .iter()
-    //                     .find(|((x, y), _)| x == &column && y == &row)
-    //                 {
-    //                     char::from(*direction)
-    //                 } else {
-    //                     (input.get(column, row).unwrap() + b'0') as char
-    //                 }
-    //             })
-    //             .collect::<String>())
-    //         .collect::<Vec<_>>()
-    //         .join("\n")
-    // );
+#[allow(unused)] // Only used for debugging
+fn print_grid_with_path(input: &Input, path: &[Coord]) {
+    println!(
+        "{}",
+        (0..input.height())
+            .map(|row| (0..input.width())
+                .map(|column| {
+                    if let Some(path_position) =
+                        path.iter().position(|(x, y)| x == &column && y == &row)
+                    {
+                        if path_position == 0 {
+                            (input.get(column, row).unwrap() + b'0') as char
+                        } else {
+                            char::from(
+                                Direction::determine(
+                                    &path[path_position - 1],
+                                    &path[path_position],
+                                )
+                                .unwrap(),
+                            )
+                        }
+                    } else {
+                        (input.get(column, row).unwrap() + b'0') as char
+                    }
+                })
+                .collect::<String>())
+            .join("\n")
+    );
+}
 
-    shortest
-        .into_iter()
+fn part_1(input: &Input) -> usize {
+    let path =
+        shortest_crucible_path(input, (0, 0), (input.width() - 1, input.height() - 1)).unwrap();
+
+    // print_grid_with_path(input, &path);
+
+    path.into_iter()
         .skip(1)
-        .map(|((column, row), _)| *input.get(column, row).unwrap() as usize)
+        .map(|(column, row)| *input.get(column, row).unwrap() as usize)
         .sum()
 }
 
-// fn part_2(input: &Input) -> usize {
-//     todo!()
-// }
+fn shortest_ultra_crucible_path(grid: &Input, start: Coord, end: Coord) -> Option<Vec<Coord>> {
+    let mut queue: BinaryHeap<DijkstraVertex<(Coord, Direction, usize), usize>> =
+        BinaryHeap::from([DijkstraVertex {
+            priority: 0,
+            value: (start, Direction::Down, 0),
+        }]);
+    let mut prevs: HashMap<(Coord, Direction, usize), (Coord, Direction, usize)> = HashMap::new();
+    let mut heat_losses: HashMap<(Coord, Direction, usize), usize> =
+        HashMap::from([((start, Direction::Down, 0), 0)]);
+    let mut found_end = None;
+
+    while let Some(DijkstraVertex {
+        value: current @ (coord, direction, count),
+        priority: current_heat_loss,
+    }) = queue.pop()
+    {
+        if current.0 == end {
+            // We're done.
+            found_end = Some(current);
+            break;
+        }
+
+        for (neighbor, new_direction, new_count) in [
+            direction
+                .advance_with_intermediate_coords(&coord, 1)
+                .map(|coords| (coords, direction, count + 1)),
+            direction
+                .turn_left()
+                .advance_with_intermediate_coords(&coord, 4)
+                .map(|coords| (coords, direction.turn_left(), 4)),
+            direction
+                .turn_right()
+                .advance_with_intermediate_coords(&coord, 4)
+                .map(|coords| (coords, direction.turn_right(), 4)),
+        ]
+        .into_iter()
+        .flatten()
+        .filter(|(coords, _, next_count)| {
+            grid.is_valid_coord(coords.last().unwrap().0, coords.last().unwrap().1)
+                && next_count <= &10
+        }) {
+            let new_heat_loss = current_heat_loss
+                + neighbor
+                    .iter()
+                    .map(|(column, row)| *grid.get(*column, *row).unwrap() as usize)
+                    .sum::<usize>();
+            let existing_heat_loss =
+                heat_losses.get(&(*neighbor.last().unwrap(), new_direction, new_count));
+
+            if existing_heat_loss.is_none() || &new_heat_loss < existing_heat_loss.unwrap() {
+                heat_losses.insert(
+                    (*neighbor.last().unwrap(), new_direction, new_count),
+                    new_heat_loss,
+                );
+                prevs.insert(
+                    (*neighbor.last().unwrap(), new_direction, new_count),
+                    current,
+                );
+                queue.push(DijkstraVertex {
+                    value: (*neighbor.last().unwrap(), new_direction, new_count),
+                    priority: new_heat_loss,
+                });
+            }
+        }
+    }
+
+    if let Some(end) = found_end {
+        let mut path = successors(Some(&end), |current| prevs.get(current))
+            .map(|x| x.0)
+            .collect_vec();
+        path.reverse();
+        Some(path)
+    } else {
+        None
+    }
+}
+
+fn intermediate_coords(from: &Coord, to: &Coord) -> Vec<Coord> {
+    let direction = Direction::determine(from, to).unwrap();
+    let distance = from.0.abs_diff(to.0) + from.1.abs_diff(to.1);
+    successors(Some(*from), |coord| direction.advance(coord, 1))
+        .take(distance + 1)
+        .skip(1)
+        .collect()
+}
+
+fn part_2(input: &Input) -> usize {
+    let path = shortest_ultra_crucible_path(input, (0, 0), (input.width() - 1, input.height() - 1))
+        .unwrap();
+    let path = once((0, 0))
+        .chain(
+            path.into_iter()
+                .tuple_windows()
+                .flat_map(|(from, to)| intermediate_coords(&from, &to)),
+        )
+        .collect_vec();
+
+    // print_grid_with_path(input, &path);
+
+    path.into_iter()
+        .skip(1)
+        .map(|(column, row)| *input.get(column, row).unwrap() as usize)
+        .sum()
+}
 
 fn main() {
     env_logger::init();
@@ -244,8 +359,8 @@ fn main() {
         let part_1 = log_run("Part 1", || part_1(&input));
         println!("Part 1: {part_1}");
 
-        // let part_2 = log_run("Part 2", || part_2(&input));
-        // println!("Part 2: {part_2}");
+        let part_2 = log_run("Part 2", || part_2(&input));
+        println!("Part 2: {part_2}");
     });
 }
 
@@ -263,11 +378,11 @@ mod tests {
         assert_eq!(result, 102);
     }
 
-    // #[test]
-    // fn test_part_2() {
-    //     let input = parse(INPUT.lines());
-    //     let result = part_2(&input);
-    //
-    //     assert_eq!(result, 0);
-    // }
+    #[test]
+    fn test_part_2() {
+        let input = parse(INPUT.lines());
+        let result = part_2(&input);
+
+        assert_eq!(result, 94);
+    }
 }
