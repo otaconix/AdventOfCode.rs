@@ -453,6 +453,7 @@ version = "0.1.0"
 dependencies = [
  "aoc-timing",
  "dijkstra",
+ "direction",
  "env_logger",
  "grid",
  "itertools 0.13.0",
@@ -633,6 +634,7 @@ dependencies = [
  "aoc-macros",
  "aoc-timing",
  "aoc-utils",
+ "dijkstra",
  "env_logger",
  "grid",
 ]
@@ -994,6 +996,10 @@ version = "0.1.0"
 dependencies = [
  "fxhash",
 ]
+
+[[package]]
+name = "direction"
+version = "0.1.0"
 
 [[package]]
 name = "directories"
