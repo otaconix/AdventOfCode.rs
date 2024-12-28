@@ -8,7 +8,7 @@ use fxhash::FxHashSet;
 use itertools::Itertools;
 
 #[derive(PartialEq, Eq)]
-struct DijkstraVertex<N: Eq, P: Ord> {
+pub struct DijkstraVertex<N: Eq, P: Ord> {
     distance: P,
     node: N,
 }
@@ -25,8 +25,14 @@ impl<T: Eq, P: Ord> Ord for DijkstraVertex<T, P> {
     }
 }
 
-#[derive(Debug, Clone)]
+impl<N: Eq, P: Ord> DijkstraVertex<N, P> {
+    pub fn new(node: N, distance: P) -> Self {
+        Self { node, distance }
+    }
+}
+
 pub struct DijkstraState<Node: Hash + Eq + Copy, P: Add<P, Output = P> + Ord + Default + Copy> {
+    pub queue: BinaryHeap<DijkstraVertex<Node, P>>,
     pub prevs: FxHashMap<Node, FxHashSet<Node>>,
     pub distances: FxHashMap<Node, P>,
     pub found_ends: Vec<(Node, P)>,
@@ -37,7 +43,7 @@ where
     Node: Hash + Eq + Copy,
     P: Add<P, Output = P> + Ord + Default + Copy,
 {
-    fn new(initial_node: Node) -> Self {
+    pub fn new(initial_node: Node) -> Self {
         Self {
             prevs: FxHashMap::default(),
             distances: {
@@ -47,6 +53,10 @@ where
                 distances
             },
             found_ends: Vec::new(),
+            queue: BinaryHeap::from([DijkstraVertex {
+                node: initial_node,
+                distance: P::default(),
+            }]),
         }
     }
 }
@@ -105,12 +115,8 @@ pub fn dijkstra_all_shortest_paths<
     neighbors: Neighbors,
 ) -> Option<DijkstraState<Node, P>> {
     let mut state = DijkstraState::new(start);
-    let mut queue: BinaryHeap<DijkstraVertex<Node, P>> = BinaryHeap::from([DijkstraVertex {
-        distance: P::default(),
-        node: start,
-    }]);
 
-    while let Some(DijkstraVertex { distance, node }) = queue.pop() {
+    while let Some(DijkstraVertex { distance, node }) = state.queue.pop() {
         if is_end(&node) {
             state.found_ends.push((node, distance));
             continue;
@@ -133,7 +139,7 @@ pub fn dijkstra_all_shortest_paths<
 
                 state.distances.insert(neighbor, new_distance);
                 prevs.insert(node);
-                queue.push(DijkstraVertex {
+                state.queue.push(DijkstraVertex {
                     distance: new_distance,
                     node: neighbor,
                 });
@@ -148,24 +154,18 @@ pub fn dijkstra_all_shortest_paths<
     }
 }
 
-pub fn dijkstra<
+pub fn dijkstra_with_state<
     Node: Hash + Eq + Copy,
     P: Add<P, Output = P> + Ord + Default + Copy,
     I: Iterator<Item = (Node, P)>,
     IsEnd: Fn(&Node) -> bool,
     Neighbors: Fn(&Node) -> I,
 >(
-    start: Node,
+    state: &mut DijkstraState<Node, P>,
     is_end: IsEnd,
     neighbors: Neighbors,
 ) -> Option<Vec<(Node, P)>> {
-    let mut state = DijkstraState::new(start);
-    let mut queue: BinaryHeap<DijkstraVertex<Node, P>> = BinaryHeap::from([DijkstraVertex {
-        distance: P::default(),
-        node: start,
-    }]);
-
-    while let Some(DijkstraVertex { distance, node }) = queue.pop() {
+    while let Some(DijkstraVertex { distance, node }) = state.queue.pop() {
         if is_end(&node) {
             state.found_ends.push((node, distance));
             break;
@@ -183,7 +183,7 @@ pub fn dijkstra<
 
                     set
                 });
-                queue.push(DijkstraVertex {
+                state.queue.push(DijkstraVertex {
                     distance: new_distance,
                     node: neighbor,
                 });
@@ -205,4 +205,18 @@ pub fn dijkstra<
     } else {
         None
     }
+}
+
+pub fn dijkstra<
+    Node: Hash + Eq + Copy,
+    P: Add<P, Output = P> + Ord + Default + Copy,
+    I: Iterator<Item = (Node, P)>,
+    IsEnd: Fn(&Node) -> bool,
+    Neighbors: Fn(&Node) -> I,
+>(
+    start: Node,
+    is_end: IsEnd,
+    neighbors: Neighbors,
+) -> Option<Vec<(Node, P)>> {
+    dijkstra_with_state(&mut DijkstraState::new(start), is_end, neighbors)
 }

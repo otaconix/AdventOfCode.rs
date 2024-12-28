@@ -653,8 +653,8 @@ name = "aoc-2024-18"
 version = "0.1.0"
 dependencies = [
  "aoc-timing",
+ "dijkstra",
  "env_logger",
- "fxhash",
  "grid",
  "itertools 0.13.0",
 ]

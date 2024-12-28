@@ -1,8 +1,8 @@
-use std::collections::BTreeSet;
 use std::io;
 
 use aoc_timing::trace::log_run;
-use fxhash::FxHashMap;
+use dijkstra::DijkstraState;
+use dijkstra::DijkstraVertex;
 use grid::Grid;
 use itertools::Itertools;
 
@@ -30,125 +30,39 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
         .collect()
 }
 
-#[derive(PartialEq, Eq)]
-struct QueueItem {
-    distance: usize,
-    position: Coord,
-}
-
-impl QueueItem {
-    fn new(priority: usize, position: Coord) -> Self {
-        Self {
-            distance: priority,
-            position,
-        }
-    }
-}
-
-impl Ord for QueueItem {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        other
-            .distance
-            .cmp(&self.distance)
-            .then_with(|| self.position.cmp(&other.position))
-    }
-}
-
-impl PartialOrd for QueueItem {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-fn dijkstra(map: &Grid<Cell>, start_position: Coord, end_position: Coord) -> Option<usize> {
-    let mut distances = FxHashMap::default();
-    distances.insert(start_position, 0usize);
-    let mut queue = BTreeSet::from([QueueItem::new(0, start_position)]);
-
-    while let Some(QueueItem {
-        distance,
-        position: position @ (x, y),
-    }) = queue.pop_last()
-    {
-        if position == end_position {
-            // We've found the end!
-            return Some(distance);
-        }
-
-        for potential_next in [
-            Some((x + 1, y)),
-            Some((x, y + 1)),
-            x.checked_sub(1).map(|x| (x, y)),
-            y.checked_sub(1).map(|y| (x, y)),
-        ]
-        .into_iter()
-        .flatten()
-        .filter(|(column, row)| {
-            *column < map.width()
-                && *row < map.height()
-                && map.get(*column, *row).unwrap() != &Cell::Corrupted
-        }) {
-            {
-                if distances.get(&potential_next).unwrap_or(&usize::MAX) > &distance {
-                    distances.insert(potential_next, distance + 1);
-                    queue.insert(QueueItem::new(distance + 1, potential_next));
-                }
-            }
-        }
-    }
-
-    None
-}
-
 fn dijkstra_with_falling_blocks(
     mut map: Grid<Cell>,
     start_position: Coord,
     end_position: Coord,
     mut falling_blocks: Vec<Coord>,
 ) -> Option<Coord> {
-    let mut distances = FxHashMap::default();
-    distances.insert(start_position, 0usize);
-    let mut queue = BTreeSet::from([QueueItem::new(0, start_position)]);
+    let mut dijkstra_state = DijkstraState::new(start_position);
     let mut last_removed_corrupted_block = None;
 
-    'outer_loop: while let Some(corrupted_block) = falling_blocks.pop() {
-        while let Some(QueueItem {
-            distance,
-            position: position @ (x, y),
-        }) = queue.pop_last()
-        {
-            if map.get(x, y).unwrap() == &Cell::Corrupted {
-                continue;
-            }
+    while let Some(corrupted_block) = falling_blocks.pop() {
+        dijkstra::dijkstra_with_state(
+            &mut dijkstra_state,
+            |coord| coord == &end_position,
+            |(x, y)| {
+                let is_corrupted = map.get(*x, *y).unwrap() == &Cell::Corrupted;
+                map.get_neighbors(*x, *y)
+                    .into_iter()
+                    .map(|coord| (coord, 1))
+                    .filter(move |_| !is_corrupted)
+            },
+        );
 
-            if position == end_position {
-                // We've found the end!
-                break 'outer_loop;
-            }
-
-            for potential_next in [
-                Some((x + 1, y)),
-                Some((x, y + 1)),
-                x.checked_sub(1).map(|x| (x, y)),
-                y.checked_sub(1).map(|y| (x, y)),
-            ]
-            .into_iter()
-            .flatten()
-            .filter(|(column, row)| *column < map.width() && *row < map.height())
-            {
-                {
-                    if distances.get(&potential_next).unwrap_or(&usize::MAX) > &distance {
-                        distances.insert(potential_next, distance + 1);
-                        queue.insert(QueueItem::new(distance + 1, potential_next));
-                    }
-                }
-            }
+        if !dijkstra_state.found_ends.is_empty() {
+            break;
         }
 
         last_removed_corrupted_block = Some(corrupted_block);
         map.update(corrupted_block.0, corrupted_block.1, Cell::Empty);
-        if distances.contains_key(&corrupted_block) {
-            queue.insert(QueueItem::new(distances[&corrupted_block], corrupted_block));
+        if dijkstra_state.distances.contains_key(&corrupted_block) {
+            dijkstra_state.queue.push(DijkstraVertex::new(
+                corrupted_block,
+                dijkstra_state.distances[&corrupted_block],
+            ));
         }
     }
 
@@ -162,7 +76,23 @@ fn part_1(input: &Input, side: usize, bytes: usize) -> Output1 {
         space.update(*x, *y, Cell::Corrupted);
     }
 
-    dijkstra(&space, (0, 0), (side - 1, side - 1)).unwrap()
+    {
+        let map: &Grid<Cell> = &space;
+        let start_position = (0, 0);
+        let end_position = (side - 1, side - 1);
+        dijkstra::dijkstra(
+            start_position,
+            |coord| coord == &end_position,
+            |(x, y)| {
+                map.get_neighbors(*x, *y)
+                    .into_iter()
+                    .filter(|(column, row)| map.get(*column, *row).unwrap() != &Cell::Corrupted)
+                    .map(|coord| (coord, 1))
+            },
+        )
+        .map(|path| path.len() - 1)
+    }
+    .unwrap()
 }
 
 fn part_2(input: &Input, side: usize) -> Output2 {
