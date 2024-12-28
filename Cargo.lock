@@ -636,6 +636,7 @@ dependencies = [
  "direction",
  "env_logger",
  "grid",
+ "itertools 0.13.0",
 ]
 
 [[package]]

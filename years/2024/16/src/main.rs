@@ -4,6 +4,7 @@ use std::io;
 use aoc_timing::trace::log_run;
 use direction::Direction;
 use grid::Grid;
+use itertools::Itertools;
 
 #[derive(PartialEq, Eq)]
 enum Tile {
@@ -58,7 +59,7 @@ fn dijkstra(
     reindeer_position: Coord,
     end_position: Coord,
 ) -> (usize, HashSet<Coord>) {
-    let all_shortest_paths = dijkstra::dijkstra_all_shortest_paths(
+    let dijkstra_state = dijkstra::dijkstra_all_shortest_paths(
         (reindeer_position, Direction::Right),
         |(position, _)| position == &end_position,
         |(position, direction)| {
@@ -84,18 +85,26 @@ fn dijkstra(
     )
     .unwrap();
 
-    let shortest_distance = all_shortest_paths
-        .first()
-        .map(|path| path.last().map(|(_, distance)| distance).unwrap())
-        .unwrap();
+    let mut queue = dijkstra_state
+        .found_ends
+        .iter()
+        .cloned()
+        .min_set_by_key(|(_, distance)| *distance)
+        .into_iter()
+        .map(|(node, _)| node)
+        .collect_vec();
+    let minimal_distance = dijkstra_state.distances[&queue[0]];
+    let mut nodes_in_shortest_paths = HashSet::default();
 
-    (
-        *shortest_distance,
-        all_shortest_paths
-            .into_iter()
-            .flat_map(|path| path.into_iter().map(|((coord, _), _)| coord))
-            .collect(),
-    )
+    while let Some(node @ (coord, _)) = queue.pop() {
+        nodes_in_shortest_paths.insert(coord);
+
+        if let Some(prevs) = dijkstra_state.prevs.get(&node) {
+            queue.append(&mut prevs.iter().copied().collect());
+        }
+    }
+
+    (minimal_distance, nodes_in_shortest_paths)
 }
 
 fn part_1((shortest_distance, _): &Input) -> Output {

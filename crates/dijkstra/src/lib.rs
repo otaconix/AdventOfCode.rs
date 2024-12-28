@@ -25,6 +25,32 @@ impl<T: Eq, P: Ord> Ord for DijkstraVertex<T, P> {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct DijkstraState<Node: Hash + Eq + Copy, P: Add<P, Output = P> + Ord + Default + Copy> {
+    pub prevs: FxHashMap<Node, FxHashSet<Node>>,
+    pub distances: FxHashMap<Node, P>,
+    pub found_ends: Vec<(Node, P)>,
+}
+
+impl<Node, P> DijkstraState<Node, P>
+where
+    Node: Hash + Eq + Copy,
+    P: Add<P, Output = P> + Ord + Default + Copy,
+{
+    fn new(initial_node: Node) -> Self {
+        Self {
+            prevs: FxHashMap::default(),
+            distances: {
+                let mut distances = FxHashMap::default();
+                distances.insert(initial_node, P::default());
+
+                distances
+            },
+            found_ends: Vec::new(),
+        }
+    }
+}
+
 fn build_path<Node: Hash + Eq + Copy, P: Copy>(
     current_node: Node,
     prevs: &FxHashMap<Node, FxHashSet<Node>>,
@@ -49,7 +75,7 @@ fn build_path<Node: Hash + Eq + Copy, P: Copy>(
     }
 }
 
-fn build_minimal_paths<Node: Hash + Eq + Copy, P: Ord + Copy>(
+pub fn build_minimal_paths<Node: Hash + Eq + Copy, P: Ord + Copy>(
     ends: Vec<(Node, P)>,
     prevs: FxHashMap<Node, FxHashSet<Node>>,
     distances: FxHashMap<Node, P>,
@@ -77,37 +103,35 @@ pub fn dijkstra_all_shortest_paths<
     start: Node,
     is_end: IsEnd,
     neighbors: Neighbors,
-) -> Option<Vec<Vec<(Node, P)>>> {
+) -> Option<DijkstraState<Node, P>> {
+    let mut state = DijkstraState::new(start);
     let mut queue: BinaryHeap<DijkstraVertex<Node, P>> = BinaryHeap::from([DijkstraVertex {
         distance: P::default(),
         node: start,
     }]);
-    let mut prevs: FxHashMap<Node, FxHashSet<Node>> = FxHashMap::default();
-    let mut distances: FxHashMap<Node, P> = FxHashMap::default();
-    distances.insert(start, P::default());
-    let mut found_ends = vec![];
 
     while let Some(DijkstraVertex { distance, node }) = queue.pop() {
         if is_end(&node) {
-            found_ends.push((node, distance));
+            state.found_ends.push((node, distance));
             continue;
         }
 
         for (neighbor, neighbor_distance) in neighbors(&node) {
             let new_distance = neighbor_distance + distance;
-            let distance_compared_to_original = distances
+            let distance_compared_to_original = state
+                .distances
                 .get(&neighbor)
                 .map(|existing_distance| new_distance.cmp(existing_distance))
                 .unwrap_or(std::cmp::Ordering::Less);
 
             if distance_compared_to_original.is_le() {
-                let prevs = prevs.entry(neighbor).or_default();
+                let prevs = state.prevs.entry(neighbor).or_default();
 
                 if distance_compared_to_original.is_lt() {
                     prevs.clear();
                 }
 
-                distances.insert(neighbor, new_distance);
+                state.distances.insert(neighbor, new_distance);
                 prevs.insert(node);
                 queue.push(DijkstraVertex {
                     distance: new_distance,
@@ -117,16 +141,11 @@ pub fn dijkstra_all_shortest_paths<
         }
     }
 
-    build_minimal_paths(found_ends, prevs, distances).map(|paths| {
-        paths
-            .into_iter()
-            .map(|mut path| {
-                path.reverse();
-
-                path
-            })
-            .collect()
-    })
+    if !state.found_ends.is_empty() {
+        Some(state)
+    } else {
+        None
+    }
 }
 
 pub fn dijkstra<
@@ -140,28 +159,30 @@ pub fn dijkstra<
     is_end: IsEnd,
     neighbors: Neighbors,
 ) -> Option<Vec<(Node, P)>> {
+    let mut state = DijkstraState::new(start);
     let mut queue: BinaryHeap<DijkstraVertex<Node, P>> = BinaryHeap::from([DijkstraVertex {
         distance: P::default(),
         node: start,
     }]);
-    let mut prevs: FxHashMap<Node, Node> = FxHashMap::default();
-    let mut distances: FxHashMap<Node, P> = FxHashMap::default();
-    distances.insert(start, P::default());
-    let mut found_end = None;
 
     while let Some(DijkstraVertex { distance, node }) = queue.pop() {
         if is_end(&node) {
-            found_end = Some(node);
+            state.found_ends.push((node, distance));
             break;
         }
 
         for (neighbor, neighbor_distance) in neighbors(&node) {
             let new_distance = neighbor_distance + distance;
-            let existing_distance = distances.get(&neighbor);
+            let existing_distance = state.distances.get(&neighbor);
 
             if existing_distance.is_none() || &new_distance < existing_distance.unwrap() {
-                distances.insert(neighbor, new_distance);
-                prevs.insert(neighbor, node);
+                state.distances.insert(neighbor, new_distance);
+                state.prevs.insert(neighbor, {
+                    let mut set = FxHashSet::default();
+                    set.insert(node);
+
+                    set
+                });
                 queue.push(DijkstraVertex {
                     distance: new_distance,
                     node: neighbor,
@@ -170,9 +191,13 @@ pub fn dijkstra<
         }
     }
 
-    if let Some(end) = found_end {
-        let mut path = successors(Some((end, distances[&end])), |(current, _)| {
-            prevs.remove(current).map(|prev| (prev, distances[&prev]))
+    if let Some((end, _)) = state.found_ends.first() {
+        let mut path = successors(Some((*end, state.distances[end])), |(current, _)| {
+            state
+                .prevs
+                .remove(current)
+                .map(|prev| prev.into_iter().next().unwrap())
+                .map(|prev| (prev, state.distances[&prev]))
         })
         .collect::<Vec<_>>();
         path.reverse();
