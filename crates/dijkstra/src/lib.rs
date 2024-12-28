@@ -1,6 +1,5 @@
 use std::collections::BinaryHeap;
 use std::hash::Hash;
-use std::iter::successors;
 use std::ops::Add;
 
 use fxhash::FxHashMap;
@@ -35,7 +34,7 @@ pub struct DijkstraState<Node: Hash + Eq + Copy, P: Add<P, Output = P> + Ord + D
     pub queue: BinaryHeap<DijkstraVertex<Node, P>>,
     pub prevs: FxHashMap<Node, FxHashSet<Node>>,
     pub distances: FxHashMap<Node, P>,
-    pub found_ends: Vec<(Node, P)>,
+    pub found_ends: FxHashSet<(Node, P)>,
 }
 
 impl<Node, P> DijkstraState<Node, P>
@@ -52,60 +51,63 @@ where
 
                 distances
             },
-            found_ends: Vec::new(),
+            found_ends: FxHashSet::default(),
             queue: BinaryHeap::from([DijkstraVertex {
                 node: initial_node,
                 distance: P::default(),
             }]),
         }
     }
-}
 
-fn build_path<Node: Hash + Eq + Copy, P: Copy>(
-    current_node: Node,
-    prevs: &FxHashMap<Node, FxHashSet<Node>>,
-    distances: &FxHashMap<Node, P>,
-) -> Vec<Vec<(Node, P)>> {
-    if let Some(current_prevs) = prevs.get(&current_node) {
-        current_prevs
+    pub fn build_paths(&self) -> Option<Vec<Vec<(Node, P)>>> {
+        let result = self
+            .found_ends
             .iter()
-            .flat_map(|prev| {
-                build_path(*prev, prevs, distances)
-                    .into_iter()
-                    .map(|mut prev_path| {
-                        let mut path = vec![(current_node, distances[&current_node])];
-                        path.append(&mut prev_path);
-
-                        path
-                    })
-            })
-            .collect()
-    } else {
-        vec![vec![(current_node, distances[&current_node])]]
+            .flat_map(|(end, _)| self.build_path(*end))
+            .collect_vec();
+        if !result.is_empty() {
+            Some(result)
+        } else {
+            None
+        }
     }
-}
 
-pub fn build_minimal_paths<Node: Hash + Eq + Copy, P: Ord + Copy>(
-    ends: Vec<(Node, P)>,
-    prevs: FxHashMap<Node, FxHashSet<Node>>,
-    distances: FxHashMap<Node, P>,
-) -> Option<Vec<Vec<(Node, P)>>> {
-    let result = ends
-        .into_iter()
-        .min_set_by_key(|(_, distance)| *distance)
-        .into_iter()
-        .flat_map(|(end, _)| build_path(end, &prevs, &distances))
-        .collect_vec();
-    if !result.is_empty() {
-        Some(result)
-    } else {
-        None
+    pub fn build_minimal_paths(&self) -> Option<Vec<Vec<(Node, P)>>> {
+        let result = self
+            .found_ends
+            .iter()
+            .min_set_by_key(|(_, distance)| *distance)
+            .into_iter()
+            .flat_map(|(end, _)| self.build_path(*end))
+            .collect_vec();
+        if !result.is_empty() {
+            Some(result)
+        } else {
+            None
+        }
+    }
+
+    fn build_path(&self, current_node: Node) -> Vec<Vec<(Node, P)>> {
+        if let Some(current_prevs) = self.prevs.get(&current_node) {
+            current_prevs
+                .iter()
+                .flat_map(|prev| {
+                    self.build_path(*prev).into_iter().map(|mut prev_path| {
+                        prev_path.push((current_node, self.distances[&current_node]));
+
+                        prev_path
+                    })
+                })
+                .collect()
+        } else {
+            vec![vec![(current_node, self.distances[&current_node])]]
+        }
     }
 }
 
 pub fn dijkstra_all_shortest_paths<
     Node: Hash + Eq + Copy,
-    P: Add<P, Output = P> + Ord + Default + Copy,
+    P: Add<P, Output = P> + Ord + Default + Copy + Hash,
     I: Iterator<Item = (Node, P)>,
     IsEnd: Fn(&Node) -> bool,
     Neighbors: Fn(&Node) -> I,
@@ -118,7 +120,7 @@ pub fn dijkstra_all_shortest_paths<
 
     while let Some(DijkstraVertex { distance, node }) = state.queue.pop() {
         if is_end(&node) {
-            state.found_ends.push((node, distance));
+            state.found_ends.insert((node, distance));
             continue;
         }
 
@@ -156,7 +158,7 @@ pub fn dijkstra_all_shortest_paths<
 
 pub fn dijkstra_with_state<
     Node: Hash + Eq + Copy,
-    P: Add<P, Output = P> + Ord + Default + Copy,
+    P: Add<P, Output = P> + Ord + Default + Copy + Hash,
     I: Iterator<Item = (Node, P)>,
     IsEnd: Fn(&Node) -> bool,
     Neighbors: Fn(&Node) -> I,
@@ -167,7 +169,7 @@ pub fn dijkstra_with_state<
 ) -> Option<Vec<(Node, P)>> {
     while let Some(DijkstraVertex { distance, node }) = state.queue.pop() {
         if is_end(&node) {
-            state.found_ends.push((node, distance));
+            state.found_ends.insert((node, distance));
             break;
         }
 
@@ -191,25 +193,14 @@ pub fn dijkstra_with_state<
         }
     }
 
-    if let Some((end, _)) = state.found_ends.first() {
-        let mut path = successors(Some((*end, state.distances[end])), |(current, _)| {
-            state
-                .prevs
-                .remove(current)
-                .map(|prev| prev.into_iter().next().unwrap())
-                .map(|prev| (prev, state.distances[&prev]))
-        })
-        .collect::<Vec<_>>();
-        path.reverse();
-        Some(path)
-    } else {
-        None
-    }
+    state
+        .build_minimal_paths()
+        .map(|paths| paths.into_iter().next().unwrap())
 }
 
 pub fn dijkstra<
     Node: Hash + Eq + Copy,
-    P: Add<P, Output = P> + Ord + Default + Copy,
+    P: Add<P, Output = P> + Ord + Default + Copy + Hash,
     I: Iterator<Item = (Node, P)>,
     IsEnd: Fn(&Node) -> bool,
     Neighbors: Fn(&Node) -> I,

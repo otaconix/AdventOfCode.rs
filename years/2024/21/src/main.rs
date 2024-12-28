@@ -1,40 +1,11 @@
-use std::cmp::Ordering;
-use std::collections::BinaryHeap;
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::io;
 use std::iter::once;
 
 use aoc_timing::trace::log_run;
+use dijkstra::dijkstra_all_shortest_paths;
 use grid::Grid;
 use itertools::Itertools;
-
-#[derive(PartialEq, Eq)]
-struct Queued {
-    distance: usize,
-    coord: Coord,
-}
-
-impl Queued {
-    fn new(distance: usize, coord: Coord) -> Self {
-        Self { distance, coord }
-    }
-}
-
-impl Ord for Queued {
-    fn cmp(&self, other: &Self) -> Ordering {
-        other
-            .distance
-            .cmp(&self.distance)
-            .then_with(|| self.coord.cmp(&other.coord))
-    }
-}
-
-impl PartialOrd for Queued {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
 
 struct Input {
     codes: Vec<String>,
@@ -49,87 +20,35 @@ const NUMERIC_KEYPAD: &str = include_str!("numeric_keypad");
 const DIRECTIONAL_KEYPAD: &str = include_str!("directional_keypad");
 
 fn dijkstra_paths(map: &Grid<char>, start_position: Coord, end_position: Coord) -> Vec<String> {
-    let mut prev = HashMap::from([(start_position, HashSet::new())]);
-    let mut distances = HashMap::from([(start_position, 0usize)]);
-    let mut queue = BinaryHeap::from([Queued::new(0, start_position)]);
-
-    while let Some(current) = queue.pop() {
-        if current.coord == end_position {
-            // We've found the end! Don't stop entirely, but there's no point in going further
-            // along this path.
-            continue;
-        }
-
-        let prev_distance = distances[&current.coord];
-
-        for potential_next in [
-            Some((current.coord.0 + 1, current.coord.1)),
-            Some((current.coord.0, current.coord.1 + 1)),
-            current.coord.0.checked_sub(1).map(|x| (x, current.coord.1)),
-            current.coord.1.checked_sub(1).map(|y| (current.coord.0, y)),
-        ]
-        .into_iter()
-        .flatten()
-        .filter(|(column, row)| {
-            *column < map.width() && *row < map.height() && map.get(*column, *row).unwrap() != &'#'
-        }) {
-            {
-                let next_distance = prev_distance + 1;
-                let distance_compared_to_original = distances
-                    .get(&potential_next)
-                    .map(|original| next_distance.cmp(original))
-                    .unwrap_or(Ordering::Less);
-
-                if distance_compared_to_original.is_le() {
-                    let prevs = prev.entry(potential_next).or_default();
-
-                    if distance_compared_to_original.is_lt() {
-                        prevs.clear();
-                        distances.insert(potential_next, next_distance);
-                        queue.push(Queued::new(next_distance, potential_next));
-                    }
-                    prevs.insert(current.coord);
-                }
-            }
-        }
-    }
-
-    fn paths(current: &Coord, prev_map: &HashMap<Coord, HashSet<Coord>>) -> Vec<Vec<Coord>> {
-        if let Some(prevs) = prev_map.get(current).filter(|prevs| !prevs.is_empty()) {
-            prevs
-                .iter()
-                .flat_map(|prev| {
-                    paths(prev, prev_map)
-                        .into_iter()
-                        .map(|mut path| {
-                            path.push(*current);
-                            path
-                        })
-                        .collect::<Vec<_>>()
-                })
-                .collect()
-        } else {
-            vec![vec![*current]]
-        }
-    }
-
-    paths(&end_position, &prev)
-        .into_iter()
-        .map(|path| {
-            path.into_iter()
-                .tuple_windows()
-                .map(
-                    |(a, b)| match (a.0 as isize - b.0 as isize, a.1 as isize - b.1 as isize) {
-                        (-1, _) => '>',
-                        (1, _) => '<',
-                        (_, -1) => 'v',
-                        (_, 1) => '^',
-                        _ => panic!("More than one step?"),
-                    },
-                )
-                .collect()
-        })
-        .collect()
+    dijkstra_all_shortest_paths(
+        start_position,
+        |coord| coord == &end_position,
+        |(column, row)| {
+            map.get_neighbors(*column, *row)
+                .into_iter()
+                .filter(|(column, row)| map.get(*column, *row).unwrap() != &'#')
+                .map(|coord| (coord, 1))
+        },
+    )
+    .unwrap()
+    .build_minimal_paths()
+    .unwrap()
+    .into_iter()
+    .map(|path| {
+        use std::cmp::Ordering::*;
+        path.into_iter()
+            .map(|(coord, _)| coord)
+            .tuple_windows()
+            .map(|(a, b)| match (a.0.cmp(&b.0), a.1.cmp(&b.1)) {
+                (Less, _) => '>',
+                (Greater, _) => '<',
+                (_, Less) => 'v',
+                (_, Greater) => '^',
+                _ => panic!("More than one step?"),
+            })
+            .collect()
+    })
+    .collect()
 }
 
 fn path_movement(path: &str) -> usize {
@@ -146,12 +65,11 @@ fn path_movement(path: &str) -> usize {
         .tuple_windows()
         .map(|(a, b)| a.0.abs_diff(b.0) + a.1.abs_diff(b.1))
         .sum::<usize>()
-        + path.chars().dedup().count()
+        * path.chars().dedup().count()
         + path // prefer going right first
             .chars()
             .rev()
-            .enumerate()
-            .map(|(index, c)| if c == '>' { index } else { 0 })
+            .positions(|c| c == '>')
             .sum::<usize>()
 }
 

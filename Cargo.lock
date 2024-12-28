@@ -681,6 +681,8 @@ name = "aoc-2024-21"
 version = "0.1.0"
 dependencies = [
  "aoc-timing",
+ "dijkstra",
+ "direction",
  "env_logger",
  "grid",
  "itertools 0.13.0",
