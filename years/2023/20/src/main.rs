@@ -1,16 +1,17 @@
-use std::cell::OnceCell;
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::fmt::{Display, Formatter};
 use std::io;
 
 use aoc_timing::trace::log_run;
-use fxhash::FxHashMap;
-use log::debug;
+use log::{debug, log_enabled, trace};
+use rapidhash::RapidHashMap;
+use string_interner::{DefaultStringInterner, DefaultSymbol};
 
 #[derive(Debug, Clone)]
 struct Input {
-    links: HashMap<String, Vec<String>>,
-    modules: HashMap<String, Module>,
+    links: RapidHashMap<DefaultSymbol, Vec<DefaultSymbol>>,
+    modules: RapidHashMap<DefaultSymbol, Module>,
+    interner: DefaultStringInterner,
 }
 
 #[derive(Hash, Clone, Copy, Debug, PartialEq, Eq)]
@@ -26,7 +27,7 @@ enum Module {
         on: bool,
     },
     Conjunction {
-        last_inputs: FxHashMap<String, Pulse>,
+        last_inputs: RapidHashMap<DefaultSymbol, Pulse>,
     },
 }
 
@@ -53,7 +54,7 @@ impl Display for Module {
 
 impl Module {
     /// Process a pulse
-    fn process_pulse(&mut self, source: &str, pulse: Pulse) -> Option<Pulse> {
+    fn process_pulse(&mut self, source: DefaultSymbol, pulse: Pulse) -> Option<Pulse> {
         match self {
             Module::Broadcast => Some(pulse),
             Module::FlipFlop { ref mut on } => {
@@ -69,7 +70,7 @@ impl Module {
             Module::Conjunction {
                 ref mut last_inputs,
             } => {
-                last_inputs.insert(source.to_string(), pulse);
+                last_inputs.insert(source, pulse);
 
                 let output_pulse = if last_inputs
                     .values()
@@ -86,38 +87,41 @@ impl Module {
     }
 
     /// Register a new source.
-    fn register_source(&mut self, source: &str) {
+    fn register_source(&mut self, source: DefaultSymbol) {
         if let Module::Conjunction { last_inputs } = self {
-            last_inputs.insert(source.to_string(), Pulse::Low);
+            last_inputs.insert(source, Pulse::Low);
         }
     }
 }
 
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
+    let mut interner = DefaultStringInterner::default();
     let (mut modules, links) = input.fold(
         (
-            HashMap::<String, Module>::default(),
-            HashMap::<String, Vec<String>>::default(),
+            RapidHashMap::<DefaultSymbol, Module>::default(),
+            RapidHashMap::<DefaultSymbol, Vec<DefaultSymbol>>::default(),
         ),
         |(mut modules, mut links), line| {
             let (name, destinations) = line.as_ref().split_once(" -> ").unwrap();
             let destinations = destinations
                 .split(", ")
-                .map(|name| name.to_string())
+                .map(|name| interner.get_or_intern(name))
                 .collect::<Vec<_>>();
 
             let (name, module) = match name.chars().next() {
                 Some('&') => (
                     name[1..].to_string(),
                     Module::Conjunction {
-                        last_inputs: FxHashMap::default(),
+                        last_inputs: RapidHashMap::default(),
                     },
                 ),
                 Some('%') => (name[1..].to_string(), Module::FlipFlop { on: false }),
                 _ => (name.to_string(), Module::Broadcast),
             };
 
-            modules.entry(name.clone()).or_insert(module);
+            let name = interner.get_or_intern(name);
+
+            modules.entry(name).or_insert(module);
             links.entry(name).or_default().extend(destinations);
 
             (modules, links)
@@ -127,28 +131,29 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     for (source, destinations) in &links {
         for destination in destinations {
             if let Some(module) = modules.get_mut(destination) {
-                module.register_source(source);
+                module.register_source(*source);
             }
         }
     }
 
-    Input { modules, links }
+    Input {
+        modules,
+        links,
+        interner,
+    }
 }
 
-const BUTTON_DESTINATIONS: OnceCell<Vec<String>> = OnceCell::new();
-
-fn push_button<S, F: Fn(S, (Pulse, &[String])) -> S>(
+fn push_button<S, F: Fn(S, (Pulse, &[DefaultSymbol])) -> S>(
     input: &mut Input,
     state: S,
     update_state: F,
 ) -> S {
-    debug!("== Pressing button ===");
     let mut pulse_queue = VecDeque::new();
-    let binding = BUTTON_DESTINATIONS;
+    let button_destinations = vec![input.interner.get_or_intern("broadcaster")];
     pulse_queue.push_back((
-        "button".to_string(),
+        input.interner.get_or_intern("button"),
         Pulse::Low,
-        binding.get_or_init(|| vec!["broadcaster".to_string()]),
+        &button_destinations,
     ));
 
     let mut state = state;
@@ -157,17 +162,19 @@ fn push_button<S, F: Fn(S, (Pulse, &[String])) -> S>(
         state = update_state(state, (pulse, destinations));
 
         pulse_queue.extend(destinations.iter().filter_map(|destination| {
-            debug!("{source} -{pulse:?}-> {destination}");
-            if let Some(module) = input.modules.get_mut(destination) {
-                module.process_pulse(&source, pulse).and_then(|new_pulse| {
+            input.modules.get_mut(destination).and_then(|module| {
+                trace!(
+                    "{} -{pulse:?}-> {}",
+                    input.interner.resolve(source).unwrap(),
+                    input.interner.resolve(*destination).unwrap()
+                );
+                module.process_pulse(source, pulse).and_then(|new_pulse| {
                     input
                         .links
                         .get(destination)
-                        .map(|destinations| (destination.to_string(), new_pulse, destinations))
+                        .map(|destinations| (*destination, new_pulse, destinations))
                 })
-            } else {
-                None
-            }
+            })
         }));
     }
 
@@ -188,7 +195,6 @@ fn part_1(input: &Input) -> usize {
         )
     });
 
-    debug!("Sent: low={sent_low}; high={sent_high}");
     sent_low * sent_high
 }
 
@@ -201,11 +207,12 @@ fn part_1(input: &Input) -> usize {
 /// which all of them output a _low_ pulse.
 fn part_2(input: &Input) -> usize {
     let mut input: Input = input.clone();
+    let rx = input.interner.get_or_intern("rx");
     let rx_input = input
         .links
         .iter()
         .find_map(|(module, destinations)| {
-            if destinations.contains(&"rx".to_string()) {
+            if destinations.contains(&rx) {
                 Some(module)
             } else {
                 None
@@ -227,14 +234,14 @@ fn part_2(input: &Input) -> usize {
 
     use std::ops::ControlFlow::*;
 
-    let input_inputs_lows = (1..).try_fold(FxHashMap::default(), |state, button_presses| {
+    let input_inputs_lows = (1..).try_fold(RapidHashMap::default(), |state, button_presses| {
         let state = push_button(&mut input, state, |mut state, (pulse, destinations)| {
             if pulse == Pulse::Low {
                 rx_input_inputs
                     .iter()
                     .filter(|input_inputs| destinations.contains(*input_inputs))
                     .for_each(|input_input| {
-                        state.insert(input_input, button_presses);
+                        state.entry(input_input).or_insert(button_presses);
                     });
             }
 
@@ -262,17 +269,27 @@ fn main() {
             parse(io::stdin().lines().map(|result| result.expect("I/O error")))
         });
 
-        // log_run("Writing dot for input", || {
-        //     println!("digraph {{");
-        //     for (name, module) in &input.modules {
-        //         println!("  {name} [label=\"{}{name}\"]", module.symbol());
-        //
-        //         for destination in input.links.get(name).unwrap_or(&vec![]) {
-        //             println!("  {name} -> {destination}")
-        //         }
-        //     }
-        //     println!("}}");
-        // });
+        if log_enabled!(log::Level::Debug) {
+            log_run("Writing dot for input", || {
+                debug!("digraph {{");
+                for (name, module) in &input.modules {
+                    debug!(
+                        "  {0} [label=\"{1}{0}\"]",
+                        input.interner.resolve(*name).unwrap(),
+                        module.symbol()
+                    );
+
+                    for destination in input.links.get(name).unwrap_or(&vec![]) {
+                        debug!(
+                            "  {} -> {}",
+                            input.interner.resolve(*name).unwrap(),
+                            input.interner.resolve(*destination).unwrap()
+                        );
+                    }
+                }
+                debug!("}}");
+            });
+        }
 
         let part_1 = log_run("Part 1", || part_1(&input));
         println!("Part 1: {part_1}");
