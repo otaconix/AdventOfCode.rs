@@ -11,4 +11,4 @@ dijkstra = { version = "0.1.0", path = "../../../crates/dijkstra" }
 direction = { version = "0.1.0", path = "../../../crates/direction" }
 env_logger = "0.11.3"
 grid = { version = "0.1.0", path = "../../../crates/grid" }
-itertools = "0.13.0"
+itertools = "0.14.0"
