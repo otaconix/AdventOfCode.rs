@@ -102,12 +102,4 @@ mod tests {
 
         assert_eq!(result, 16);
     }
-
-    #[test]
-    fn test_part_2() {
-        let input = parse(INPUT.lines());
-        let result = part_2(&input);
-
-        assert_eq!(result, 0);
-    }
 }
