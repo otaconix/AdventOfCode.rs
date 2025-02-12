@@ -4,7 +4,7 @@ use nom::{
     bytes::complete::tag,
     character::complete::{char, u8},
     multi::separated_list1,
-    sequence::{preceded, terminated, tuple},
+    sequence::{preceded, terminated},
     IResult, Parser,
 };
 use std::io;
@@ -27,7 +27,7 @@ impl Game {
         let id = preceded(tag("Game "), u8);
         let sets = separated_list1(tag("; "), Set::parser);
 
-        tuple((terminated(id, tag(": ")), sets))
+        (terminated(id, tag(": ")), sets)
             .map(|(id, sets)| Game { id, sets })
             .parse(input)
     }
@@ -37,10 +37,10 @@ impl Set {
     fn parser(input: &str) -> IResult<&str, Self> {
         separated_list1(
             tag(", "),
-            tuple((
+            (
                 terminated(u8, char(' ')),
                 alt((tag("red"), tag("green"), tag("blue"))),
-            )),
+            ),
         )
         .map(|cubes_list| {
             let mut set = Set::default();

@@ -6,37 +6,37 @@ use nom::{
     character::complete::{alphanumeric1, char, u64},
     combinator::{opt, value},
     multi::separated_list0,
-    sequence::{delimited, preceded, terminated, tuple},
+    sequence::{delimited, preceded, terminated},
     IResult, Parser,
 };
 
 type ParseResult<'a, T> = IResult<&'a str, T>;
 
 pub(crate) fn named_workflow_parser(input: &str) -> ParseResult<NamedWorkflow> {
-    tuple((
+    (
         alphanumeric1,
         delimited(
             char('{'),
             separated_list0(char(','), conditional_destination_parser),
             char('}'),
         ),
-    ))
-    .map(|(name, conditions)| NamedWorkflow {
-        name: name.to_string(),
-        workflow: Workflow { conditions },
-    })
-    .parse(input)
+    )
+        .map(|(name, conditions)| NamedWorkflow {
+            name: name.to_string(),
+            workflow: Workflow { conditions },
+        })
+        .parse(input)
 }
 
 pub(crate) fn part_parser(input: &str) -> ParseResult<Part> {
     delimited(
         char('{'),
-        tuple((
+        (
             preceded(tag("x="), usize),
             preceded(tag(",m="), usize),
             preceded(tag(",a="), usize),
             preceded(tag(",s="), usize),
-        )),
+        ),
         char('}'),
     )
     .map(|(x_rating, m_rating, a_rating, s_rating)| Part {
@@ -49,20 +49,20 @@ pub(crate) fn part_parser(input: &str) -> ParseResult<Part> {
 }
 
 fn conditional_destination_parser(input: &str) -> ParseResult<ConditionalDestination> {
-    let less_than = tuple((terminated(category_parser, char('<')), usize))
+    let less_than = (terminated(category_parser, char('<')), usize)
         .map(|(category, n)| Condition::LessThan(category, n));
-    let greater_than = tuple((terminated(category_parser, char('>')), usize))
+    let greater_than = (terminated(category_parser, char('>')), usize)
         .map(|(category, n)| Condition::GreaterThan(category, n));
 
-    tuple((
+    (
         opt(terminated(alt((less_than, greater_than)), char(':'))),
         destination_parser,
-    ))
-    .map(|(condition, destination)| ConditionalDestination {
-        condition: condition.unwrap_or(Condition::Unconditional),
-        destination,
-    })
-    .parse(input)
+    )
+        .map(|(condition, destination)| ConditionalDestination {
+            condition: condition.unwrap_or(Condition::Unconditional),
+            destination,
+        })
+        .parse(input)
 }
 
 fn destination_parser(input: &str) -> ParseResult<Destination> {
