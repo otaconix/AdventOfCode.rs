@@ -4,7 +4,7 @@ use nom::{
     character::complete::{char, u32},
     combinator::{opt, value},
     multi::{many0, many1},
-    sequence::{preceded, terminated, tuple},
+    sequence::{preceded, terminated},
     IResult, Parser,
 };
 
@@ -16,13 +16,14 @@ fn resource_parser(input: &str) -> IResult<&str, Resource> {
         value(Resource::Clay, tag("clay")),
         value(Resource::Obsidian, tag("obsidian")),
         value(Resource::Geode, tag("geode")),
-    ))(input)
+    ))
+    .parse(input)
 }
 
 fn resources_parser(input: &str) -> IResult<&str, Resources> {
     let single_cost = || terminated(u32, char(' ')).and(resource_parser);
 
-    tuple((single_cost(), many0(preceded(tag(" and "), single_cost()))))
+    (single_cost(), many0(preceded(tag(" and "), single_cost())))
         .map(|(first, rest)| {
             let mut result = Resources::default();
 
@@ -39,18 +40,18 @@ pub(crate) fn blueprint_parser(input: &str) -> IResult<&str, Blueprint> {
     let robot_cost_parser = preceded(
         tag("Each "),
         terminated(
-            tuple((
+            (
                 resource_parser,
                 preceded(tag(" robot costs "), resources_parser),
-            )),
+            ),
             char('.').and(opt(char(' '))),
         ),
     );
 
-    tuple((
+    (
         terminated(preceded(tag("Blueprint "), u32), tag(": ")),
         many1(robot_cost_parser),
-    ))
-    .map(|x| Blueprint::new(x.0, x.1.into_iter().collect()))
-    .parse(input)
+    )
+        .map(|x| Blueprint::new(x.0, x.1.into_iter().collect()))
+        .parse(input)
 }

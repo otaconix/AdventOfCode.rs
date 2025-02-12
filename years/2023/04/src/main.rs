@@ -3,7 +3,7 @@ use nom::bytes::complete::tag;
 use nom::character::complete::{char, space1, u8};
 use nom::combinator::all_consuming;
 use nom::multi::separated_list1;
-use nom::sequence::{pair, preceded, terminated, tuple};
+use nom::sequence::{pair, preceded, terminated};
 use nom::{IResult, Parser};
 use std::io;
 
@@ -18,16 +18,16 @@ impl ScratchCard {
         let id = preceded(tag("Card").and(space1), u8);
         let numbers = || separated_list1(space1, u8);
 
-        tuple((
+        (
             terminated(id, pair(char(':'), space1)),
             numbers(),
             preceded(tag(" |").and(space1), all_consuming(numbers())),
-        ))
-        .map(|(_, winning_numbers, scratched_numbers)| ScratchCard {
-            winning_numbers,
-            scratched_numbers,
-        })
-        .parse(input)
+        )
+            .map(|(_, winning_numbers, scratched_numbers)| ScratchCard {
+                winning_numbers,
+                scratched_numbers,
+            })
+            .parse(input)
     }
 }
 
