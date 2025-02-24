@@ -6,7 +6,7 @@ use syn::{self, Data, DeriveInput};
 pub fn derive_enum_variants(input: TokenStream) -> TokenStream {
     let ast = syn::parse_macro_input!(input as DeriveInput);
 
-    if let Data::Enum(enum_data) = ast.data {
+    match ast.data { Data::Enum(enum_data) => {
         let ident = ast.ident;
         let variant_count = enum_data.variants.len();
         let variants = enum_data.variants.iter();
@@ -23,7 +23,7 @@ pub fn derive_enum_variants(input: TokenStream) -> TokenStream {
         };
 
         implementation.into()
-    } else {
+    } _ => {
         todo!()
-    }
+    }}
 }

@@ -57,7 +57,7 @@ impl Module {
     fn process_pulse(&mut self, source: DefaultSymbol, pulse: Pulse) -> Option<Pulse> {
         match self {
             Module::Broadcast => Some(pulse),
-            Module::FlipFlop { ref mut on } => {
+            Module::FlipFlop { on } => {
                 if matches!(pulse, Pulse::Low) {
                     *on = !*on;
                     let output_pulse = if *on { Pulse::High } else { Pulse::Low };
@@ -68,7 +68,7 @@ impl Module {
                 }
             }
             Module::Conjunction {
-                ref mut last_inputs,
+                last_inputs,
             } => {
                 last_inputs.insert(source, pulse);
 

@@ -32,7 +32,7 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
         }
     });
 
-    if let State::Designs(towels, designs) = end_state {
+    match end_state { State::Designs(towels, designs) => {
         let mut cache = Default::default();
         let towels: FxHashMap<_, Vec<_>> =
             towels
@@ -48,9 +48,9 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
             .iter()
             .map(|design| design_combinations(design, &towels, &mut cache))
             .collect()
-    } else {
+    } _ => {
         panic!("Didn't reach the designs part of the input?");
-    }
+    }}
 }
 
 fn design_combinations<'a>(

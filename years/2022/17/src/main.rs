@@ -93,7 +93,7 @@ mod solution {
             }
         }
 
-        fn bytes(&self) -> impl Iterator<Item = u8> {
+        fn bytes(&self) -> impl Iterator<Item = u8> + use<> {
             // `to_le_bytes()` because reasons...
             // I know of endianness, but everytime I have to think about it, my brain
             // hurts. There's a relation to the endianness here, and how we've had to

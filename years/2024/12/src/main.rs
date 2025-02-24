@@ -60,11 +60,11 @@ fn flood_group(grid: &Grid<char>) -> FxHashMap<char, Vec<FxHashSet<Coord>>> {
             }
         }
 
-        if let Some(regions) = result.get_mut(plant) {
+        match result.get_mut(plant) { Some(regions) => {
             regions.push(region);
-        } else {
+        } _ => {
             result.insert(*plant, vec![region]);
-        }
+        }}
     }
 
     result

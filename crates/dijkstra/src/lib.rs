@@ -88,7 +88,7 @@ where
     }
 
     fn build_path(&self, current_node: Node) -> Vec<Vec<(Node, P)>> {
-        if let Some(current_prevs) = self.prevs.get(&current_node) {
+        match self.prevs.get(&current_node) { Some(current_prevs) => {
             current_prevs
                 .iter()
                 .flat_map(|prev| {
@@ -99,9 +99,9 @@ where
                     })
                 })
                 .collect()
-        } else {
+        } _ => {
             vec![vec![(current_node, self.distances[&current_node])]]
-        }
+        }}
     }
 }
 
