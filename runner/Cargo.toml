@@ -6,7 +6,7 @@ edition = "2024"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-directories = "6"
-dotenvy = "0.15"
-reqwest = { version = "0.12", features = ["blocking", "stream", "cookies"] }
-clap = { version = "4.5.4", features = ["derive", "color", "env"] }
+directories = { workspace = true }
+dotenvy = { workspace = true }
+reqwest = { workspace = true, features = ["blocking", "stream", "cookies"] }
+clap = { workspace = true, features = ["derive", "color", "env"] }

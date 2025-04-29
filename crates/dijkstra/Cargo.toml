@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-fxhash = "0.2.1"
-itertools = "0.14.0"
+fxhash = { workspace = true }
+itertools = { workspace = true }

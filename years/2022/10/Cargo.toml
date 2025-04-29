@@ -6,5 +6,5 @@ edition = "2024"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-aoc-timing = { version = "0.1.0", path = "../../../crates/timing" }
-env_logger = "0.11.3"
+aoc-timing = { workspace = true }
+env_logger = { workspace = true }

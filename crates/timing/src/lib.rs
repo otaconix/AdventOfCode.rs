@@ -1,11 +1,12 @@
-use chrono::{Duration, Local};
+use jiff::Span;
+use jiff::Timestamp;
 use log::log;
-use log::{log_enabled, Level};
+use log::{Level, log_enabled};
 
-pub fn run<T, F: FnMut() -> T>(mut f: F) -> (T, Duration) {
-    let start = Local::now();
+pub fn run<T, F: FnMut() -> T>(mut f: F) -> (T, Span) {
+    let start = Timestamp::now();
     let result = f();
-    let end = Local::now();
+    let end = Timestamp::now();
 
     (result, end - start)
 }

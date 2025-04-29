@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-aoc-macros = { version = "0.1.0", path = "../macros" }
-aoc-utils = { version = "0.1.0", path = "../utils" }
+aoc-macros = { workspace = true }
+aoc-utils = { workspace = true }

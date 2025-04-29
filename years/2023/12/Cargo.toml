@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-aoc-timing = { version = "0.1.0", path = "../../../crates/timing" }
-env_logger = "0.11.3"
-itertools = "0.14.0"
-rayon = "1.10.0"
+aoc-timing = { workspace = true }
+env_logger = { workspace = true }
+itertools = { workspace = true }
+rayon = { workspace = true }

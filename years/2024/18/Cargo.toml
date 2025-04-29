@@ -6,8 +6,8 @@ edition = "2024"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-aoc-timing = { version = "0.1.0", path = "../../../crates/timing" }
-dijkstra = { version = "0.1.0", path = "../../../crates/dijkstra" }
-env_logger = "0.11.0"
-grid = { version = "0.1.0", path = "../../../crates/grid" }
-itertools = "0.14.0"
+aoc-timing = { workspace = true }
+dijkstra = { workspace = true }
+env_logger = { workspace = true }
+grid = { workspace = true }
+itertools = { workspace = true }
