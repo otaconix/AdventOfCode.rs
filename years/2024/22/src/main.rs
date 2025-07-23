@@ -2,8 +2,7 @@ use std::io;
 
 use aoc_timing::trace::log_run;
 use itertools::Itertools;
-use rapidhash::RapidBuildHasher;
-use rapidhash::RapidHashMap;
+use rapidhash::fast::{HashMapExt, RapidHashMap};
 
 type Input = Vec<usize>;
 type Output1 = usize;
@@ -88,7 +87,7 @@ fn part_2(input: &Input) -> Output2 {
                     .enumerate()
                     .map(|(diff_index, diff_window)| (diff_sequence_key(&diff_window), diff_index))
                     .fold(
-                        RapidHashMap::with_capacity_and_hasher(2000, RapidBuildHasher::default()),
+                        RapidHashMap::with_capacity(2000),
                         |mut diffs, (diff_key, diff_index)| {
                             diffs.entry(diff_key).or_insert(diff_index);
 
@@ -101,8 +100,7 @@ fn part_2(input: &Input) -> Output2 {
         },
     );
 
-    let mut sums: RapidHashMap<usize, usize> =
-        RapidHashMap::with_capacity_and_hasher(10_000, RapidBuildHasher::default());
+    let mut sums: RapidHashMap<usize, usize> = RapidHashMap::with_capacity(10_000);
 
     for (index, diffs) in diffs.iter().enumerate() {
         for (diff, diff_index) in diffs {

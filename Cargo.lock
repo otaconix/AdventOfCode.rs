@@ -1099,7 +1099,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33d852cb9b869c2a9b3df2f71a3074817f01e1844f839a144f5fcef059a4eb5d"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1715,7 +1715,7 @@ dependencies = [
  "portable-atomic",
  "portable-atomic-util",
  "serde",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2044,9 +2044,9 @@ checksum = "350932f7e8b2d0333d2537f42671a837473576c00e128fbee84c819ea08783b5"
 
 [[package]]
 name = "rapidhash"
-version = "1.4.0"
+version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9813f789f95ee4fe6b4d01834404d7cccacbc3f6c029343af910b3c2835eb9f1"
+checksum = "8e312283b0e9bf10b3b6c9379f7a5be03fa3de86f3b7922bc19c4e7bc97f6ad9"
 
 [[package]]
 name = "rayon"
@@ -2202,7 +2202,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2462,7 +2462,7 @@ dependencies = [
  "fastrand",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

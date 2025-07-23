@@ -4,7 +4,7 @@ use std::io;
 
 use aoc_timing::trace::log_run;
 use log::{debug, log_enabled, trace};
-use rapidhash::RapidHashMap;
+use rapidhash::fast::RapidHashMap;
 use string_interner::{DefaultStringInterner, DefaultSymbol};
 
 #[derive(Debug, Clone)]
@@ -67,9 +67,7 @@ impl Module {
                     None
                 }
             }
-            Module::Conjunction {
-                last_inputs,
-            } => {
+            Module::Conjunction { last_inputs } => {
                 last_inputs.insert(source, pulse);
 
                 let output_pulse = if last_inputs
