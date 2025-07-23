@@ -15,13 +15,13 @@ impl std::str::FromStr for SectionIdRange {
             Result::Ok(SectionIdRange {
                 start: start
                     .parse()
-                    .unwrap_or_else(|_| panic!("Couldn't parse range start: {}", start)),
+                    .unwrap_or_else(|_| panic!("Couldn't parse range start: {start}")),
                 end: end
                     .parse()
-                    .unwrap_or_else(|_| panic!("Couldn't parse range end: {}", end)),
+                    .unwrap_or_else(|_| panic!("Couldn't parse range end: {end}")),
             })
         } else {
-            Result::Err(format!("Couldn't parse SectionIdRange: {}", s))
+            Result::Err(format!("Couldn't parse SectionIdRange: {s}"))
         }
     }
 }
@@ -41,7 +41,7 @@ fn main() {
         .map(|line| {
             let (range_a, range_b) = line
                 .split_once(',')
-                .unwrap_or_else(|| panic!("Couldn't split input line into two: {}", line));
+                .unwrap_or_else(|| panic!("Couldn't split input line into two: {line}"));
 
             let range_a: RangeInclusive<_> = range_a.parse::<SectionIdRange>().unwrap().into();
             let range_b: RangeInclusive<_> = range_b.parse::<SectionIdRange>().unwrap().into();
@@ -60,7 +60,7 @@ fn main() {
             .count()
     });
 
-    println!("Part 1: {}", part_1);
+    println!("Part 1: {part_1}");
 
     let part_2 = log_run("Part 2", || {
         paired_ranges
@@ -69,5 +69,5 @@ fn main() {
             .count()
     });
 
-    println!("Part 2: {}", part_2);
+    println!("Part 2: {part_2}");
 }

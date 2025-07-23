@@ -171,7 +171,9 @@ fn maximum_possible_pressure_release_with_elephant<'a>(
 
                 new_paths.retain(|path| path.released > max_released - max_flow_rate);
 
-                let new_paths = new_paths
+                
+
+                new_paths
                     .iter()
                     .flat_map(|new_path| {
                         let mut new_elephant_paths = new_path
@@ -201,9 +203,7 @@ fn maximum_possible_pressure_release_with_elephant<'a>(
 
                         new_elephant_paths
                     })
-                    .collect::<Vec<_>>();
-
-                new_paths
+                    .collect::<Vec<_>>()
             })
             .collect::<Vec<_>>();
 
@@ -225,7 +225,7 @@ fn main() {
         .map(|result| result.expect("I/O error"))
         .map(|line| {
             line.parse::<Valve>()
-                .map_err(|e| format!("{}: {}", line, e))
+                .map_err(|e| format!("{line}: {e}"))
                 .unwrap()
         })
         .map(|valve| (valve.name.clone(), valve))

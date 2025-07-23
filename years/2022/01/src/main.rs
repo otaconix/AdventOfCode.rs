@@ -50,7 +50,7 @@ fn main() {
             .expect("Was there no input?")
     });
 
-    println!("Silver: {}", silver);
+    println!("Silver: {silver}");
 
     let gold: u32 = log_run("Part 2", || {
         let mut calories_per_elf: Vec<u32> = input.iter().map(|elf| elf.iter().sum()).collect();
@@ -59,5 +59,5 @@ fn main() {
         calories_per_elf.iter().take(3).sum()
     });
 
-    println!("Gold: {}", gold);
+    println!("Gold: {gold}");
 }

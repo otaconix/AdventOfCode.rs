@@ -66,7 +66,7 @@ fn main() {
                     .map(|n| {
                         n.to_string()
                             .parse()
-                            .unwrap_or_else(|_| panic!("{} could not be parsed as a number", n))
+                            .unwrap_or_else(|_| panic!("{n} could not be parsed as a number"))
                     })
                     .collect()
             })
@@ -80,7 +80,7 @@ fn main() {
             .count()
     });
 
-    println!("Part 1: {}", part_1);
+    println!("Part 1: {part_1}");
 
     let part_2 = log_run("Part 2", || {
         grid.coordinates()
@@ -89,5 +89,5 @@ fn main() {
             .unwrap()
     });
 
-    println!("Part 2: {}", part_2);
+    println!("Part 2: {part_2}");
 }

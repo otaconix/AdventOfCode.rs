@@ -183,9 +183,9 @@ struct Input {
 type Output = String;
 
 fn part_1(input: &Input) -> Output {
-    let result = Computer::new(input.registers, &input.instructions).run();
+    
 
-    result
+    Computer::new(input.registers, &input.instructions).run()
 }
 
 /// Silly algorithm, I guess.

@@ -59,8 +59,8 @@ impl FromStr for CommandLine {
             [size, name] => size
                 .parse::<u64>()
                 .map(|size| CommandLine::File(name.to_string(), size))
-                .map_err(|_| format!("Invalid commandline: {}", s)),
-            _ => Err(format!("Invalid commandline: {}", s)),
+                .map_err(|_| format!("Invalid commandline: {s}")),
+            _ => Err(format!("Invalid commandline: {s}")),
         }
     }
 }
@@ -144,7 +144,7 @@ fn main() {
             .sum()
     });
 
-    println!("Part 1: {}", part_1);
+    println!("Part 1: {part_1}");
 
     let part_2: u64 = log_run("Part 2", || {
         let total_used = fs.get(&root_path).unwrap().size(&fs);
@@ -159,5 +159,5 @@ fn main() {
             .expect("No solution to part 2 found?")
     });
 
-    println!("Part 2: {}", part_2);
+    println!("Part 2: {part_2}");
 }

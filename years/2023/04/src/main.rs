@@ -57,7 +57,7 @@ fn part_1(input: &[ScratchCard]) -> u32 {
 }
 
 fn part_2(input: &[ScratchCard]) -> usize {
-    let mut card_counts = std::iter::repeat(1).take(input.len()).collect::<Vec<_>>();
+    let mut card_counts = std::iter::repeat_n(1, input.len()).collect::<Vec<_>>();
 
     for index in 0..input.len() {
         if card_counts[index] == 0 {

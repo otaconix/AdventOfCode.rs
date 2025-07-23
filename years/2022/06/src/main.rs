@@ -27,12 +27,12 @@ fn main() {
             .expect("Didn't find window of 4 unique characters.")
             + 4
     });
-    println!("Part 1: {}", part_1);
+    println!("Part 1: {part_1}");
 
     let part_2 = log_run("Part 2", || {
         find_first_string_of_unique_characters(&input, 14)
             .expect("Didn't find window of 14 unique characters.")
             + 14
     });
-    println!("Part 2: {}", part_2);
+    println!("Part 2: {part_2}");
 }

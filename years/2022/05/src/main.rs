@@ -16,7 +16,7 @@ impl FromStr for InputCrate {
         match char_slice {
             ['[', id, ']', ..] => Ok(InputCrate::Crate(*id)),
             [' ', ' ', ' ', ..] => Ok(InputCrate::Empty),
-            _ => Err(format!("Couldn't parse crate: {}", s)),
+            _ => Err(format!("Couldn't parse crate: {s}")),
         }
     }
 }
@@ -49,7 +49,7 @@ impl FromStr for RearrangementStep {
                 to_stack: *to_stack,
             })
         } else {
-            Err(format!("Couldn't parse rearrangement step: {}", s))
+            Err(format!("Couldn't parse rearrangement step: {s}"))
         }
     }
 }
@@ -175,7 +175,7 @@ fn main() {
             .collect::<String>()
     });
 
-    println!("Part 1: {}", part_1);
+    println!("Part 1: {part_1}");
 
     let part_2 = log_run("Part 1", || {
         let mut stacks = input.stacks.clone();
@@ -189,5 +189,5 @@ fn main() {
             .collect::<String>()
     });
 
-    println!("Part 2: {}", part_2);
+    println!("Part 2: {part_2}");
 }

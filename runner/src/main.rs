@@ -64,7 +64,7 @@ fn get_input_file(opt: &Opt) -> Result<File, String> {
             ))
             .header(COOKIE, format!("session={}", opt.session))
             .send()
-            .map_err(|e| format!("{}", e))?
+            .map_err(|e| format!("{e}"))?
             .error_for_status()
             .map_err(|e| format!("Server responded with error: {e}"))?
             .text()

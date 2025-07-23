@@ -64,7 +64,7 @@ fn main() {
             .sum()
     });
 
-    println!("Silver: {}", silver);
+    println!("Silver: {silver}");
 
     let gold: u32 = log_run("Part 2", || {
         rucksacks
@@ -78,5 +78,5 @@ fn main() {
             .sum()
     });
 
-    println!("Gold: {}", gold);
+    println!("Gold: {gold}");
 }

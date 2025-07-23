@@ -24,7 +24,7 @@ impl RockPaperScissors {
             "A" => Rock,
             "B" => Paper,
             "C" => Scissors,
-            _ => panic!("Unexpected opponent hand: {}", str),
+            _ => panic!("Unexpected opponent hand: {str}"),
         }
     }
 
@@ -33,7 +33,7 @@ impl RockPaperScissors {
             "X" => Rock,
             "Y" => Paper,
             "Z" => Scissors,
-            _ => panic!("Unexpected own hand: {}", str),
+            _ => panic!("Unexpected own hand: {str}"),
         }
     }
 }
@@ -52,7 +52,7 @@ impl Outcome {
             "X" => Lose,
             "Y" => Draw,
             "Z" => Win,
-            _ => panic!("Unknown outcome detected in input: {}", str),
+            _ => panic!("Unknown outcome detected in input: {str}"),
         }
     }
 
@@ -131,6 +131,6 @@ fn main() {
             })
     });
 
-    println!("Silver: {}", silver);
-    println!("Gold: {}", gold);
+    println!("Silver: {silver}");
+    println!("Gold: {gold}");
 }

@@ -2,7 +2,6 @@ use aoc_timing::trace::log_run;
 use coord::Coordinate2D;
 use std::collections::HashSet;
 use std::io;
-use std::iter::repeat;
 use std::num::NonZeroUsize;
 use std::str::FromStr;
 
@@ -14,8 +13,7 @@ struct Rope {
 impl Rope {
     fn new(length: NonZeroUsize) -> Rope {
         Rope {
-            knots: repeat(Coordinate2D::new(0, 0))
-                .take(length.into())
+            knots: std::iter::repeat_n(Coordinate2D::new(0, 0), length.into())
                 .collect(),
         }
     }
