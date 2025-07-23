@@ -2,8 +2,7 @@ use std::io;
 
 use aoc_timing::trace::log_run;
 use itertools::Itertools;
-use rapidhash::RapidHashMap;
-use rapidhash::RapidHashSet;
+use rapidhash::fast::{RapidHashMap, RapidHashSet};
 
 struct Input {
     computers: RapidHashSet<String>,
