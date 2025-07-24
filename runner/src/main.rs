@@ -51,7 +51,9 @@ fn get_input_file(opt: &Opt) -> Result<File, String> {
         )
     })?;
 
-    if !cache_file.exists() {
+    if cache_file.exists() {
+        eprintln!("Puzzle input will be read from cache.");
+    } else {
         eprintln!("Puzzle input not cached, fetching from adventofcode.com");
         let client = ClientBuilder::new()
             .user_agent(&opt.contact_info)
@@ -70,9 +72,7 @@ fn get_input_file(opt: &Opt) -> Result<File, String> {
             .text()
             .map_err(|e| format!("Error retrieving response body: {e}"))?;
 
-        write(&cache_file, response).map_err(|e| format!("Couldn't write into cache: {e}"))?
-    } else {
-        eprintln!("Puzzle input will be read from cache.");
+        write(&cache_file, response).map_err(|e| format!("Couldn't write into cache: {e}"))?;
     }
 
     File::open(cache_file).map_err(|e| format!("Couldn't open input file: {e}"))

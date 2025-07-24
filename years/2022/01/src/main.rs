@@ -35,10 +35,10 @@ fn main() {
             },
         );
 
-    let input = if !input.1.is_empty() {
-        input.0.push(input.1);
+    let input = if input.1.is_empty() {
         input.0
     } else {
+        input.0.push(input.1);
         input.0
     };
 

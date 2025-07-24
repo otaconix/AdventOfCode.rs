@@ -26,7 +26,7 @@ impl<T: Eq, P: Ord> Ord for DijkstraVertex<T, P> {
 
 impl<N: Eq, P: Ord> DijkstraVertex<N, P> {
     pub fn new(node: N, distance: P) -> Self {
-        Self { node, distance }
+        Self { distance, node }
     }
 }
 
@@ -59,20 +59,20 @@ where
         }
     }
 
-    pub fn build_paths(&self) -> Option<Vec<Vec<(Node, P)>>> {
+    #[must_use] pub fn build_paths(&self) -> Option<Vec<Vec<(Node, P)>>> {
         let result = self
             .found_ends
             .iter()
             .flat_map(|(end, _)| self.build_path(*end))
             .collect_vec();
-        if !result.is_empty() {
-            Some(result)
-        } else {
+        if result.is_empty() {
             None
+        } else {
+            Some(result)
         }
     }
 
-    pub fn build_minimal_paths(&self) -> Option<Vec<Vec<(Node, P)>>> {
+    #[must_use] pub fn build_minimal_paths(&self) -> Option<Vec<Vec<(Node, P)>>> {
         let result = self
             .found_ends
             .iter()
@@ -80,10 +80,10 @@ where
             .into_iter()
             .flat_map(|(end, _)| self.build_path(*end))
             .collect_vec();
-        if !result.is_empty() {
-            Some(result)
-        } else {
+        if result.is_empty() {
             None
+        } else {
+            Some(result)
         }
     }
 
@@ -129,8 +129,7 @@ pub fn dijkstra_all_shortest_paths<
             let distance_compared_to_original = state
                 .distances
                 .get(&neighbor)
-                .map(|existing_distance| new_distance.cmp(existing_distance))
-                .unwrap_or(std::cmp::Ordering::Less);
+                .map_or(std::cmp::Ordering::Less, |existing_distance| new_distance.cmp(existing_distance));
 
             if distance_compared_to_original.is_le() {
                 let prevs = state.prevs.entry(neighbor).or_default();
@@ -149,10 +148,10 @@ pub fn dijkstra_all_shortest_paths<
         }
     }
 
-    if !state.found_ends.is_empty() {
-        Some(state)
-    } else {
+    if state.found_ends.is_empty() {
         None
+    } else {
+        Some(state)
     }
 }
 

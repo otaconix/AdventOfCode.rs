@@ -116,7 +116,7 @@ mod solution {
                 .skip(level)
                 .take(4)
                 .rev()
-                .fold(0, |acc, row| (acc << 8) | *row as u32)
+                .fold(0, |acc, row| (acc << 8) | u32::from(*row))
         }
 
         /// Returns the distance from top to the topmost settled rock per column of the
@@ -208,7 +208,7 @@ mod solution {
                 for x in [128, 64, 32, 16, 8, 4, 2, 1] {
                     write!(f, "{}", if row & x != 0 { '#' } else { '.' })?;
                 }
-                writeln!(f)?
+                writeln!(f)?;
             }
 
             Ok(())
@@ -217,7 +217,7 @@ mod solution {
 }
 
 use aoc_timing::trace::log_run;
-use solution::*;
+use solution::{Jet, Well, JetIterator};
 use std::io;
 
 fn main() {

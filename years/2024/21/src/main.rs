@@ -35,7 +35,7 @@ fn dijkstra_paths(map: &Grid<char>, start_position: Coord, end_position: Coord) 
     .unwrap()
     .into_iter()
     .map(|path| {
-        use std::cmp::Ordering::*;
+        use std::cmp::Ordering::{Less, Greater};
         path.into_iter()
             .map(|(coord, _)| coord)
             .tuple_windows()

@@ -1,5 +1,5 @@
 use aoc_timing::trace::log_run;
-use grid::*;
+use grid::Grid;
 use std::collections::{BinaryHeap, HashMap};
 use std::io;
 use std::iter::{once, successors};
@@ -83,11 +83,11 @@ fn main() {
             .coordinates()
             .filter(|(x, y)| input.get(*x, *y).unwrap().height() == 0)
             .filter_map(|start| shortest_path(&input, start))
-            .min_by_key(|path| path.len())
+            .min_by_key(std::vec::Vec::len)
             .expect("Couldn't find shortest path for part 2")
     });
     // print_grid_path(&input, &part_2);
-    println!("Part 2: {}", part_2.len() - 1)
+    println!("Part 2: {}", part_2.len() - 1);
 }
 
 fn shortest_path(grid: &Grid<Cell>, start: (usize, usize)) -> Option<Vec<(usize, usize)>> {
@@ -112,9 +112,7 @@ fn shortest_path(grid: &Grid<Cell>, start: (usize, usize)) -> Option<Vec<(usize,
         priority,
     }) = queue.pop()
     {
-        if distances[&current]
-            .map(|distance| distance != priority)
-            .unwrap_or(true)
+        if distances[&current] != Some(priority)
         {
             continue;
         }
@@ -135,11 +133,10 @@ fn shortest_path(grid: &Grid<Cell>, start: (usize, usize)) -> Option<Vec<(usize,
         .filter_map(|(x, y)| {
             x.zip(*y)
                 // Only cells with non-negative coordinates
-                .map(|coord @ (x, y)| {
+                .and_then(|coord @ (x, y)| {
                     if grid
                         .get(x, y)
-                        .map(|cell| cell.height() <= current_height + 1)
-                        .unwrap_or(false)
+                        .is_some_and(|cell| cell.height() <= current_height + 1)
                     {
                         // Only if height is at most one higher than current
                         Some(coord)
@@ -147,7 +144,6 @@ fn shortest_path(grid: &Grid<Cell>, start: (usize, usize)) -> Option<Vec<(usize,
                         None
                     }
                 })
-                .unwrap_or(None)
         })
         .for_each(|neighbor| {
             let distance = distances[&current].unwrap() + 1;
@@ -184,7 +180,7 @@ fn print_grid_path(grid: &Grid<Cell>, path: &[(usize, usize)]) {
                         let delta_x = next.0.cmp(&x);
                         let delta_y = next.1.cmp(&y);
 
-                        use std::cmp::Ordering::*;
+                        use std::cmp::Ordering::{Less, Greater};
                         match (delta_x, delta_y) {
                             (Less, _) => '<',
                             (Greater, _) => '>',

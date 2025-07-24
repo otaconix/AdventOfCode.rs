@@ -135,8 +135,8 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     }
 
     Input {
-        modules,
         links,
+        modules,
         interner,
     }
 }
@@ -227,10 +227,10 @@ fn part_2(input: &Input) -> usize {
                 None
             }
         })
-        .cloned()
+        .copied()
         .collect::<Vec<_>>();
 
-    use std::ops::ControlFlow::*;
+    use std::ops::ControlFlow::{Break, Continue};
 
     let input_inputs_lows = (1..).try_fold(RapidHashMap::default(), |state, button_presses| {
         let state = push_button(&mut input, state, |mut state, (pulse, destinations)| {

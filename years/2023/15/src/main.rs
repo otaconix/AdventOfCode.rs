@@ -7,7 +7,7 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Vec<String> {
         .flat_map(|line| {
             line.as_ref()
                 .split(',')
-                .map(|step| step.to_owned())
+                .map(std::borrow::ToOwned::to_owned)
                 .collect::<Vec<_>>()
         })
         .collect()
@@ -26,7 +26,7 @@ fn part_1(input: &[String]) -> usize {
 fn part_2(input: &[String]) -> usize {
     let mut boxes: Vec<Vec<(&str, usize)>> = (0..=u8::MAX).map(|_| Vec::new()).collect();
 
-    input.iter().for_each(|step| {
+    for step in input {
         let (label, focal_length) = step
             .split_once('-')
             .or_else(|| step.split_once('='))
@@ -47,7 +47,7 @@ fn part_2(input: &[String]) -> usize {
         } else {
             boxes[label_hash].retain_mut(|(l, _)| l != &label);
         }
-    });
+    }
 
     (1usize..)
         .zip(boxes)

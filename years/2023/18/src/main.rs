@@ -60,15 +60,13 @@ fn dug_out_circumference(polygon: &[(i64, i64)]) -> i64 {
 ///
 /// We want the area *including* the circumference.
 fn dug_out_area(polygon: &[(i64, i64)]) -> i64 {
-    (polygon
+    i64::midpoint(polygon
         .iter()
         .copied()
         .tuple_windows()
         .map(|((x1, y1), (x2, y2))| (x1 + x2) * (y2 - y1))
         .sum::<i64>()
-        .abs()
-        + dug_out_circumference(polygon))
-        / 2
+        .abs(), dug_out_circumference(polygon))
         + 1
 }
 
@@ -111,7 +109,7 @@ fn part_2(input: &Input) -> i64 {
             DigInstruction {
                 direction,
                 distance,
-                color: "".to_string(),
+                color: String::new(),
             }
         })
         .collect::<Vec<_>>();

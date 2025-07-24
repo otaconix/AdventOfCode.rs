@@ -114,7 +114,7 @@ impl Bid {
 }
 
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Vec<Bid> {
-    use CardType::*;
+    use CardType::{Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King, Ace};
     input
         .map(|line| {
             let (raw_types, amount) = line.as_ref().split_once(' ').expect("No space in line");

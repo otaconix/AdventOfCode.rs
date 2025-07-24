@@ -163,7 +163,7 @@ fn main() {
 
     let part_1 = log_run("Part 1", || {
         let mut stacks = input.stacks.clone();
-        for step in input.rearrangement_procedure.iter() {
+        for step in &input.rearrangement_procedure {
             apply_rearrangement_step(&mut stacks, step, |crates| {
                 crates.into_iter().rev().collect()
             });
@@ -179,7 +179,7 @@ fn main() {
 
     let part_2 = log_run("Part 1", || {
         let mut stacks = input.stacks.clone();
-        for step in input.rearrangement_procedure.iter() {
+        for step in &input.rearrangement_procedure {
             apply_rearrangement_step(&mut stacks, step, |x| x);
         }
 

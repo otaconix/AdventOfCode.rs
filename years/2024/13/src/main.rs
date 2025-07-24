@@ -32,7 +32,7 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
         ButtonB(Button, Button),
     }
 
-    use ParseState::*;
+    use ParseState::{Empty, ButtonA, ButtonB};
 
     input
         .fold(
@@ -136,7 +136,7 @@ where
 fn part_1(input: &Input) -> Output {
     input
         .iter()
-        .flat_map(solve_machine)
+        .filter_map(solve_machine)
         .map(|(a, b)| a * 3 + b)
         .sum()
 }
@@ -151,7 +151,7 @@ fn part_2(input: &Input) -> Output {
             },
             ..*machine
         })
-        .flat_map(solve_machine)
+        .filter_map(solve_machine)
         .map(|(a, b)| a * 3 + b)
         .sum()
 }

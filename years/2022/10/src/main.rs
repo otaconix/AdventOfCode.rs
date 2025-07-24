@@ -56,7 +56,7 @@ fn main() {
                         Instruction::AddX(operand) => {
                             *x += operand;
                         }
-                    };
+                    }
 
                     Some(*x)
                 }),

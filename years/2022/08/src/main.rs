@@ -1,5 +1,5 @@
 use aoc_timing::trace::log_run;
-use grid::*;
+use grid::{Grid, LineOfSightNeighbors};
 use std::io;
 
 trait Day8Grid {
@@ -47,8 +47,7 @@ impl<T: PartialOrd> Day8Grid for Grid<T> {
                     .into_iter()
                     .enumerate()
                     .find(|(_, value)| value >= &cell_value)
-                    .map(|(i, _)| i + 1)
-                    .unwrap_or(neighbor_count)
+                    .map_or(neighbor_count, |(i, _)| i + 1)
             })
             .product()
     }

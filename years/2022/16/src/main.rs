@@ -20,13 +20,13 @@ impl FromStr for Valve {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use pom::char_class::*;
-        use pom::parser::*;
+        use pom::char_class::{digit, alpha};
+        use pom::parser::{is_a, seq, sym, list};
 
         let number = is_a(digit).repeat(1..).map(|digits| {
             digits
                 .iter()
-                .fold(0i32, |result, digit| result * 10 + (digit - b'0') as i32)
+                .fold(0i32, |result, digit| result * 10 + i32::from(digit - b'0'))
         });
         let valve_name = || is_a(alpha).repeat(1..).convert(String::from_utf8);
         let parser = ((seq(b"Valve ") * valve_name())
@@ -198,7 +198,7 @@ fn maximum_possible_pressure_release_with_elephant<'a>(
                                 opened,
                                 flow_rate: new_path.flow_rate + new_path.elephant.flow_rate,
                                 ..*new_path
-                            })
+                            });
                         }
 
                         new_elephant_paths

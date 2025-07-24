@@ -75,8 +75,7 @@ fn possible_statuses(record: &ConditionRecord) -> u64 {
             let cutoff = original_groups
                 .iter()
                 .find(|og| og.start >= start)
-                .map(|og| og.start)
-                .unwrap_or(usize::MAX)
+                .map_or(usize::MAX, |og| og.start)
                 .min(
                     record.statuses.len()
                         - (current_group_length
@@ -121,7 +120,7 @@ fn possible_statuses(record: &ConditionRecord) -> u64 {
             .chunk_by(|s| *s)
             .into_iter()
             .fold(Vec::<(Status, Range<usize>)>::new(), |mut acc, (s, g)| {
-                let index = acc.last().map(|(_, g)| g.end).unwrap_or(0);
+                let index = acc.last().map_or(0, |(_, g)| g.end);
                 acc.push((*s, index..index + g.collect_vec().len()));
                 acc
             })

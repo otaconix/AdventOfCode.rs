@@ -5,7 +5,7 @@ use std::ops::{Deref, DerefMut};
 /// Helper struct to be able to compare type `T` using an arbitrary comparison function (see:
 /// [Comparator]).
 ///
-/// Construct an instance using [IntoComparableBy::into_comparable_by].
+/// Construct an instance using [`IntoComparableBy::into_comparable_by`].
 ///
 /// *NB:* `ComparableBy` implements the [`Deref<T>`] and [`DerefMut<T>`] traits, so you can use it
 /// as if it were a `T`.
@@ -103,7 +103,7 @@ impl<T, F: Fn(&T, &T) -> Ordering> Comparator<T> for F {}
 
 /// Helper trait to provide the [`comparable`][Self::into_comparable_by] function.
 pub trait IntoComparableBy<T: Eq> {
-    /// Construct an instance of [ComparableBy], which should be compared using `cmp` (a [Comparator]).
+    /// Construct an instance of [`ComparableBy`], which should be compared using `cmp` (a [Comparator]).
     fn into_comparable_by<C: Comparator<T>>(self, cmp: &C) -> ComparableBy<'_, T, C>;
 }
 

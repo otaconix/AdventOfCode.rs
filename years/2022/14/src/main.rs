@@ -72,21 +72,21 @@ impl Iterator for RockCoordinates<'_> {
                     self.index += 1;
 
                     if self.index >= self.structure.coords.len() {
-                        self.prev = None
+                        self.prev = None;
                     }
                 }
                 Some(prev) => {
                     let next = self.structure.coords[self.index];
                     self.prev = Some(Coordinate2D::new(
-                        prev.x + prev.x.cmp(&next.x).to_step() as i64,
-                        prev.y + prev.y.cmp(&next.y).to_step() as i64,
+                        prev.x + i64::from(prev.x.cmp(&next.x).to_step()),
+                        prev.y + i64::from(prev.y.cmp(&next.y).to_step()),
                     ));
                 }
                 None => {
                     self.prev = self.structure.coords.get(self.index).copied();
                     self.index += 1;
                 }
-            };
+            }
 
             self.prev
         }

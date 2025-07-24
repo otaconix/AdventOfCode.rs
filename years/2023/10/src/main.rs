@@ -32,7 +32,7 @@ impl TryFrom<char> for Tile {
     type Error = &'static str;
 
     fn try_from(value: char) -> Result<Self, Self::Error> {
-        use Tile::*;
+        use Tile::{Horizontal, Ground, NorthEast, Vertical, NorthWest, SouthEast, SouthWest, Start};
 
         match value {
             '-' => Ok(Horizontal),
@@ -68,8 +68,8 @@ fn get_loop(input: &Grid<Tile>) -> Vec<(usize, usize)> {
         .find(|(x, y)| matches!(input.get(*x, *y), Some(Tile::Start)))
         .expect("Start not found");
 
-    use Direction::*;
-    use Tile::*;
+    use Direction::{East, West, North, South};
+    use Tile::{Horizontal, Ground, NorthEast, Vertical, NorthWest, SouthEast, SouthWest, Start};
 
     fn next(
         input: &Grid<Tile>,

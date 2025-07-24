@@ -97,7 +97,7 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Vec<Grid<Stuff>> {
                             _ => panic!("Unknown stuff: {stuff}"),
                         })
                         .collect::<Vec<Stuff>>(),
-                )
+                );
             }
 
             acc

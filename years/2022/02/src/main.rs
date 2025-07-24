@@ -8,7 +8,7 @@ enum RockPaperScissors {
     Scissors,
 }
 
-use RockPaperScissors::*;
+use RockPaperScissors::{Rock, Paper, Scissors};
 
 impl RockPaperScissors {
     fn shape_score(&self) -> u32 {
@@ -44,7 +44,7 @@ enum Outcome {
     Win,
 }
 
-use Outcome::*;
+use Outcome::{Lose, Draw, Win};
 
 impl Outcome {
     fn parse(str: &str) -> Self {
@@ -86,7 +86,7 @@ fn score(opponent_hand: &RockPaperScissors, own_hand: &RockPaperScissors) -> u32
 
 impl Ord for RockPaperScissors {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        use std::cmp::Ordering::*;
+        use std::cmp::Ordering::{Equal, Less, Greater};
 
         match (self, other) {
             (Rock, Rock) => Equal,

@@ -48,7 +48,7 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
         Movements(Vec<Vec<Cell>>, Coord, Vec<Direction>),
     }
 
-    use State::*;
+    use State::{Map, Movements};
 
     let state = input
         .enumerate()
@@ -178,7 +178,7 @@ fn do_the_shifting(
                 if all_shifting.contains(&from) {
                     map.update(to_shift.0, to_shift.1, *map.get(from.0, from.1).unwrap());
                 } else {
-                    map.update(to_shift.0, to_shift.1, Cell::Empty)
+                    map.update(to_shift.0, to_shift.1, Cell::Empty);
                 }
             }
 

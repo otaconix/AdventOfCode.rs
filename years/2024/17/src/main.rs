@@ -15,7 +15,7 @@ enum Register {
     C,
 }
 
-use Register::*;
+use Register::{A, B, C};
 
 impl Registers {
     fn with_a(&self, a: usize) -> Self {

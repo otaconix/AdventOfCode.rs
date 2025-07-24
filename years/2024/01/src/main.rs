@@ -31,8 +31,8 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
 fn part_1(input: &Input) -> u32 {
     let (mut left, mut right) = (input.left.clone(), input.right.clone());
 
-    left.sort();
-    right.sort();
+    left.sort_unstable();
+    right.sort_unstable();
 
     left.iter()
         .zip(right.iter())

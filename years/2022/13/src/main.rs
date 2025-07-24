@@ -1,10 +1,10 @@
 use aoc_timing::trace::log_run;
 use std::{cmp::Ordering, io};
-use types::*;
+use types::Input;
 
 mod types {
-    use pom::char_class::*;
-    use pom::parser::*;
+    use pom::char_class::digit;
+    use pom::parser::{Parser, call, sym, is_a};
     use std::str::FromStr;
 
     #[derive(Clone, Debug, PartialEq, Eq)]
@@ -38,7 +38,7 @@ mod types {
 
     impl Ord for Input {
         fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-            use Input::*;
+            use Input::{List, Number};
 
             match (self, other) {
                 (List(xs), List(ys)) => xs.cmp(ys),
@@ -60,7 +60,7 @@ mod types {
             Input::Number(
                 digits
                     .into_iter()
-                    .fold(0u32, |result, digit| result * 10 + digit as u32),
+                    .fold(0u32, |result, digit| result * 10 + u32::from(digit)),
             )
         })
     }

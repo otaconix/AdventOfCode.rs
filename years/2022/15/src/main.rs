@@ -33,8 +33,8 @@ impl FromStr for Sensor {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use pom::char_class::*;
-        use pom::parser::*;
+        use pom::char_class::digit;
+        use pom::parser::{sym, is_a, seq};
 
         let number = || {
             (sym(b'-').opt() + is_a(digit).repeat(1..)).map(|(sign, digits)| {
@@ -42,7 +42,7 @@ impl FromStr for Sensor {
                     * digits
                         .iter()
                         .skip_while(|c| *c == &b'0')
-                        .fold(0i64, |result, digit| result * 10 + (digit - b'0') as i64)
+                        .fold(0i64, |result, digit| result * 10 + i64::from(digit - b'0'))
             })
         };
         let coordinate = || {
@@ -67,15 +67,13 @@ fn ranges_overlap(left: &Range<i64>, right: &Range<i64>) -> bool {
 fn remove_overlaps(mut ranges: Vec<Range<i64>>) -> Vec<Range<i64>> {
     ranges.sort_by_key(|range| range.start);
     ranges.iter().fold(vec![], |mut acc, range| {
-        if !acc
+        if acc
             .last()
-            .map(|last| ranges_overlap(last, range))
-            .unwrap_or(false)
-        {
-            acc.push(range.clone());
-        } else {
+            .is_some_and(|last| ranges_overlap(last, range)) {
             let last = acc.last_mut().unwrap();
             last.end = last.end.max(range.end);
+        } else {
+            acc.push(range.clone());
         }
 
         acc

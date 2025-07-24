@@ -52,7 +52,7 @@ fn flood_group(grid: &Grid<char>) -> FxHashMap<char, Vec<FxHashSet<Coord>>> {
                     orthogonal_neighbors(&cell.1)
                         .into_iter()
                         .filter(|other| !region.contains(other))
-                        .flat_map(|other| {
+                        .filter_map(|other| {
                             grid.get(other.0, other.1)
                                 .map(|other_plant| (other_plant, other))
                         }),
@@ -180,8 +180,7 @@ fn region_sides(region: &FxHashSet<Coord>) -> usize {
             let west = cell
                 .0
                 .checked_sub(1)
-                .map(|column| region.contains(&(column, cell.1)))
-                .unwrap_or(false);
+                .is_some_and(|column| region.contains(&(column, cell.1)));
 
             let mut corners = 0;
 

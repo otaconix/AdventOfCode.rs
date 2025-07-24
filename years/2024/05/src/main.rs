@@ -23,7 +23,7 @@ impl Update {
     /// update that has `n` as one of its _nexts_. If an `m` is found, this update isn't sorted.
     /// Otherwise it is sorted.
     ///
-    /// This makes use of [LaunchSafetyManual#page_order]
+    /// This makes use of [`LaunchSafetyManual#page_order`]
     fn is_sorted(&self, input: &Input) -> bool {
         for (i, n) in self.pages.iter().enumerate() {
             for m in &self.pages[i + 1..] {
@@ -53,7 +53,7 @@ impl Update {
                 .page_order
                 .get(n)
                 .into_iter()
-                .flat_map(|nexts| sorted.iter().enumerate().find(|(_, m)| nexts.contains(m)))
+                .filter_map(|nexts| sorted.iter().enumerate().find(|(_, m)| nexts.contains(m)))
                 .map(|(i, _)| i)
                 .next()
             {

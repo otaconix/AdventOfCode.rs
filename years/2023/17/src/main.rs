@@ -32,7 +32,7 @@ fn print_grid_with_path(input: &Input, path: &[Coord]) {
                         path.iter().position(|(x, y)| x == &column && y == &row)
                     {
                         if path_position == 0 {
-                            char::from_u32(input.get(column, row).unwrap() + (b'0' as u32)).unwrap()
+                            char::from_u32(input.get(column, row).unwrap() + u32::from(b'0')).unwrap()
                         } else {
                             char::from(
                                 Direction::determine(
@@ -43,7 +43,7 @@ fn print_grid_with_path(input: &Input, path: &[Coord]) {
                             )
                         }
                     } else {
-                        char::from_u32(input.get(column, row).unwrap() + (b'0' as u32)).unwrap()
+                        char::from_u32(input.get(column, row).unwrap() + u32::from(b'0')).unwrap()
                     }
                 })
                 .collect::<String>())

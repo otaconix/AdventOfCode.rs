@@ -21,7 +21,7 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
                 if line.is_empty() {
                     State::Designs(towels, vec![])
                 } else {
-                    towels.extend(line.split(", ").map(|towel| towel.to_string()));
+                    towels.extend(line.split(", ").map(std::string::ToString::to_string));
                     State::Towels(towels)
                 }
             }
@@ -65,13 +65,12 @@ fn design_combinations<'a>(
     } else {
         let result = towels
             .get(&design.as_bytes()[0])
-            .map(|ts| {
+            .map_or(0, |ts| {
                 ts.iter()
                     .filter(|t| design.starts_with(*t))
                     .map(|t| design_combinations(&design[t.len()..], towels, cache))
                     .sum()
-            })
-            .unwrap_or(0);
+            });
         cache.insert(design, result);
 
         result

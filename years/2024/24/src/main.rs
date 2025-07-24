@@ -145,7 +145,7 @@ fn part_1(input: &Input) -> Output1 {
 }
 
 fn is_full_adder(bit: u8, instructions_by_input: &HashMap<&str, Vec<&Instruction>>) -> bool {
-    use InstructionType::*;
+    use InstructionType::{And, Or, Xor};
 
     let x_wire = format!("x{bit:02}");
     let y_wire = format!("y{bit:02}");
@@ -260,12 +260,12 @@ fn swapped_outputs(
     let first_instructions = instructions_by_input.get(x_wire.as_str()).unwrap();
     let second_instructions = first_instructions
         .iter()
-        .flat_map(|instruction| instructions_by_input.get(instruction.output.as_str()))
+        .filter_map(|instruction| instructions_by_input.get(instruction.output.as_str()))
         .flatten()
         .collect_vec();
     let third_instructions = second_instructions
         .iter()
-        .flat_map(|instruction| instructions_by_input.get(instruction.output.as_str()))
+        .filter_map(|instruction| instructions_by_input.get(instruction.output.as_str()))
         .flatten()
         .collect_vec();
 

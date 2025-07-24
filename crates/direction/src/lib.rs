@@ -35,8 +35,8 @@ impl Direction {
     ///   - `from == to`
     ///   - `from` and `to` aren't on either the same horizontal or vertical plane (`from.x != to.x
     ///   && from.y != to.y`)
-    pub fn determine(from: &Coord, to: &Coord) -> Option<Self> {
-        use std::cmp::Ordering::*;
+    #[must_use] pub fn determine(from: &Coord, to: &Coord) -> Option<Self> {
+        use std::cmp::Ordering::{Greater, Equal, Less};
         match (to.0.cmp(&from.0), to.1.cmp(&from.1)) {
             (Greater, Equal) => Self::Right.into(),
             (Less, Equal) => Self::Left.into(),
@@ -46,7 +46,7 @@ impl Direction {
         }
     }
 
-    pub fn turn_left(&self) -> Self {
+    #[must_use] pub fn turn_left(&self) -> Self {
         match self {
             Direction::Up => Direction::Left,
             Direction::Down => Direction::Right,
@@ -55,7 +55,7 @@ impl Direction {
         }
     }
 
-    pub fn turn_right(&self) -> Self {
+    #[must_use] pub fn turn_right(&self) -> Self {
         match self {
             Direction::Up => Direction::Right,
             Direction::Down => Direction::Left,
@@ -64,7 +64,7 @@ impl Direction {
         }
     }
 
-    pub fn advance(&self, coord: &Coord, steps: usize) -> Option<Coord> {
+    #[must_use] pub fn advance(&self, coord: &Coord, steps: usize) -> Option<Coord> {
         match self {
             Direction::Up => coord.1.checked_sub(steps).map(|y| (coord.0, y)),
             Direction::Down => Some((coord.0, coord.1 + steps)),
@@ -73,7 +73,7 @@ impl Direction {
         }
     }
 
-    pub fn advance_with_intermediate_coords(
+    #[must_use] pub fn advance_with_intermediate_coords(
         &self,
         coord: &Coord,
         steps: usize,

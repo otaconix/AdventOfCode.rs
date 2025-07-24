@@ -88,7 +88,7 @@ fn dijkstra(
     let mut queue = dijkstra_state
         .found_ends
         .iter()
-        .cloned()
+        .copied()
         .min_set_by_key(|(_, distance)| *distance)
         .into_iter()
         .map(|(node, _)| node)

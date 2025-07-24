@@ -30,7 +30,7 @@ impl Rope {
             Direction::Down => head.y -= 1,
             Direction::Left => head.x -= 1,
             Direction::Right => head.x += 1,
-        };
+        }
 
         for knot_index in 1..self.knots.len() {
             let head = self.knots[knot_index - 1];
@@ -40,7 +40,7 @@ impl Rope {
             let horizontal_delta = head.x - tail.x;
 
             match (vertical_delta.abs(), horizontal_delta.abs()) {
-                (2, 2) | (1, 2) | (2, 1) => {
+                (2 | 1, 2) | (2, 1) => {
                     tail.x += horizontal_delta.signum();
                     tail.y += vertical_delta.signum();
                 }
@@ -136,7 +136,7 @@ fn main() {
     let part_1: HashSet<_> = log_run("Part 1", || {
         moves
             .iter()
-            .flat_map(|mov| mov.as_repeated_direction())
+            .flat_map(Move::as_repeated_direction)
             .scan(Rope::new(2.try_into().unwrap()), |rope, direction| {
                 rope.move_in_direction(direction);
                 Some(*rope.tail())
@@ -149,7 +149,7 @@ fn main() {
     let part_2: HashSet<_> = log_run("Part 2", || {
         moves
             .iter()
-            .flat_map(|mov| mov.as_repeated_direction())
+            .flat_map(Move::as_repeated_direction)
             .scan(
                 Rope::new(NonZeroUsize::new(10).unwrap()),
                 |rope, direction| {

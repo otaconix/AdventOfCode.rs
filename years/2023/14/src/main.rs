@@ -152,7 +152,7 @@ fn part_1(input: &Grid<Rock>) -> usize {
 }
 
 fn apply_tilt_cycle(input: &mut Grid<Rock>) {
-    use Direction::*;
+    use Direction::{North, West, South, East};
 
     for direction in [North, West, South, East] {
         tilt_platform(input, direction);

@@ -1,5 +1,5 @@
 use aoc_timing::trace::log_run;
-use grid::*;
+use grid::Grid;
 use std::collections::HashSet;
 use std::io;
 
@@ -29,7 +29,7 @@ fn get_coordinate_neighboring_values(grid: &Grid<char>, (x, y): (usize, usize)) 
         _ => None,
     })
     .filter_map(|(x, y)| grid.get(x, y))
-    .cloned()
+    .copied()
     .collect()
 }
 

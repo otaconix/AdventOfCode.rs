@@ -51,7 +51,7 @@ impl Set {
                     "green" => set.green = count,
                     "blue" => set.blue = count,
                     _ => panic!("Unexpected color matched"),
-                };
+                }
             }
 
             set
@@ -75,7 +75,7 @@ fn part_1(input: &[Game]) -> u16 {
                 .iter()
                 .any(|set| set.red > 12 || set.green > 13 || set.blue > 14)
         })
-        .map(|game| game.id as u16)
+        .map(|game| u16::from(game.id))
         .sum()
 }
 
@@ -89,7 +89,7 @@ fn part_2(input: &[Game]) -> u32 {
                 blue: result.blue.max(set.blue),
             })
         })
-        .map(|minimum| minimum.red as u32 * minimum.green as u32 * minimum.blue as u32)
+        .map(|minimum| u32::from(minimum.red) * u32::from(minimum.green) * u32::from(minimum.blue))
         .sum()
 }
 

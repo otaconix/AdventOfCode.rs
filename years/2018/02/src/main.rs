@@ -23,8 +23,8 @@ fn part_1(input: &Input) -> usize {
         })
         .fold((0, 0), |(twos, threes), counts| {
             (
-                twos + if counts.contains(&2) { 1 } else { 0 },
-                threes + if counts.contains(&3) { 1 } else { 0 },
+                twos + usize::from(counts.contains(&2)),
+                threes + usize::from(counts.contains(&3)),
             )
         });
 

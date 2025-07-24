@@ -26,9 +26,9 @@ enum Cell {
 
 impl Cell {
     fn next_direction(&self, direction: Direction) -> (Direction, Option<Direction>) {
-        use Direction::*;
-        use Mirror::*;
-        use Splitter::*;
+        use Direction::{Left, Right, Up, Down};
+        use Mirror::{Slash, Backslash};
+        use Splitter::{Horizontal, Vertical};
 
         match self {
             Cell::Empty => (direction, None),
