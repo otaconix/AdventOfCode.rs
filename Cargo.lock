@@ -2044,9 +2044,9 @@ checksum = "350932f7e8b2d0333d2537f42671a837473576c00e128fbee84c819ea08783b5"
 
 [[package]]
 name = "rapidhash"
-version = "3.0.0"
+version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ef3d82b018f786967b1a5d34a08ebc3c7a9ab35b5bcbe3e2e057a0a453f26c8"
+checksum = "efee4b7317469c6c6e7fdeee3d094313af846a97678d6ed971d83a852d730083"
 
 [[package]]
 name = "rayon"
