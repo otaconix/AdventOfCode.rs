@@ -19,7 +19,7 @@ directories = "6"
 dotenvy = "0.15"
 env_logger = "0.11.6"
 fxhash = "0.2.1"
-geo = "0.30.0"
+geo = "0.31.0"
 grid = { version = "0.1.0", path = "crates/grid" }
 indexmap = "2.7.0"
 itertools = "0.14.0"
