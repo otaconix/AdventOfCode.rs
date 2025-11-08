@@ -46,7 +46,7 @@ where
         for item_index in 0..items.len() {
             let monkey = &monkeys[monkey_index];
             let new_item = f(monkey.new_item(&monkey.items[item_index]));
-            let destination_index = if new_item % monkey.test_divisor == 0 {
+            let destination_index = if new_item.is_multiple_of(monkey.test_divisor) {
                 monkey.true_destination
             } else {
                 monkey.false_destination

@@ -23,11 +23,7 @@ fn log_n(mut number: usize, n: usize) -> usize {
         number /= n;
     }
 
-    if result == 0 {
-        1
-    } else {
-        result
-    }
+    if result == 0 { 1 } else { result }
 }
 
 impl Stone {
@@ -38,7 +34,7 @@ impl Stone {
     fn split(self) -> Option<(Self, Self)> {
         let digit_count = log_n(self.number, 10);
 
-        if digit_count % 2 == 0 {
+        if digit_count.is_multiple_of(2) {
             let power_of_ten = (1..digit_count / 2).fold(10, |acc, _| acc * 10);
             let left = self.number / power_of_ten;
             Some((

@@ -42,14 +42,13 @@ fn tilt_platform(input: &mut Grid<Rock>, direction: Direction) {
                 for row in 0..input.height() {
                     let rock = input.get(column, row).unwrap();
 
-                    if rock == &Rock::None {
-                        if let Some(first_round_cube_row) = (row + 1..input.height())
+                    if rock == &Rock::None
+                        && let Some(first_round_cube_row) = (row + 1..input.height())
                             .take_while(|subrow| input.get(column, *subrow).unwrap() != &Rock::Cube)
                             .find(|subrow| input.get(column, *subrow).unwrap() == &Rock::Round)
-                        {
-                            input.update(column, row, Rock::Round);
-                            input.update(column, first_round_cube_row, Rock::None);
-                        }
+                    {
+                        input.update(column, row, Rock::Round);
+                        input.update(column, first_round_cube_row, Rock::None);
                     }
                 }
             }
@@ -59,15 +58,14 @@ fn tilt_platform(input: &mut Grid<Rock>, direction: Direction) {
                 for row in (0..input.height()).rev() {
                     let rock = input.get(column, row).unwrap();
 
-                    if rock == &Rock::None {
-                        if let Some(first_round_cube_row) = (0..row)
+                    if rock == &Rock::None
+                        && let Some(first_round_cube_row) = (0..row)
                             .rev()
                             .take_while(|subrow| input.get(column, *subrow).unwrap() != &Rock::Cube)
                             .find(|subrow| input.get(column, *subrow).unwrap() == &Rock::Round)
-                        {
-                            input.update(column, row, Rock::Round);
-                            input.update(column, first_round_cube_row, Rock::None);
-                        }
+                    {
+                        input.update(column, row, Rock::Round);
+                        input.update(column, first_round_cube_row, Rock::None);
                     }
                 }
             }
@@ -77,17 +75,16 @@ fn tilt_platform(input: &mut Grid<Rock>, direction: Direction) {
                 for column in (0..input.width()).rev() {
                     let rock = input.get(column, row).unwrap();
 
-                    if rock == &Rock::None {
-                        if let Some(first_round_cube_column) = (0..column)
+                    if rock == &Rock::None
+                        && let Some(first_round_cube_column) = (0..column)
                             .rev()
                             .take_while(|subcolumn| {
                                 input.get(*subcolumn, row).unwrap() != &Rock::Cube
                             })
                             .find(|subcolumn| input.get(*subcolumn, row).unwrap() == &Rock::Round)
-                        {
-                            input.update(column, row, Rock::Round);
-                            input.update(first_round_cube_column, row, Rock::None);
-                        }
+                    {
+                        input.update(column, row, Rock::Round);
+                        input.update(first_round_cube_column, row, Rock::None);
                     }
                 }
             }
@@ -97,16 +94,15 @@ fn tilt_platform(input: &mut Grid<Rock>, direction: Direction) {
                 for column in 0..input.width() {
                     let rock = input.get(column, row).unwrap();
 
-                    if rock == &Rock::None {
-                        if let Some(first_round_cube_column) = (column + 1..input.width())
+                    if rock == &Rock::None
+                        && let Some(first_round_cube_column) = (column + 1..input.width())
                             .take_while(|subcolumn| {
                                 input.get(*subcolumn, row).unwrap() != &Rock::Cube
                             })
                             .find(|subcolumn| input.get(*subcolumn, row).unwrap() == &Rock::Round)
-                        {
-                            input.update(column, row, Rock::Round);
-                            input.update(first_round_cube_column, row, Rock::None);
-                        }
+                    {
+                        input.update(column, row, Rock::Round);
+                        input.update(first_round_cube_column, row, Rock::None);
                     }
                 }
             }
@@ -152,7 +148,7 @@ fn part_1(input: &Grid<Rock>) -> usize {
 }
 
 fn apply_tilt_cycle(input: &mut Grid<Rock>) {
-    use Direction::{North, West, South, East};
+    use Direction::{East, North, South, West};
 
     for direction in [North, West, South, East] {
         tilt_platform(input, direction);
