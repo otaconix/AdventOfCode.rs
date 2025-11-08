@@ -148,7 +148,8 @@ impl<T> Grid<T> {
         }
     }
 
-    #[must_use] pub fn with_size(width: usize, height: usize) -> Self
+    #[must_use]
+    pub fn with_size(width: usize, height: usize) -> Self
     where
         T: Sized + Default,
     {
@@ -164,19 +165,23 @@ impl<T> Grid<T> {
         .unwrap()
     }
 
-    #[must_use] pub fn width(&self) -> usize {
+    #[must_use]
+    pub fn width(&self) -> usize {
         self.width
     }
 
-    #[must_use] pub fn height(&self) -> usize {
+    #[must_use]
+    pub fn height(&self) -> usize {
         self.rows.len()
     }
 
-    #[must_use] pub fn get(&self, column: usize, row: usize) -> Option<&T> {
+    #[must_use]
+    pub fn get(&self, column: usize, row: usize) -> Option<&T> {
         self.rows.get(row).and_then(|row| row.get(column))
     }
 
-    #[must_use] pub fn coordinates(&self) -> GridCoordinates<T> {
+    #[must_use]
+    pub fn coordinates(&self) -> GridCoordinates<'_, T> {
         GridCoordinates {
             grid: self,
             row: 0,
@@ -184,7 +189,8 @@ impl<T> Grid<T> {
         }
     }
 
-    #[must_use] pub fn row(&self, row: usize) -> GridRow<T> {
+    #[must_use]
+    pub fn row(&self, row: usize) -> GridRow<'_, T> {
         GridRow {
             grid: self,
             row,
@@ -193,7 +199,8 @@ impl<T> Grid<T> {
         }
     }
 
-    #[must_use] pub fn column(&self, column: usize) -> GridColumn<T> {
+    #[must_use]
+    pub fn column(&self, column: usize) -> GridColumn<'_, T> {
         GridColumn {
             grid: self,
             column,
@@ -206,7 +213,8 @@ impl<T> Grid<T> {
         self.rows[row][column] = value;
     }
 
-    #[must_use] pub fn get_neighbors(&self, column: usize, row: usize) -> Vec<(usize, usize)> {
+    #[must_use]
+    pub fn get_neighbors(&self, column: usize, row: usize) -> Vec<(usize, usize)> {
         let left = column.checked_sub(1).map(|x| (x, row));
         let right = Some((column + 1, row)).filter(|(x, _)| x < &self.width());
         let up = row.checked_sub(1).map(|y| (column, y));
@@ -215,11 +223,12 @@ impl<T> Grid<T> {
         [left, right, up, down].into_iter().flatten().collect()
     }
 
-    #[must_use] pub fn get_line_of_sight_neighbors(
+    #[must_use]
+    pub fn get_line_of_sight_neighbors(
         &self,
         column: usize,
         row: usize,
-    ) -> LineOfSightNeighbors<T> {
+    ) -> LineOfSightNeighbors<'_, T> {
         let (left, right): (Vec<_>, Vec<_>) = self
             .row(row)
             .enumerate()
@@ -244,7 +253,8 @@ impl<T> Grid<T> {
         }
     }
 
-    #[must_use] pub fn is_valid_coord(&self, column: usize, row: usize) -> bool {
+    #[must_use]
+    pub fn is_valid_coord(&self, column: usize, row: usize) -> bool {
         column < self.width() && row < self.height()
     }
 }
@@ -268,7 +278,8 @@ impl<T> FromIterator<Vec<T>> for Grid<T> {
 }
 
 impl<T: Clone> Grid<T> {
-    #[must_use] pub fn transpose(&self) -> Self {
+    #[must_use]
+    pub fn transpose(&self) -> Self {
         (0..self.width())
             .map(|column| self.column(column).cloned().collect::<Vec<_>>())
             .collect()

@@ -1,18 +1,18 @@
 use crate::*;
 
 use nom::{
+    IResult, Parser,
     branch::alt,
     bytes::complete::tag,
     character::complete::{alphanumeric1, char, u64},
     combinator::{opt, value},
     multi::separated_list0,
     sequence::{delimited, preceded, terminated},
-    IResult, Parser,
 };
 
 type ParseResult<'a, T> = IResult<&'a str, T>;
 
-pub(crate) fn named_workflow_parser(input: &str) -> ParseResult<NamedWorkflow> {
+pub(crate) fn named_workflow_parser(input: &str) -> ParseResult<'_, NamedWorkflow> {
     (
         alphanumeric1,
         delimited(
@@ -28,7 +28,7 @@ pub(crate) fn named_workflow_parser(input: &str) -> ParseResult<NamedWorkflow> {
         .parse(input)
 }
 
-pub(crate) fn part_parser(input: &str) -> ParseResult<Part> {
+pub(crate) fn part_parser(input: &str) -> ParseResult<'_, Part> {
     delimited(
         char('{'),
         (
@@ -48,7 +48,7 @@ pub(crate) fn part_parser(input: &str) -> ParseResult<Part> {
     .parse(input)
 }
 
-fn conditional_destination_parser(input: &str) -> ParseResult<ConditionalDestination> {
+fn conditional_destination_parser(input: &str) -> ParseResult<'_, ConditionalDestination> {
     let less_than = (terminated(category_parser, char('<')), usize)
         .map(|(category, n)| Condition::LessThan(category, n));
     let greater_than = (terminated(category_parser, char('>')), usize)
@@ -65,7 +65,7 @@ fn conditional_destination_parser(input: &str) -> ParseResult<ConditionalDestina
         .parse(input)
 }
 
-fn destination_parser(input: &str) -> ParseResult<Destination> {
+fn destination_parser(input: &str) -> ParseResult<'_, Destination> {
     alt((
         value(Destination::Accept, char('A')),
         value(Destination::Reject, char('R')),
@@ -76,7 +76,7 @@ fn destination_parser(input: &str) -> ParseResult<Destination> {
     .parse(input)
 }
 
-fn category_parser(input: &str) -> ParseResult<Category> {
+fn category_parser(input: &str) -> ParseResult<'_, Category> {
     alt((
         value(Category::X, char('x')),
         value(Category::M, char('m')),
@@ -86,6 +86,6 @@ fn category_parser(input: &str) -> ParseResult<Category> {
     .parse(input)
 }
 
-fn usize(input: &str) -> ParseResult<usize> {
+fn usize(input: &str) -> ParseResult<'_, usize> {
     u64.map(|n| n as usize).parse(input)
 }

@@ -36,7 +36,7 @@ struct RockCoordinates<'a> {
 }
 
 impl RockStructure {
-    fn to_coordinates(&self) -> RockCoordinates {
+    fn to_coordinates(&self) -> RockCoordinates<'_> {
         RockCoordinates {
             structure: self,
             index: 0,
