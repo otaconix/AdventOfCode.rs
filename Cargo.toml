@@ -41,10 +41,6 @@ path = "crates/timing"
 version = "0.1.0"
 path = "crates/utils"
 
-[workspace.dependencies.chrono]
-version = "0.4.35"
-default-features = false
-
 [workspace.dependencies.coord]
 version = "0.1.0"
 path = "crates/coord"

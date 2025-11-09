@@ -4,8 +4,8 @@ use aoc_timing::trace::log_run;
 use intcode::Computer;
 
 type Input = Computer;
-type Output1 = Vec<u64>;
-type Output2 = u64;
+type Output1 = Vec<i64>;
+type Output2 = i64;
 
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     let memory = input
@@ -13,7 +13,7 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
             let line = line.as_ref();
 
             line.split(',')
-                .map(|n| n.parse::<u64>().expect("Invalid u64"))
+                .map(|n| n.parse::<i64>().expect("Invalid i64"))
                 .collect::<Vec<_>>()
         })
         .flatten()
