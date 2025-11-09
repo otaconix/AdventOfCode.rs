@@ -10,3 +10,4 @@ aoc-timing = { version = "0.1.0", path = "../../../crates/timing" }
 env_logger = "0.11.0"
 intcode = { version = "0.1.0", path = "../../../crates/intcode" }
 itertools.workspace = true
+log.workspace = true

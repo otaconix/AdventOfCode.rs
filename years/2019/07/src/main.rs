@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, io};
 
 use aoc_timing::trace::log_run;
-use intcode::Computer;
+use intcode::{Computer, OpCode, SplitIO};
 use itertools::Itertools;
 
 type Input = Computer;
@@ -33,15 +33,57 @@ fn part_1(input: &Input) -> Output1 {
             )
         })
         .max_by_key(|(_, thrust)| *thrust)
-        // .inspect(|(permutation, thrust)| {
-        //     println!("Max thrust: {thrust} (phase setting sequence: {permutation:?})")
-        // })
+        .inspect(|(permutation, thrust)| {
+            println!("Max thrust: {thrust} (phase setting sequence: {permutation:?})")
+        })
         .expect("No solution found.")
         .1
 }
 
 fn part_2(input: &Input) -> Output2 {
-    todo!()
+    (5i64..10)
+        .permutations(5)
+        .map(|permutation| {
+            log::info!("Trying permutation {permutation:?}");
+            let mut computers: Vec<_> = (0..5).map(|_| input.clone()).collect();
+            let mut ios: Vec<_> = permutation
+                .iter()
+                .map(|input| VecDeque::from([*input]))
+                .collect();
+            ios[0].push_back(0);
+
+            let mut last_opcodes = [
+                OpCode::Input,
+                OpCode::Input,
+                OpCode::Input,
+                OpCode::Input,
+                OpCode::Input,
+            ];
+
+            while last_opcodes
+                .iter()
+                .any(|opcode| *opcode != OpCode::Terminate)
+            {
+                for n in 0..5 {
+                    let [input, output] = ios.get_disjoint_mut([n, (n + 1) % 5]).unwrap();
+                    last_opcodes[n] = computers[n].run(&mut SplitIO::new(input, output));
+                    log::info!(
+                        "Stopped running computer {n} at opcode {:?} (IP: {})",
+                        last_opcodes[n],
+                        computers[n].instruction_pointer
+                    );
+                }
+            }
+
+            log::info!("I/O's after finishing: {ios:#?}");
+            (permutation.clone(), *ios[0].iter().last().unwrap())
+        })
+        .max_by_key(|(_, thrust)| *thrust)
+        .inspect(|(permutation, thrust)| {
+            println!("Max thrust: {thrust} (phase setting sequence: {permutation:?})")
+        })
+        .expect("No solution found.")
+        .1
 }
 
 fn main() {
@@ -84,11 +126,22 @@ mod tests {
         }
     }
 
-    // #[test]
-    // fn test_part_2() {
-    //     let input = parse(INPUT.lines());
-    //     let result = part_2(&input);
-    //
-    //     assert_eq!(result, 0);
-    // }
+    #[test]
+    fn test_part_2() {
+        for (input, expected) in [
+            (
+                "3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5",
+                139629729,
+            ),
+            (
+                "3,52,1001,52,-5,52,3,53,1,52,56,54,1007,54,5,55,1005,55,26,1001,54,-5,54,1105,1,12,1,53,54,53,1008,54,0,55,1001,55,1,55,2,53,55,53,4,53,1001,56,-1,56,1005,56,6,99,0,0,0,0,10",
+                18216,
+            ),
+        ] {
+            let input = Computer::parse(input);
+            let result = part_2(&input);
+
+            assert_eq!(result, expected);
+        }
+    }
 }

@@ -44,13 +44,42 @@ impl InputOutput for NullIO {
     }
 }
 
+pub struct SplitIO<'a, IO: InputOutput> {
+    input: &'a mut IO,
+    output: &'a mut IO,
+}
+
+impl<'a, IO: InputOutput> SplitIO<'a, IO> {
+    pub fn new(input: &'a mut IO, output: &'a mut IO) -> Self {
+        Self { input, output }
+    }
+}
+
+impl<'a, IO: InputOutput> InputOutput for SplitIO<'a, IO> {
+    fn pop(&mut self) -> Option<i64> {
+        self.input.pop()
+    }
+
+    fn push(&mut self, value: i64) {
+        self.output.push(value);
+    }
+
+    fn input_iter(&self) -> impl Iterator<Item = &i64> {
+        self.input.input_iter()
+    }
+
+    fn output_iter(&self) -> impl Iterator<Item = &i64> {
+        self.output.output_iter()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Computer {
     memory: Vec<i64>,
-    instruction_pointer: usize,
+    pub instruction_pointer: usize,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OpCode {
     Addition,
     Multiplication,
@@ -70,8 +99,8 @@ impl OpCode {
             OpCode::Multiplication => 4,
             OpCode::Input => 2,
             OpCode::Output => 3,
-            OpCode::JumpIfTrue => 4,
-            OpCode::JumpIfFalse => 4,
+            OpCode::JumpIfTrue => 3,
+            OpCode::JumpIfFalse => 3,
             OpCode::LessThan => 4,
             OpCode::Equals => 4,
             OpCode::Terminate => 1,
@@ -146,6 +175,8 @@ impl OpCode {
             JumpIfTrue => {
                 let params: [i64; 2] = computer.get_parameters(parameter_modes);
 
+                trace!("JumpIfTrue: params={params:?}");
+
                 Ok(if params[0] != 0 {
                     params[1] as usize
                 } else {
@@ -154,6 +185,8 @@ impl OpCode {
             }
             JumpIfFalse => {
                 let params: [i64; 2] = computer.get_parameters(parameter_modes);
+
+                trace!("JumpIfFalse: params={params:?}");
 
                 Ok(if params[0] == 0 {
                     params[1] as usize
@@ -164,6 +197,8 @@ impl OpCode {
             LessThan => {
                 let params: [i64; 2] = computer.get_parameters(parameter_modes);
                 let output = computer.read_address(computer.instruction_pointer + 3);
+
+                trace!("LessThan: params={params:?}; output={output}");
 
                 if params[0] < params[1] {
                     computer.write(output, 1);
@@ -176,6 +211,8 @@ impl OpCode {
             Equals => {
                 let params: [i64; 2] = computer.get_parameters(parameter_modes);
                 let output = computer.read_address(computer.instruction_pointer + 3);
+
+                trace!("Equals: params={params:?}; output={output}");
 
                 if params[0] == params[1] {
                     computer.write(output, 1);
@@ -259,7 +296,9 @@ impl Instruction {
     fn evaluate<IO: InputOutput>(&self, computer: &mut Computer, io: &mut IO) -> Option<OpCode> {
         let jump = self.op_code.evaluate(computer, &self.parameter_modes, io);
 
-        computer.instruction_pointer = jump.unwrap_or(0);
+        if let Ok(jump_address) = jump {
+            computer.instruction_pointer = jump_address;
+        }
 
         jump.err()
     }

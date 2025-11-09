@@ -171,6 +171,7 @@ dependencies = [
  "env_logger",
  "intcode",
  "itertools 0.14.0",
+ "log",
 ]
 
 [[package]]
