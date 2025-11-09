@@ -346,6 +346,90 @@ mod tests {
     }
 
     #[test]
+    fn day5_equals_8_position() {
+        let computer_equals_8 = Computer::parse("3,9,8,9,10,9,4,9,99,-1,8");
+
+        let mut test_computer = computer_equals_8.clone();
+        test_computer.push(8);
+        test_computer.run();
+        assert_eq!(test_computer.diagnostic_code(), 1);
+
+        let mut test_computer = computer_equals_8.clone();
+        test_computer.push(1);
+        test_computer.run();
+        assert_eq!(test_computer.diagnostic_code(), 0);
+    }
+
+    #[test]
+    fn day5_equals_8_immediate() {
+        let computer_equals_8 = Computer::parse("3,3,1108,-1,8,3,4,3,99");
+
+        let mut test_computer = computer_equals_8.clone();
+        test_computer.push(8);
+        test_computer.run();
+        assert_eq!(test_computer.diagnostic_code(), 1);
+
+        let mut test_computer = computer_equals_8.clone();
+        test_computer.push(1);
+        test_computer.run();
+        assert_eq!(test_computer.diagnostic_code(), 0);
+    }
+
+    #[test]
+    fn day5_less_than_8_position() {
+        let computer_less_than_8 = Computer::parse("3,9,7,9,10,9,4,9,99,-1,8");
+
+        let mut test_computer = computer_less_than_8.clone();
+        test_computer.push(7);
+        test_computer.run();
+        assert_eq!(test_computer.diagnostic_code(), 1);
+
+        let mut test_computer = computer_less_than_8.clone();
+        test_computer.push(8);
+        test_computer.run();
+        assert_eq!(test_computer.diagnostic_code(), 0);
+
+        let mut test_computer = computer_less_than_8.clone();
+        test_computer.push(9);
+        test_computer.run();
+        assert_eq!(test_computer.diagnostic_code(), 0);
+    }
+
+    #[test]
+    fn day5_less_than_8_immediate() {
+        let computer_less_than_8 = Computer::parse("3,3,1107,-1,8,3,4,3,99");
+
+        let mut test_computer = computer_less_than_8.clone();
+        test_computer.push(7);
+        test_computer.run();
+        assert_eq!(test_computer.diagnostic_code(), 1);
+
+        let mut test_computer = computer_less_than_8.clone();
+        test_computer.push(8);
+        test_computer.run();
+        assert_eq!(test_computer.diagnostic_code(), 0);
+
+        let mut test_computer = computer_less_than_8.clone();
+        test_computer.push(9);
+        test_computer.run();
+        assert_eq!(test_computer.diagnostic_code(), 0);
+    }
+
+    #[test]
+    fn day5_large_example() {
+        let computer = Computer::parse(
+            "3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99",
+        );
+
+        for (input, expected) in [(7, 999), (8, 1000), (9, 1001)] {
+            let mut test_computer = computer.clone();
+            test_computer.push(input);
+            test_computer.run();
+            assert_eq!(test_computer.diagnostic_code(), expected);
+        }
+    }
+
+    #[test]
     fn test_reversed_digits() {
         assert_eq!(25.reversed_digits(), [5, 2]);
         assert_eq!(1234.reversed_digits(), [4, 3, 2, 1]);
