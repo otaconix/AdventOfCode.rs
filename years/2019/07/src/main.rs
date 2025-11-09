@@ -1,4 +1,4 @@
-use std::io;
+use std::{collections::VecDeque, io};
 
 use aoc_timing::trace::log_run;
 use intcode::Computer;
@@ -26,10 +26,9 @@ fn part_1(input: &Input) -> Output1 {
                         Some(input.clone())
                     }))
                     .fold(0, |last_output, (input, mut computer)| {
-                        computer.push(*input);
-                        computer.push(last_output);
-                        computer.run();
-                        computer.diagnostic_code()
+                        let mut io = VecDeque::from([*input, last_output]);
+                        computer.run(&mut io);
+                        computer.diagnostic_code(&io)
                     }),
             )
         })

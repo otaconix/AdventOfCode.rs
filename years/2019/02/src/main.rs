@@ -1,7 +1,7 @@
 use std::io;
 
 use aoc_timing::trace::log_run;
-use intcode::Computer;
+use intcode::{Computer, NullIO};
 
 type Input = Computer;
 type Output1 = Vec<i64>;
@@ -22,14 +22,14 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     Computer::new(memory)
 }
 
-fn part_1(input: &Input) -> Output1 {
-    let mut input = input.clone();
-    input.write(1, 12);
-    input.write(2, 2);
+fn part_1(computer: &Input) -> Output1 {
+    let mut computer = computer.clone();
+    computer.write(1, 12);
+    computer.write(2, 2);
 
-    input.run();
+    computer.run(&mut NullIO);
 
-    input.memory().to_vec()
+    computer.memory().to_vec()
 }
 
 fn part_2(input: &Input) -> Output2 {
@@ -39,9 +39,9 @@ fn part_2(input: &Input) -> Output2 {
             computer.write(1, noun);
             computer.write(2, verb);
 
-            computer.run();
+            computer.run(&mut NullIO);
 
-            if computer.read(0) == 19690720 {
+            if computer.read(0, &intcode::ParameterMode::Immediate) == 19690720 {
                 return 100 * noun + verb;
             }
         }
@@ -83,7 +83,7 @@ mod tests {
             .iter()
             .map(|line| parse(std::iter::once(line)))
             .map(|mut input| {
-                input.run();
+                input.run(&mut NullIO);
                 input.memory().to_owned()
             })
             .collect::<Vec<_>>();

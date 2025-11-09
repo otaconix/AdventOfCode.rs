@@ -1,4 +1,4 @@
-use std::io;
+use std::{collections::VecDeque, io};
 
 use aoc_timing::trace::log_run;
 use intcode::Computer;
@@ -15,19 +15,18 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(mut input: I) -> Input {
 
 fn part_1(input: &Input) -> Output1 {
     let mut computer = input.clone();
+    let mut io = VecDeque::from([1]);
 
-    computer.push(1);
+    computer.run(&mut io);
 
-    computer.run();
-
-    computer.diagnostic_code()
+    computer.diagnostic_code(&io)
 }
 
 fn part_2(input: &Input) -> Output2 {
     let mut computer = input.clone();
-    computer.push(5);
-    computer.run();
-    computer.diagnostic_code()
+    let mut io = VecDeque::from([5]);
+    computer.run(&mut io);
+    computer.diagnostic_code(&io)
 }
 
 fn main() {
