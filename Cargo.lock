@@ -164,6 +164,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "aoc-2019-06"
+version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "dijkstra",
+ "env_logger",
+ "rapidhash",
+]
+
+[[package]]
 name = "aoc-2019-07"
 version = "0.1.0"
 dependencies = [
