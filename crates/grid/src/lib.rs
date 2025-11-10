@@ -181,6 +181,11 @@ impl<T> Grid<T> {
     }
 
     #[must_use]
+    pub fn get_coord(&self, (column, row): (usize, usize)) -> Option<&T> {
+        self.get(column, row)
+    }
+
+    #[must_use]
     pub fn coordinates(&self) -> GridCoordinates<'_, T> {
         GridCoordinates {
             grid: self,
