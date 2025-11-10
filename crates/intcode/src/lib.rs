@@ -1,4 +1,7 @@
-use std::collections::VecDeque;
+use std::{
+    collections::VecDeque,
+    ops::{Add, Sub},
+};
 
 use log::trace;
 
@@ -76,6 +79,7 @@ impl<'a, IO: InputOutput> InputOutput for SplitIO<'a, IO> {
 #[derive(Debug, Clone)]
 pub struct Computer {
     memory: Vec<i64>,
+    relative_base: usize,
     pub instruction_pointer: usize,
 }
 
@@ -90,6 +94,7 @@ pub enum OpCode {
     LessThan,
     Equals,
     Terminate,
+    AdjustRelativeBase,
 }
 
 impl OpCode {
@@ -103,6 +108,7 @@ impl OpCode {
             OpCode::JumpIfFalse => 3,
             OpCode::LessThan => 4,
             OpCode::Equals => 4,
+            OpCode::AdjustRelativeBase => 2,
             OpCode::Terminate => 1,
         }
     }
@@ -222,6 +228,18 @@ impl OpCode {
 
                 Ok(computer.instruction_pointer + 4)
             }
+            AdjustRelativeBase => {
+                let params: [i64; 1] = computer.get_parameters(parameter_modes);
+
+                trace!("AdjustRelativeBase: params={params:?}");
+
+                computer.relative_base = match params[0].signum() {
+                    -1 => computer.relative_base.sub(params[0].abs() as usize),
+                    _ => computer.relative_base.add(params[0] as usize),
+                };
+
+                Ok(computer.instruction_pointer + 2)
+            }
             Terminate => Err(*self),
         }
     }
@@ -231,6 +249,7 @@ impl OpCode {
 pub enum ParameterMode {
     Position,
     Immediate,
+    Relative,
 }
 
 #[derive(Debug)]
@@ -273,6 +292,7 @@ impl Instruction {
             6 => OpCode::JumpIfFalse,
             7 => OpCode::LessThan,
             8 => OpCode::Equals,
+            9 => OpCode::AdjustRelativeBase,
             99 => OpCode::Terminate,
             invalid => panic!("Invalid opcode {invalid} (instruction: {n}"),
         };
@@ -283,6 +303,7 @@ impl Instruction {
             .map(|digit| match digit {
                 0 => ParameterMode::Position,
                 1 => ParameterMode::Immediate,
+                2 => ParameterMode::Relative,
                 _ => panic!("Unknown parameter mode {digit} (instruction: {n})"),
             })
             .collect();
@@ -309,6 +330,7 @@ impl Computer {
         Computer {
             memory,
             instruction_pointer: 0,
+            relative_base: 0,
         }
     }
 
@@ -337,12 +359,27 @@ impl Computer {
 
     pub fn read(&self, address: usize, parameter_mode: &ParameterMode) -> i64 {
         match *parameter_mode {
-            ParameterMode::Immediate => self.memory[address],
-            ParameterMode::Position => self.memory[self.memory[address] as usize],
+            ParameterMode::Immediate => *self.memory.get(address).unwrap_or(&0),
+            ParameterMode::Position => *self
+                .memory
+                .get(*self.memory.get(address).unwrap_or(&0) as usize)
+                .unwrap_or(&0),
+            ParameterMode::Relative => {
+                let address_value = *self.memory.get(address).unwrap_or(&0);
+                let address = match address_value.signum() {
+                    -1 => self.relative_base.sub(address_value.abs() as usize),
+                    _ => self.relative_base.add(address_value as usize),
+                };
+                *self.memory.get(address).unwrap_or(&0)
+            }
         }
     }
 
     pub fn write(&mut self, address: usize, value: i64) {
+        if address >= self.memory.len() {
+            self.memory
+                .extend(std::iter::repeat_n(0, address - self.memory.len() + 1));
+        }
         self.memory[address] = value;
     }
 
@@ -493,6 +530,45 @@ mod tests {
             test_computer.run(&mut io);
             assert_eq!(test_computer.diagnostic_code(&io), expected);
         }
+    }
+
+    #[test]
+    fn day9_quine() {
+        let program = "109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99";
+        let mut computer = Computer::parse(program);
+        let mut io = VecDeque::new();
+
+        computer.run(&mut io);
+
+        assert_eq!(
+            io,
+            program
+                .split(',')
+                .map(|n| n.parse().unwrap())
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn day9_large_number_output() {
+        let program = "1102,34915192,34915192,7,4,7,99,0";
+        let mut computer = Computer::parse(program);
+        let mut io = VecDeque::new();
+
+        computer.run(&mut io);
+
+        assert_eq!(io[0].reversed_digits().len(), 16);
+    }
+
+    #[test]
+    fn day9_large_number_from_memory() {
+        let program = "104,1125899906842624,99";
+        let mut computer = Computer::parse(program);
+        let mut io = VecDeque::new();
+
+        computer.run(&mut io);
+
+        assert_eq!(io[0], 1125899906842624);
     }
 
     #[test]
