@@ -351,12 +351,16 @@ impl Computer {
 
     pub fn run<IO: InputOutput>(&mut self, io: &mut IO) -> OpCode {
         loop {
-            let instruction = Instruction::read(self.memory[self.instruction_pointer]);
-
-            if let Some(op_code) = instruction.evaluate(self, io) {
+            if let Some(op_code) = self.step(io) {
                 return op_code;
             }
         }
+    }
+
+    pub fn step<IO: InputOutput>(&mut self, io: &mut IO) -> Option<OpCode> {
+        let instruction = Instruction::read(self.memory[self.instruction_pointer]);
+
+        instruction.evaluate(self, io)
     }
 
     pub fn read(&self, address: usize, parameter_mode: &ParameterMode) -> i64 {
