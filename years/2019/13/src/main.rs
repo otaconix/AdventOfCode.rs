@@ -165,6 +165,8 @@ mod tui {
         }
 
         pub fn game_over(&mut self, score: i64) {
+            let total_duration = Instant::now().duration_since(self.start_time);
+
             self.terminal
                 .draw(|frame| {
                     let paragraph = Paragraph::new(Text::styled(
@@ -183,7 +185,12 @@ mod tui {
                     .block(
                         Block::bordered()
                             .border_type(BorderType::Rounded)
-                            .title_top(format!(" [ Score: {score} ] ")),
+                            .title_top(format!(" [ Score: {score} ] "))
+                            .title_bottom(format!(
+                                " [ {:02}:{:02} ] ",
+                                total_duration.as_secs() / 60,
+                                total_duration.as_secs() % 60
+                            )),
                     );
 
                     let area = create_centered_layout(frame);
