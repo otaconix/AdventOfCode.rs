@@ -1,27 +1,40 @@
-use std::io;
+use std::{collections::VecDeque, io};
 
 use aoc_timing::trace::log_run;
+use intcode::{Computer, OpCode};
 
-type Input = Vec<String>;
-type Output1 = usize;
+type Input = Computer;
+type Output1 = i64;
 type Output2 = Output1;
 
-fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
-    input
-        .map(|line| {
-            let line = line.as_ref();
+fn parse<S: AsRef<str>, I: Iterator<Item = S>>(mut input: I) -> Input {
+    let line = input.next().unwrap();
 
-            todo!()
-        })
-        .collect()
+    Computer::parse(line.as_ref())
 }
 
 fn part_1(input: &Input) -> Output1 {
-    todo!()
+    let mut computer = input.clone();
+    let mut io = VecDeque::from([1]);
+
+    let opcode = computer.run(&mut io);
+
+    assert_eq!(opcode, OpCode::Terminate);
+    assert_eq!(io.len(), 1, "{io:#?}");
+
+    io[0]
 }
 
 fn part_2(input: &Input) -> Output2 {
-    todo!()
+    let mut computer = input.clone();
+    let mut io = VecDeque::from([2]);
+
+    let opcode = computer.run(&mut io);
+
+    assert_eq!(opcode, OpCode::Terminate);
+    assert_eq!(io.len(), 1, "{io:#?}");
+
+    io[0]
 }
 
 fn main() {
@@ -38,27 +51,4 @@ fn main() {
         let part_2 = log_run("Part 2", || part_2(&input));
         println!("Part 2: {part_2}");
     });
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    const INPUT: &str = include_str!("test-input");
-
-    #[test]
-    fn test_part_1() {
-        let input = parse(INPUT.lines());
-        let result = part_1(&input);
-
-        assert_eq!(result, 0);
-    }
-
-    #[test]
-    fn test_part_2() {
-        let input = parse(INPUT.lines());
-        let result = part_2(&input);
-
-        assert_eq!(result, 0);
-    }
 }

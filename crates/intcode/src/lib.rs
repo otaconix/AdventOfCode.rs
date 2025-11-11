@@ -103,7 +103,7 @@ impl OpCode {
             OpCode::Addition => 4,
             OpCode::Multiplication => 4,
             OpCode::Input => 2,
-            OpCode::Output => 3,
+            OpCode::Output => 2,
             OpCode::JumpIfTrue => 3,
             OpCode::JumpIfFalse => 3,
             OpCode::LessThan => 4,
@@ -122,8 +122,8 @@ impl OpCode {
         use OpCode::*;
 
         trace!(
-            "IP: {}, opcode: {self:?}, param_modes: {parameter_modes:?}",
-            computer.instruction_pointer
+            "IP={}; opcode={self:?}; param_modes={parameter_modes:?}; relative_base={}",
+            computer.instruction_pointer, computer.relative_base,
         );
 
         trace!(
@@ -134,35 +134,38 @@ impl OpCode {
 
         match *self {
             Addition => {
-                let params: [i64; 2] = computer.get_parameters(parameter_modes);
-                let output = computer.read_address(computer.instruction_pointer + 3);
-                let result = params.iter().sum();
+                let params @ [a, b] = computer.get_parameters(parameter_modes);
+                let output =
+                    computer.read_address(computer.instruction_pointer + 3, &parameter_modes[2]);
+                let result = a + b;
 
-                trace!("Addition: params={params:?}; output={output}; result={result}");
+                trace!("Addition: params={params:?}; result={result}; output={output}");
 
-                computer.write(output, result);
+                computer.write(output as usize, result);
 
                 Ok(computer.instruction_pointer + 4)
             }
             Multiplication => {
-                let params: [i64; 2] = computer.get_parameters(parameter_modes);
-                let output = computer.read_address(computer.instruction_pointer + 3);
-                let result = params.iter().product();
+                let params @ [a, b] = computer.get_parameters(parameter_modes);
+                let output =
+                    computer.read_address(computer.instruction_pointer + 3, &parameter_modes[2]);
+                let result = a * b;
 
-                trace!("Multiplication: params={params:?}; output={output}; result={result}");
+                trace!("Multiplication: params={params:?}; result={result}; output={output}");
 
-                computer.write(output, result);
+                computer.write(output as usize, result);
 
                 Ok(computer.instruction_pointer + 4)
             }
             Input => {
-                let output = computer.read_address(computer.instruction_pointer + 1);
-                let result = computer.pop(io);
+                let output =
+                    computer.read_address(computer.instruction_pointer + 1, &parameter_modes[0]);
+                let result = io.pop();
 
-                trace!("Input: output={output}; result={result:?}");
+                trace!("Input: result={result:?}; output={output}");
 
                 if let Some(result) = result {
-                    computer.write(output, result);
+                    computer.write(output as usize, result);
 
                     Ok(computer.instruction_pointer + 2)
                 } else {
@@ -170,73 +173,74 @@ impl OpCode {
                 }
             }
             Output => {
-                let params: [i64; 1] = computer.get_parameters(parameter_modes);
+                let params @ [value] = computer.get_parameters(parameter_modes);
 
                 trace!("Output: params={params:?}");
 
-                computer.push(params[0], io);
+                io.push(value);
 
                 Ok(computer.instruction_pointer + 2)
             }
             JumpIfTrue => {
-                let params: [i64; 2] = computer.get_parameters(parameter_modes);
+                let params @ [boolean, jump_address] = computer.get_parameters(parameter_modes);
+                let result = boolean != 0;
 
-                trace!("JumpIfTrue: params={params:?}");
+                trace!("JumpIfTrue: params={params:?}; result={result}");
 
-                Ok(if params[0] != 0 {
-                    params[1] as usize
+                Ok(if result {
+                    jump_address as usize
                 } else {
                     computer.instruction_pointer + 3
                 })
             }
             JumpIfFalse => {
-                let params: [i64; 2] = computer.get_parameters(parameter_modes);
+                let params @ [boolean, jump_address] = computer.get_parameters(parameter_modes);
+                let result = boolean == 0;
 
-                trace!("JumpIfFalse: params={params:?}");
+                trace!("JumpIfFalse: params={params:?}; result={result}");
 
-                Ok(if params[0] == 0 {
-                    params[1] as usize
+                Ok(if result {
+                    jump_address as usize
                 } else {
                     computer.instruction_pointer + 3
                 })
             }
             LessThan => {
-                let params: [i64; 2] = computer.get_parameters(parameter_modes);
-                let output = computer.read_address(computer.instruction_pointer + 3);
+                let params @ [a, b] = computer.get_parameters(parameter_modes);
+                let output =
+                    computer.read_address(computer.instruction_pointer + 3, &parameter_modes[2]);
+                let result = a < b;
 
-                trace!("LessThan: params={params:?}; output={output}");
+                trace!("LessThan: params={params:?}; result={result}; output={output}");
 
-                if params[0] < params[1] {
-                    computer.write(output, 1);
-                } else {
-                    computer.write(output, 0);
-                }
+                computer.write(output as usize, if result { 1 } else { 0 });
 
                 Ok(computer.instruction_pointer + 4)
             }
             Equals => {
-                let params: [i64; 2] = computer.get_parameters(parameter_modes);
-                let output = computer.read_address(computer.instruction_pointer + 3);
+                let params @ [a, b] = computer.get_parameters(parameter_modes);
+                let output =
+                    computer.read_address(computer.instruction_pointer + 3, &parameter_modes[2]);
+                let result = a == b;
 
-                trace!("Equals: params={params:?}; output={output}");
+                trace!("Equals: params={params:?}; result={result}; output={output}");
 
-                if params[0] == params[1] {
-                    computer.write(output, 1);
-                } else {
-                    computer.write(output, 0);
-                }
+                computer.write(output as usize, if result { 1 } else { 0 });
 
                 Ok(computer.instruction_pointer + 4)
             }
             AdjustRelativeBase => {
-                let params: [i64; 1] = computer.get_parameters(parameter_modes);
+                let params @ [base_offset] = computer.get_parameters(parameter_modes);
 
-                trace!("AdjustRelativeBase: params={params:?}");
-
-                computer.relative_base = match params[0].signum() {
-                    -1 => computer.relative_base.sub(params[0].abs() as usize),
-                    _ => computer.relative_base.add(params[0] as usize),
+                computer.relative_base = match base_offset.signum() {
+                    -1 => computer.relative_base.sub(base_offset.abs() as usize),
+                    _ => computer.relative_base.add(base_offset as usize),
                 };
+
+                trace!(
+                    "AdjustRelativeBase: params={params:?}; result={}",
+                    computer.relative_base
+                );
 
                 Ok(computer.instruction_pointer + 2)
             }
@@ -297,7 +301,7 @@ impl Instruction {
             invalid => panic!("Invalid opcode {invalid} (instruction: {n}"),
         };
 
-        let parameter_modes = (n / 100)
+        let mut parameter_modes: Vec<_> = (n / 100)
             .reversed_digits()
             .into_iter()
             .map(|digit| match digit {
@@ -307,6 +311,8 @@ impl Instruction {
                 _ => panic!("Unknown parameter mode {digit} (instruction: {n})"),
             })
             .collect();
+
+        parameter_modes.resize_with(op_code.memory_used(), || ParameterMode::Position);
 
         Self {
             op_code,
@@ -353,24 +359,18 @@ impl Computer {
         }
     }
 
-    pub fn offset_read(&self, offset: usize, parameter_mode: &ParameterMode) -> i64 {
-        self.read(self.instruction_pointer + offset, parameter_mode)
-    }
-
     pub fn read(&self, address: usize, parameter_mode: &ParameterMode) -> i64 {
+        let value = *self.memory.get(address).unwrap_or(&0);
+
         match *parameter_mode {
-            ParameterMode::Immediate => *self.memory.get(address).unwrap_or(&0),
-            ParameterMode::Position => *self
-                .memory
-                .get(*self.memory.get(address).unwrap_or(&0) as usize)
-                .unwrap_or(&0),
+            ParameterMode::Position => self.read(value as usize, &ParameterMode::Immediate),
+            ParameterMode::Immediate => value,
             ParameterMode::Relative => {
-                let address_value = *self.memory.get(address).unwrap_or(&0);
-                let address = match address_value.signum() {
-                    -1 => self.relative_base.sub(address_value.abs() as usize),
-                    _ => self.relative_base.add(address_value as usize),
+                let address = match value.signum() {
+                    -1 => self.relative_base.sub(value.abs() as usize),
+                    _ => self.relative_base.add(value as usize),
                 };
-                *self.memory.get(address).unwrap_or(&0)
+                self.read(address, &ParameterMode::Immediate)
             }
         }
     }
@@ -387,16 +387,12 @@ impl Computer {
         &self.memory
     }
 
-    pub fn push<IO: InputOutput>(&mut self, value: i64, io: &mut IO) {
-        io.push(value);
-    }
-
-    pub fn pop<IO: InputOutput>(&mut self, io: &mut IO) -> Option<i64> {
-        io.pop()
-    }
-
-    fn read_address(&self, address: usize) -> usize {
+    fn read_address(&self, address: usize, parameter_mode: &ParameterMode) -> usize {
         self.read(address, &ParameterMode::Immediate) as usize
+            + match parameter_mode {
+                ParameterMode::Relative => self.relative_base,
+                _ => 0,
+            }
     }
 
     pub fn diagnostic_code<IO: InputOutput>(&self, io: &IO) -> i64 {
@@ -406,10 +402,7 @@ impl Computer {
     fn get_parameters<const N: usize>(&self, parameter_modes: &[ParameterMode]) -> [i64; N] {
         let mut result = [0i64; N];
         for n in 0..N {
-            result[n] = self.offset_read(
-                n + 1,
-                parameter_modes.get(n).unwrap_or(&ParameterMode::Position),
-            );
+            result[n] = self.read(self.instruction_pointer + n + 1, &parameter_modes[n]);
         }
 
         result
