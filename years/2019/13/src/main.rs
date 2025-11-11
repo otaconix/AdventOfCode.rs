@@ -6,7 +6,6 @@ use std::{
 use std::{thread::sleep, time::Duration};
 
 use aoc_timing::trace::log_run;
-use grid::Grid;
 use intcode::{Computer, OpCode, SplitIO};
 use itertools::Itertools;
 
@@ -82,19 +81,25 @@ fn part_1(input: &Input) -> Output1 {
 
 #[cfg(feature = "tui")]
 mod tui {
-    use std::{thread::sleep, time::Duration};
+    use std::{
+        thread::sleep,
+        time::{Duration, Instant},
+    };
 
     use super::*;
+    use grid::Grid;
     use ratatui::{
         DefaultTerminal, Frame,
         layout::{Flex, Layout, Rect},
         style::{Modifier, Style},
         text::Text,
-        widgets::{Block, Padding, Paragraph},
+        widgets::{Block, BorderType, Padding, Paragraph},
     };
 
     pub struct TuiState {
         terminal: DefaultTerminal,
+        display: Grid<Tile>,
+        start_time: Instant,
     }
 
     fn create_centered_layout(frame: &Frame) -> Rect {
@@ -110,15 +115,24 @@ mod tui {
     impl TuiState {
         pub fn init() -> Self {
             let terminal = ratatui::init();
+            let display: Grid<Tile> =
+                std::iter::repeat_n(std::iter::repeat_n(Tile::Empty, 40).collect_vec(), 30)
+                    .collect();
 
-            Self { terminal }
+            Self {
+                terminal,
+                display,
+                start_time: Instant::now(),
+            }
         }
 
-        pub fn update(&mut self, display: &Grid<Tile>, score: i64, ball_moving: bool, tile: &Tile) {
+        pub fn update(&mut self, score: i64, ball_moving: bool, x: i64, y: i64, tile: &Tile) {
+            self.display.update(x as usize, y as usize, *tile);
+
             if ball_moving && tile != &Tile::Empty {
-                let display_string = (0..=display.height())
+                let display_string = (0..=self.display.height())
                     .map(|row| {
-                        display
+                        self.display
                             .row(row)
                             .map(|tile| tile.to_char())
                             .collect::<String>()
@@ -127,15 +141,21 @@ mod tui {
 
                 self.terminal
                     .draw(|frame| {
-                        let area = create_centered_layout(frame);
+                        let run_duration = Instant::now().duration_since(self.start_time);
                         let display_text = Paragraph::new(Text::raw(display_string)).block(
                             Block::bordered()
+                                .border_type(BorderType::Rounded)
                                 .padding(Padding::symmetric(1, 2))
-                                .title(format!("Score: {score}"))
+                                .title(format!(" [ Score: {score} ] "))
+                                .title_bottom(format!(
+                                    " [ {:02}:{:02} ] ",
+                                    run_duration.as_secs() / 60,
+                                    run_duration.as_secs() % 60
+                                ))
                                 .title_alignment(ratatui::layout::Alignment::Center),
                         );
 
-                        frame.render_widget(display_text, area);
+                        frame.render_widget(display_text, create_centered_layout(frame));
                     })
                     .unwrap();
 
@@ -147,10 +167,8 @@ mod tui {
         pub fn game_over(&mut self, score: i64) {
             self.terminal
                 .draw(|frame| {
-                    let area = create_centered_layout(frame);
-                    frame.render_widget(
-                        Text::styled(
-                            r#"
+                    let paragraph = Paragraph::new(Text::styled(
+                        r#"
         _      _                     _ 
  /\   /(_) ___| |_ ___  _ __ _   _  / \
  \ \ / / |/ __| __/ _ \| '__| | | |/  /
@@ -158,12 +176,19 @@ mod tui {
    \_/ |_|\___|\__\___/|_|   \__, \/   
                              |___/     
                             "#,
-                            Style::default()
-                                .add_modifier(Modifier::BOLD)
-                                .add_modifier(Modifier::SLOW_BLINK),
-                        ),
-                        area,
-                    )
+                        Style::default()
+                            .add_modifier(Modifier::BOLD)
+                            .add_modifier(Modifier::SLOW_BLINK),
+                    ))
+                    .block(
+                        Block::bordered()
+                            .border_type(BorderType::Rounded)
+                            .title_top(format!(" [ Score: {score} ] ")),
+                    );
+
+                    let area = create_centered_layout(frame);
+                    let [area] = Layout::vertical([10]).flex(Flex::Center).areas(area);
+                    frame.render_widget(paragraph, area)
                 })
                 .unwrap();
 
@@ -184,8 +209,6 @@ fn part_2(input: &Input) -> Output2 {
     let mut input = VecDeque::new();
     let mut output = VecDeque::new();
     let mut score = 0;
-    let mut display: Grid<Tile> =
-        std::iter::repeat_n(std::iter::repeat_n(Tile::Empty, 40).collect_vec(), 30).collect();
     let mut ball_x = -1;
     let mut paddle_x = -1;
     #[cfg(feature = "tui")]
@@ -219,7 +242,6 @@ fn part_2(input: &Input) -> Output2 {
                 score = tile_id;
             } else {
                 let tile = Tile::from_id(tile_id);
-                display.update(x as usize, y as usize, tile);
 
                 match tile {
                     Tile::HorizontalPaddle => paddle_x = x,
@@ -234,7 +256,7 @@ fn part_2(input: &Input) -> Output2 {
                 }
 
                 #[cfg(feature = "tui")]
-                tui_state.update(&display, score, ball_moving, &tile);
+                tui_state.update(score, ball_moving, x, y, &tile);
             }
         }
     }
