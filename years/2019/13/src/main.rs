@@ -90,7 +90,7 @@ mod tui {
     use grid::Grid;
     use ratatui::{
         DefaultTerminal, Frame,
-        layout::{Flex, Layout, Rect},
+        layout::{Alignment, Flex, Layout, Rect},
         style::{Modifier, Style},
         text::Text,
         widgets::{Block, BorderType, Padding, Paragraph},
@@ -152,7 +152,7 @@ mod tui {
                                     run_duration.as_secs() / 60,
                                     run_duration.as_secs() % 60
                                 ))
-                                .title_alignment(ratatui::layout::Alignment::Center),
+                                .title_alignment(Alignment::Center),
                         );
 
                         frame.render_widget(display_text, create_centered_layout(frame));
@@ -190,7 +190,8 @@ mod tui {
                                 " [ {:02}:{:02} ] ",
                                 total_duration.as_secs() / 60,
                                 total_duration.as_secs() % 60
-                            )),
+                            ))
+                            .title_alignment(Alignment::Center),
                     );
 
                     let area = create_centered_layout(frame);
