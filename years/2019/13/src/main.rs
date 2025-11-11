@@ -1,13 +1,10 @@
+use aoc_timing::trace::log_run;
+use intcode::{Computer, OpCode, SplitIO};
+use itertools::Itertools;
 use std::{
     collections::{HashMap, VecDeque},
     io::{self},
 };
-#[cfg(feature = "delay")]
-use std::{thread::sleep, time::Duration};
-
-use aoc_timing::trace::log_run;
-use intcode::{Computer, OpCode, SplitIO};
-use itertools::Itertools;
 
 type Input = Computer;
 type Output1 = usize;
@@ -100,6 +97,8 @@ mod tui {
         terminal: DefaultTerminal,
         display: Grid<Tile>,
         start_time: Instant,
+        should_render: bool,
+        delay: Option<u64>,
     }
 
     fn create_centered_layout(frame: &Frame) -> Rect {
@@ -118,18 +117,23 @@ mod tui {
             let display: Grid<Tile> =
                 std::iter::repeat_n(std::iter::repeat_n(Tile::Empty, 40).collect_vec(), 30)
                     .collect();
+            let delay = std::env::var("DELAY_MILLIS")
+                .map(|delay| delay.parse().expect("Invalid DELAY_MILLIS value"))
+                .ok();
 
             Self {
                 terminal,
                 display,
                 start_time: Instant::now(),
+                should_render: false,
+                delay,
             }
         }
 
-        pub fn update(&mut self, score: i64, ball_moving: bool, x: i64, y: i64, tile: &Tile) {
+        pub fn update(&mut self, score: i64, x: i64, y: i64, tile: &Tile) {
             self.display.update(x as usize, y as usize, *tile);
 
-            if ball_moving && tile != &Tile::Empty {
+            if self.should_render && tile != &Tile::Empty {
                 let display_string = (0..=self.display.height())
                     .map(|row| {
                         self.display
@@ -159,9 +163,14 @@ mod tui {
                     })
                     .unwrap();
 
-                #[cfg(feature = "delay")]
-                sleep(Duration::from_millis(50));
+                if let Some(delay) = self.delay {
+                    sleep(Duration::from_millis(delay));
+                }
             }
+        }
+
+        pub fn start_rendering(&mut self) {
+            self.should_render = true;
         }
 
         pub fn game_over(&mut self, score: i64) {
@@ -219,8 +228,6 @@ fn part_2(input: &Input) -> Output2 {
     let mut score = 0;
     let mut ball_x = -1;
     let mut paddle_x = -1;
-    #[cfg(feature = "tui")]
-    let mut ball_moving = false;
 
     #[cfg(feature = "tui")]
     let mut tui_state = tui::TuiState::init();
@@ -256,7 +263,7 @@ fn part_2(input: &Input) -> Output2 {
                     Tile::Ball => {
                         #[cfg(feature = "tui")]
                         if ball_x != -1 {
-                            ball_moving = true;
+                            tui_state.start_rendering();
                         }
                         ball_x = x;
                     }
@@ -264,7 +271,7 @@ fn part_2(input: &Input) -> Output2 {
                 }
 
                 #[cfg(feature = "tui")]
-                tui_state.update(score, ball_moving, x, y, &tile);
+                tui_state.update(score, x, y, &tile);
             }
         }
     }
