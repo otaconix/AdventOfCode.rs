@@ -114,8 +114,8 @@ mod tui {
             Self { terminal }
         }
 
-        pub fn update(&mut self, display: &Grid<Tile>, score: i64, ball_moving: bool) {
-            if ball_moving {
+        pub fn update(&mut self, display: &Grid<Tile>, score: i64, ball_moving: bool, tile: &Tile) {
+            if ball_moving && tile != &Tile::Empty {
                 let display_string = (0..=display.height())
                     .map(|row| {
                         display
@@ -234,7 +234,7 @@ fn part_2(input: &Input) -> Output2 {
                 }
 
                 #[cfg(feature = "tui")]
-                tui_state.update(&display, score, ball_moving);
+                tui_state.update(&display, score, ball_moving, &tile);
             }
         }
     }
