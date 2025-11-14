@@ -9,14 +9,13 @@ type Output2 = i64;
 
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     let memory = input
-        .map(|line| {
+        .flat_map(|line| {
             let line = line.as_ref();
 
             line.split(',')
                 .map(|n| n.parse::<i64>().expect("Invalid i64"))
                 .collect::<Vec<_>>()
         })
-        .flatten()
         .collect();
 
     Computer::new(memory)

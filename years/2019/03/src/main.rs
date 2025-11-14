@@ -77,11 +77,7 @@ type Output2 = usize;
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     input
         .map(|line| Wire {
-            steps: line
-                .as_ref()
-                .split(',')
-                .map(|step| Step::parse(step))
-                .collect(),
+            steps: line.as_ref().split(',').map(Step::parse).collect(),
         })
         .collect()
 }

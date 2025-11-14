@@ -1,9 +1,9 @@
-use std::{borrow::Borrow, io};
+use std::io;
 
 use aoc_timing::trace::log_run;
 
-type Input = Vec<u64>;
-type Output1 = u64;
+type Input = Vec<String>;
+type Output1 = usize;
 type Output2 = Output1;
 
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
@@ -11,30 +11,17 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
         .map(|line| {
             let line = line.as_ref();
 
-            line.parse().expect("Couldn't parse module mass")
+            todo!()
         })
         .collect()
 }
 
-fn required_fuel<U: Borrow<u64>>(mass: U) -> u64 {
-    (mass.borrow() / 3).saturating_sub(2)
-}
-
-fn required_fuel_including_fuel<U: Borrow<u64>>(mass: U) -> u64 {
-    if mass.borrow() == &0 {
-        0
-    } else {
-        let fuel = required_fuel(mass);
-        fuel + required_fuel_including_fuel(fuel)
-    }
-}
-
 fn part_1(input: &Input) -> Output1 {
-    input.iter().map(required_fuel).sum()
+    todo!()
 }
 
 fn part_2(input: &Input) -> Output2 {
-    input.iter().map(required_fuel_including_fuel).sum()
+    todo!()
 }
 
 fn main() {
@@ -64,7 +51,7 @@ mod tests {
         let input = parse(INPUT.lines());
         let result = part_1(&input);
 
-        assert_eq!(result, 34241);
+        assert_eq!(result, 0);
     }
 
     #[test]
@@ -72,6 +59,6 @@ mod tests {
         let input = parse(INPUT.lines());
         let result = part_2(&input);
 
-        assert_eq!(result, 51316);
+        assert_eq!(result, 0);
     }
 }

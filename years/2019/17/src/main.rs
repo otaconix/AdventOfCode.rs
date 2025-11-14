@@ -203,19 +203,15 @@ fn part_2((computer, picture): &Input) -> Output2 {
 
             visited_scaffolds.extend(match next_direction {
                 Direction::Left => (current_x - line_length..current_x)
-                    .into_iter()
                     .map(|x| (x, current_y))
                     .collect_vec(),
                 Direction::Right => (current_x + 1..=current_x + line_length)
-                    .into_iter()
                     .map(|x| (x, current_y))
                     .collect_vec(),
                 Direction::Up => (current_y - line_length..current_y)
-                    .into_iter()
                     .map(|y| (current_x, y))
                     .collect_vec(),
                 Direction::Down => (current_y + 1..=current_y + line_length)
-                    .into_iter()
                     .map(|y| (current_x, y))
                     .collect_vec(),
             });

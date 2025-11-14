@@ -174,7 +174,7 @@ fn part_2(oxygen_system: &(i64, i64), not_walls: &HashSet<(i64, i64)>) -> Output
     let mut unvisited = not_walls.clone();
 
     while let Some((next, steps)) = queue.pop() {
-        if let Some(_) = unvisited.take(&next) {
+        if unvisited.take(&next).is_some() {
             max_steps = max_steps.max(steps);
             let next_steps = steps + 1;
             queue.push(((next.0, next.1 - 1), next_steps));
