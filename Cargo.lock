@@ -236,6 +236,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "aoc-2019-17"
+version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "env_logger",
+ "grid",
+ "intcode",
+ "itertools 0.14.0",
+ "regex",
+]
+
+[[package]]
 name = "aoc-2022-01"
 version = "0.1.0"
 dependencies = [

@@ -56,3 +56,7 @@ path = "crates/direction"
 [workspace.dependencies.grid]
 version = "0.1.0"
 path = "crates/grid"
+
+[profile.samply]
+inherits = "release"
+debug = true

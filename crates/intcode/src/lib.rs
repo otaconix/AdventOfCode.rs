@@ -141,7 +141,7 @@ impl OpCode {
 
                 trace!("Addition: params={params:?}; result={result}; output={output}");
 
-                computer.write(output as usize, result);
+                computer.write(output, result);
 
                 Ok(computer.instruction_pointer + 4)
             }
@@ -153,7 +153,7 @@ impl OpCode {
 
                 trace!("Multiplication: params={params:?}; result={result}; output={output}");
 
-                computer.write(output as usize, result);
+                computer.write(output, result);
 
                 Ok(computer.instruction_pointer + 4)
             }
@@ -165,7 +165,7 @@ impl OpCode {
                 trace!("Input: result={result:?}; output={output}");
 
                 if let Some(result) = result {
-                    computer.write(output as usize, result);
+                    computer.write(output, result);
 
                     Ok(computer.instruction_pointer + 2)
                 } else {
@@ -213,7 +213,7 @@ impl OpCode {
 
                 trace!("LessThan: params={params:?}; result={result}; output={output}");
 
-                computer.write(output as usize, if result { 1 } else { 0 });
+                computer.write(output, if result { 1 } else { 0 });
 
                 Ok(computer.instruction_pointer + 4)
             }
@@ -225,7 +225,7 @@ impl OpCode {
 
                 trace!("Equals: params={params:?}; result={result}; output={output}");
 
-                computer.write(output as usize, if result { 1 } else { 0 });
+                computer.write(output, if result { 1 } else { 0 });
 
                 Ok(computer.instruction_pointer + 4)
             }
@@ -233,7 +233,9 @@ impl OpCode {
                 let params @ [base_offset] = computer.get_parameters(parameter_modes);
 
                 computer.relative_base = match base_offset.signum() {
-                    -1 => computer.relative_base.sub(base_offset.abs() as usize),
+                    -1 => computer
+                        .relative_base
+                        .sub(base_offset.unsigned_abs() as usize),
                     _ => computer.relative_base.add(base_offset as usize),
                 };
 
@@ -371,7 +373,7 @@ impl Computer {
             ParameterMode::Immediate => value,
             ParameterMode::Relative => {
                 let address = match value.signum() {
-                    -1 => self.relative_base.sub(value.abs() as usize),
+                    -1 => self.relative_base.sub(value.unsigned_abs() as usize),
                     _ => self.relative_base.add(value as usize),
                 };
                 self.read(address, &ParameterMode::Immediate)
