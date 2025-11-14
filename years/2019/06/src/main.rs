@@ -51,8 +51,8 @@ fn part_2(input: &Input) -> Output2 {
         |node| {
             let mut neighbors: Vec<_> = input
                 .iter()
-                .filter(|(orbiting, center)| center == node)
-                .map(|(orbiting, center)| ((*orbiting).as_str(), 1))
+                .filter(|(_orbiting, center)| center == node)
+                .map(|(orbiting, _center)| ((*orbiting).as_str(), 1))
                 .collect();
 
             if let Some(next_planet) = input.get(*node) {

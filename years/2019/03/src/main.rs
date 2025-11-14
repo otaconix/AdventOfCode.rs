@@ -1,4 +1,4 @@
-use std::{collections::HashSet, io, str::FromStr};
+use std::{io, str::FromStr};
 
 use aoc_timing::trace::log_run;
 use rapidhash::{RapidHashMap, RapidHashSet};

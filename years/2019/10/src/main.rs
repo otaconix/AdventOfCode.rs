@@ -57,25 +57,25 @@ fn main() {
     });
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    const INPUT: &str = include_str!("test-input");
-
-    // #[test]
-    // fn test_part_1() {
-    //     let input = parse(INPUT.lines());
-    //     let result = part_1(&input);
-    //
-    //     assert_eq!(result, 210);
-    // }
-    //
-    // #[test]
-    // fn test_part_2() {
-    //     let input = parse(INPUT.lines());
-    //     let result = part_2(&input);
-    //
-    //     assert_eq!(result, 0);
-    // }
-}
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//
+//     const INPUT: &str = include_str!("test-input");
+//
+//     #[test]
+//     fn test_part_1() {
+//         let input = parse(INPUT.lines());
+//         let result = part_1(&input);
+//
+//         assert_eq!(result, 210);
+//     }
+//
+//     #[test]
+//     fn test_part_2() {
+//         let input = parse(INPUT.lines());
+//         let result = part_2(&input);
+//
+//         assert_eq!(result, 0);
+//     }
+// }
