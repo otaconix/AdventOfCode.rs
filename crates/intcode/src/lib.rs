@@ -1,7 +1,4 @@
-use std::{
-    collections::VecDeque,
-    ops::{Add, Sub},
-};
+use std::collections::VecDeque;
 
 use log::trace;
 
@@ -79,7 +76,7 @@ impl<'a, IO: InputOutput> InputOutput for SplitIO<'a, IO> {
 #[derive(Debug, Clone)]
 pub struct Computer {
     memory: Vec<i64>,
-    relative_base: usize,
+    relative_base: isize,
     pub instruction_pointer: usize,
 }
 
@@ -116,7 +113,7 @@ impl OpCode {
     fn evaluate<IO: InputOutput>(
         &self,
         computer: &mut Computer,
-        parameter_modes: &[ParameterMode],
+        parameter_modes: i64,
         io: &mut IO,
     ) -> Result<usize, OpCode> {
         use OpCode::*;
@@ -135,8 +132,10 @@ impl OpCode {
         match *self {
             Addition => {
                 let params @ [a, b] = computer.get_parameters(parameter_modes);
-                let output =
-                    computer.read_address(computer.instruction_pointer + 3, &parameter_modes[2]);
+                let output = computer.read_address(
+                    computer.instruction_pointer + 3,
+                    &parameter_modes.nth_parameter_mode(2),
+                );
                 let result = a + b;
 
                 trace!("Addition: params={params:?}; result={result}; output={output}");
@@ -147,8 +146,10 @@ impl OpCode {
             }
             Multiplication => {
                 let params @ [a, b] = computer.get_parameters(parameter_modes);
-                let output =
-                    computer.read_address(computer.instruction_pointer + 3, &parameter_modes[2]);
+                let output = computer.read_address(
+                    computer.instruction_pointer + 3,
+                    &parameter_modes.nth_parameter_mode(2),
+                );
                 let result = a * b;
 
                 trace!("Multiplication: params={params:?}; result={result}; output={output}");
@@ -158,8 +159,10 @@ impl OpCode {
                 Ok(computer.instruction_pointer + 4)
             }
             Input => {
-                let output =
-                    computer.read_address(computer.instruction_pointer + 1, &parameter_modes[0]);
+                let output = computer.read_address(
+                    computer.instruction_pointer + 1,
+                    &parameter_modes.nth_parameter_mode(0),
+                );
                 let result = io.pop();
 
                 trace!("Input: result={result:?}; output={output}");
@@ -207,8 +210,10 @@ impl OpCode {
             }
             LessThan => {
                 let params @ [a, b] = computer.get_parameters(parameter_modes);
-                let output =
-                    computer.read_address(computer.instruction_pointer + 3, &parameter_modes[2]);
+                let output = computer.read_address(
+                    computer.instruction_pointer + 3,
+                    &parameter_modes.nth_parameter_mode(2),
+                );
                 let result = a < b;
 
                 trace!("LessThan: params={params:?}; result={result}; output={output}");
@@ -219,8 +224,10 @@ impl OpCode {
             }
             Equals => {
                 let params @ [a, b] = computer.get_parameters(parameter_modes);
-                let output =
-                    computer.read_address(computer.instruction_pointer + 3, &parameter_modes[2]);
+                let output = computer.read_address(
+                    computer.instruction_pointer + 3,
+                    &parameter_modes.nth_parameter_mode(2),
+                );
                 let result = a == b;
 
                 trace!("Equals: params={params:?}; result={result}; output={output}");
@@ -232,12 +239,7 @@ impl OpCode {
             AdjustRelativeBase => {
                 let params @ [base_offset] = computer.get_parameters(parameter_modes);
 
-                computer.relative_base = match base_offset.signum() {
-                    -1 => computer
-                        .relative_base
-                        .sub(base_offset.unsigned_abs() as usize),
-                    _ => computer.relative_base.add(base_offset as usize),
-                };
+                computer.relative_base += base_offset as isize;
 
                 trace!(
                     "AdjustRelativeBase: params={params:?}; result={}",
@@ -261,35 +263,51 @@ pub enum ParameterMode {
 #[derive(Debug)]
 struct Instruction {
     op_code: OpCode,
-    parameter_modes: Vec<ParameterMode>,
+    parameter_modes: i64,
 }
 
 trait Digits {
-    fn reversed_digits(&self) -> Vec<u8>;
+    fn nth_parameter_mode(&self, n: usize) -> ParameterMode;
 }
 
 impl Digits for i64 {
-    fn reversed_digits(&self) -> Vec<u8> {
-        if self == &0 {
-            vec![0]
-        } else {
-            let mut copy = self.abs();
-
-            let mut result = vec![];
-
-            while copy != 0 {
-                result.push((copy % 10) as u8);
-                copy /= 10;
-            }
-
-            result
+    fn nth_parameter_mode(&self, n: usize) -> ParameterMode {
+        const TENTH_POWERS: [i64; 19] = [
+            1,
+            10,
+            100,
+            1_000,
+            10_000,
+            100_000,
+            1_000_000,
+            10_000_000,
+            100_000_000,
+            1_000_000_000,
+            10_000_000_000,
+            100_000_000_000,
+            1_000_000_000_000,
+            10_000_000_000_000,
+            100_000_000_000_000,
+            1_000_000_000_000_000,
+            10_000_000_000_000_000,
+            100_000_000_000_000_000,
+            1_000_000_000_000_000_000,
+        ];
+        debug_assert!(n < 20);
+        match (self / TENTH_POWERS[n]) % 10 {
+            0 => ParameterMode::Position,
+            1 => ParameterMode::Immediate,
+            2 => ParameterMode::Relative,
+            x => panic!("Unknown parameter mode {x}"),
         }
     }
 }
 
 impl Instruction {
     fn read(n: i64) -> Self {
-        let op_code = match n % 100 {
+        let (op_code, parameter_modes) = (n % 100, n / 100);
+
+        let op_code = match op_code {
             1 => OpCode::Addition,
             2 => OpCode::Multiplication,
             3 => OpCode::Input,
@@ -303,27 +321,15 @@ impl Instruction {
             invalid => panic!("Invalid opcode {invalid} (instruction: {n}"),
         };
 
-        let mut parameter_modes: Vec<_> = (n / 100)
-            .reversed_digits()
-            .into_iter()
-            .map(|digit| match digit {
-                0 => ParameterMode::Position,
-                1 => ParameterMode::Immediate,
-                2 => ParameterMode::Relative,
-                _ => panic!("Unknown parameter mode {digit} (instruction: {n})"),
-            })
-            .collect();
-
-        parameter_modes.resize_with(op_code.memory_used(), || ParameterMode::Position);
-
         Self {
             op_code,
             parameter_modes,
         }
     }
 
+    #[inline]
     fn evaluate<IO: InputOutput>(&self, computer: &mut Computer, io: &mut IO) -> Option<OpCode> {
-        let jump = self.op_code.evaluate(computer, &self.parameter_modes, io);
+        let jump = self.op_code.evaluate(computer, self.parameter_modes, io);
 
         if let Ok(jump_address) = jump {
             computer.instruction_pointer = jump_address;
@@ -359,6 +365,7 @@ impl Computer {
         }
     }
 
+    #[inline]
     pub fn step<IO: InputOutput>(&mut self, io: &mut IO) -> Option<OpCode> {
         let instruction = Instruction::read(self.memory[self.instruction_pointer]);
 
@@ -372,10 +379,7 @@ impl Computer {
             ParameterMode::Position => self.read(value as usize, &ParameterMode::Immediate),
             ParameterMode::Immediate => value,
             ParameterMode::Relative => {
-                let address = match value.signum() {
-                    -1 => self.relative_base.sub(value.unsigned_abs() as usize),
-                    _ => self.relative_base.add(value as usize),
-                };
+                let address = (value as isize + self.relative_base) as usize;
                 self.read(address, &ParameterMode::Immediate)
             }
         }
@@ -394,21 +398,24 @@ impl Computer {
     }
 
     fn read_address(&self, address: usize, parameter_mode: &ParameterMode) -> usize {
-        self.read(address, &ParameterMode::Immediate) as usize
+        (self.read(address, &ParameterMode::Immediate) as isize
             + match parameter_mode {
                 ParameterMode::Relative => self.relative_base,
                 _ => 0,
-            }
+            }) as usize
     }
 
     pub fn diagnostic_code<IO: InputOutput>(&self, io: &IO) -> i64 {
         io.output_iter().find(|n| **n != 0).copied().unwrap_or(0)
     }
 
-    fn get_parameters<const N: usize>(&self, parameter_modes: &[ParameterMode]) -> [i64; N] {
+    fn get_parameters<const N: usize>(&self, parameter_modes: i64) -> [i64; N] {
         let mut result = [0i64; N];
-        for n in 0..N {
-            result[n] = self.read(self.instruction_pointer + n + 1, &parameter_modes[n]);
+        for (n, param) in result.iter_mut().enumerate() {
+            *param = self.read(
+                self.instruction_pointer + n + 1,
+                &parameter_modes.nth_parameter_mode(n),
+            );
         }
 
         result
@@ -556,7 +563,7 @@ mod tests {
 
         computer.run(&mut io);
 
-        assert_eq!(io[0].reversed_digits().len(), 16);
+        assert_eq!(io[0], 1219070632396864);
     }
 
     #[test]
@@ -568,12 +575,5 @@ mod tests {
         computer.run(&mut io);
 
         assert_eq!(io[0], 1125899906842624);
-    }
-
-    #[test]
-    fn test_reversed_digits() {
-        assert_eq!(25.reversed_digits(), [5, 2]);
-        assert_eq!(1234.reversed_digits(), [4, 3, 2, 1]);
-        assert_eq!((-1234i64).reversed_digits(), [4, 3, 2, 1]);
     }
 }
