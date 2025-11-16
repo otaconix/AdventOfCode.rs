@@ -254,7 +254,6 @@ dependencies = [
  "aoc-timing",
  "env_logger",
  "intcode",
- "itertools 0.14.0",
 ]
 
 [[package]]
