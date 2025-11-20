@@ -3,9 +3,9 @@ use directories::ProjectDirs;
 use dotenvy::dotenv;
 use reqwest::blocking::ClientBuilder;
 use reqwest::header::COOKIE;
-use std::fs::{create_dir_all, write, File};
+use std::fs::{File, create_dir_all, write};
 use std::os::unix::process::CommandExt;
-use std::process::{exit, Command, Stdio};
+use std::process::{Command, Stdio, exit};
 
 #[derive(Parser, Debug)]
 struct Opt {
