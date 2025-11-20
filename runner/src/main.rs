@@ -4,6 +4,9 @@ use dotenvy::dotenv;
 use reqwest::blocking::ClientBuilder;
 use reqwest::header::COOKIE;
 use std::fs::{File, create_dir_all, write};
+use std::io;
+use std::io::Read;
+use std::io::Write;
 use std::os::unix::process::CommandExt;
 use std::process::{Command, Stdio, exit};
 
@@ -11,7 +14,8 @@ use std::process::{Command, Stdio, exit};
 struct Opt {
     year: u16,
     day: u8,
-    command: String,
+    command: Option<String>,
+    #[arg(requires = "command")]
     args: Vec<String>,
     #[arg(long = "contact-info", env = "AOC_CONTACT_INFO")]
     contact_info: String,
@@ -22,15 +26,27 @@ struct Opt {
 fn main() {
     dotenv().ok();
     let opt = Opt::parse();
-    let input_file = get_input_file(&opt).unwrap();
+    let mut input_file = get_input_file(&opt).unwrap();
 
-    let exec_error = Command::new(opt.command)
-        .args(opt.args)
-        .stdin(Stdio::from(input_file))
-        .exec();
+    if let Some(command) = opt.command {
+        let exec_error = Command::new(command)
+            .args(opt.args)
+            .stdin(Stdio::from(input_file))
+            .exec();
 
-    println!("Error executing solution: {exec_error}");
-    exit(1);
+        println!("Error executing solution: {exec_error}");
+
+        exit(1);
+    } else {
+        let mut file_buffer = [0; 8096];
+        while let Ok(bytes_read) = input_file.read(&mut file_buffer)
+            && bytes_read > 0
+        {
+            io::stdout()
+                .write_all(&file_buffer[0..bytes_read])
+                .expect("I/O error");
+        }
+    }
 }
 
 fn get_input_file(opt: &Opt) -> Result<File, String> {
