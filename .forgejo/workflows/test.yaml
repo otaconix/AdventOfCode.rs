@@ -6,7 +6,7 @@ jobs:
   test:
     runs-on: docker
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Setup rust toolchain
         uses: https://github.com/dtolnay/rust-toolchain@stable
       - name: Test
