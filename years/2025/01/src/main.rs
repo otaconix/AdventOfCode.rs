@@ -29,6 +29,9 @@ impl Turn {
     }
 }
 
+const DIAL_POSITIONS: i32 = 100;
+const DIAL_START_POSITION: i32 = 50;
+
 fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     input
         .map(|line| {
@@ -49,9 +52,9 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
 fn part_1(input: &Input) -> Output1 {
     input
         .iter()
-        .scan(50, |current_position, turn| {
+        .scan(DIAL_START_POSITION, |current_position, turn| {
             *current_position += turn.to_number_to_add();
-            *current_position = current_position.rem_euclid(100);
+            *current_position = current_position.rem_euclid(DIAL_POSITIONS);
             Some(*current_position)
         })
         .filter(|&position| position == 0)
@@ -62,9 +65,9 @@ fn part_2(input: &Input) -> Output2 {
     input
         .iter()
         .flat_map(|turn| turn.to_clicks())
-        .scan(50, |current_position, click| {
+        .scan(DIAL_START_POSITION, |current_position, click| {
             *current_position += click;
-            *current_position = current_position.rem_euclid(100);
+            *current_position = current_position.rem_euclid(DIAL_POSITIONS);
             Some(*current_position)
         })
         .filter(|&position| position == 0)
