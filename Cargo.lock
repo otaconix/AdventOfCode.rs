@@ -204,15 +204,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "aoc-2019-10"
-version = "0.1.0"
-dependencies = [
- "aoc-timing",
- "env_logger",
- "grid",
-]
-
-[[package]]
 name = "aoc-2019-11"
 version = "0.1.0"
 dependencies = [

@@ -97,8 +97,6 @@ fn part_1(input: &Input) -> Output1 {
 
                 next_movement = (direction, movement);
 
-                println!("Trying to move to {movement:?}");
-
                 input.push_back(direction);
 
                 continue;
@@ -110,7 +108,6 @@ fn part_1(input: &Input) -> Output1 {
         if let Some(status) = output.pop_front() {
             match status {
                 0 => {
-                    println!("Hit wall at {next_movement:?}, staying at current position");
                     walls.insert(next_movement.1);
                 }
                 1 => {
@@ -122,8 +119,6 @@ fn part_1(input: &Input) -> Output1 {
                     (current_x, current_y) = next_movement.1;
 
                     not_walls.insert(next_movement.1);
-
-                    println!("Current position: {current_x},{current_y}");
                 }
                 2 => {
                     oxygen_system = next_movement.1;
@@ -134,9 +129,6 @@ fn part_1(input: &Input) -> Output1 {
             }
         }
     }
-
-    println!("Computer exited. Oxygen system is at {oxygen_system:?}.");
-    println!("Found {} walls", walls.len());
 
     (
         dijkstra(
