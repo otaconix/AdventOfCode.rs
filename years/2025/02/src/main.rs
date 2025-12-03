@@ -46,6 +46,21 @@ fn part_1(input: &Input) -> Output1 {
         .sum()
 }
 
+fn is_repeating(n: &str) -> bool {
+    let s = n.as_bytes();
+
+    (1..=n.len() / 2).any(|digits| {
+        if n.len().is_multiple_of(digits) {
+            (0..n.len())
+                .step_by(digits)
+                .map(|x| &s[x..x + digits])
+                .all_equal()
+        } else {
+            false
+        }
+    })
+}
+
 /// This is a little more difficult. We can do it the easy way and simply loop over all numbers in
 /// range, which will take a while.
 fn part_2(input: &Input) -> Output2 {
@@ -53,20 +68,9 @@ fn part_2(input: &Input) -> Output2 {
         .iter()
         .flat_map(|range| {
             range.clone().filter(|n| {
-                let count = digit_count(n) as usize;
                 let r = n.to_string();
-                let s = r.as_bytes();
 
-                (1..=count / 2).any(|digits| {
-                    if count.is_multiple_of(digits) {
-                        (0..count)
-                            .step_by(digits)
-                            .map(|x| &s[x..x + digits])
-                            .all_equal()
-                    } else {
-                        false
-                    }
-                })
+                is_repeating(&r)
             })
         })
         .sum()
