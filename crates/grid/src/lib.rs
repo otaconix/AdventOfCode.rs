@@ -220,12 +220,51 @@ impl<T> Grid<T> {
 
     #[must_use]
     pub fn get_neighbors(&self, column: usize, row: usize) -> Vec<(usize, usize)> {
+        self.get_neighbors_iter(column, row).collect()
+    }
+
+    #[must_use]
+    pub fn get_neighbors_incl_diagonals(&self, column: usize, row: usize) -> Vec<(usize, usize)> {
+        self.get_neighbors_incl_diagonals_iter(column, row)
+            .collect()
+    }
+
+    pub fn get_neighbors_iter(
+        &self,
+        column: usize,
+        row: usize,
+    ) -> impl Iterator<Item = (usize, usize)> {
         let left = column.checked_sub(1).map(|x| (x, row));
         let right = Some((column + 1, row)).filter(|(x, _)| x < &self.width());
         let up = row.checked_sub(1).map(|y| (column, y));
         let down = Some((column, row + 1)).filter(|(_, y)| y < &self.height());
 
-        [left, right, up, down].into_iter().flatten().collect()
+        [left, right, up, down].into_iter().flatten()
+    }
+
+    pub fn get_neighbors_incl_diagonals_iter(
+        &self,
+        column: usize,
+        row: usize,
+    ) -> impl Iterator<Item = (usize, usize)> {
+        std::iter::chain(self.get_neighbors_iter(column, row), {
+            let up_left = column
+                .checked_sub(1)
+                .and_then(|x| row.checked_sub(1).map(|y| (x, y)));
+            let up_right = Some(column + 1)
+                .filter(|x| x < &self.width())
+                .and_then(|x| row.checked_sub(1).map(|y| (x, y)));
+            let down_left = column
+                .checked_sub(1)
+                .and_then(|x| Some(row + 1).filter(|y| y < &self.height()).map(|y| (x, y)));
+            let down_right = Some(column + 1)
+                .filter(|x| x < &self.width)
+                .and_then(|x| Some(row + 1).filter(|y| y < &self.height()).map(|y| (x, y)));
+
+            [up_left, up_right, down_left, down_right]
+                .into_iter()
+                .flatten()
+        })
     }
 
     #[must_use]

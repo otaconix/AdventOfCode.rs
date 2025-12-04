@@ -912,6 +912,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "aoc-2025-04"
+version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "env_logger",
+ "grid",
+ "rapidhash",
+]
+
+[[package]]
 name = "aoc-macros"
 version = "0.1.0"
 dependencies = [
