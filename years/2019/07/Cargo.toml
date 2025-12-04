@@ -6,8 +6,8 @@ edition = "2024"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-aoc-timing = { version = "0.1.0", path = "../../../crates/timing" }
-env_logger = "0.11.0"
-intcode = { version = "0.1.0", path = "../../../crates/intcode" }
+aoc-timing = { workspace = true }
+env_logger = { workspace = true }
+intcode = { workspace = true }
 itertools.workspace = true
 log.workspace = true

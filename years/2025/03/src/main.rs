@@ -4,7 +4,7 @@ use std::io;
 use aoc_timing::trace::log_run;
 use itertools::Itertools;
 
-type Input = Vec<Vec<u64>>;
+type Input = Vec<Vec<(usize, u64)>>;
 type Output1 = u64;
 type Output2 = Output1;
 
@@ -12,79 +12,63 @@ fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
     input
         .map(|line| {
             let line = line.as_ref();
-            line.chars()
+            let mut result = line
+                .chars()
                 .map(|c| c.to_digit(10).unwrap() as u64)
-                .collect()
+                .enumerate()
+                .collect_vec();
+            result.sort_unstable_by_key(|(index, joltage)| (Reverse(*joltage), *index));
+            result
         })
         .collect()
 }
 
-fn sort_batteries_by_index(bank: &[u64]) -> Vec<(usize, u64)> {
-    bank.iter()
-        .copied()
-        .enumerate()
-        .sorted_by_key(|(index, joltage)| (Reverse(*joltage), *index))
-        .collect_vec()
+/// Sort the bank of batteries by joltage (descending), then by index within the bank (ascending).
+fn sort_battery_bank(bank: &[u64]) -> Vec<(usize, u64)> {
+    let mut result = bank.iter().copied().enumerate().collect_vec();
+
+    result.sort_unstable_by_key(|(index, joltage)| (Reverse(*joltage), *index));
+
+    result
 }
 
 fn part_1(input: &Input) -> Output1 {
-    input
-        .iter()
-        .map(|bank| {
-            let sorted_batteries = sort_batteries_by_index(bank);
-            let first = sorted_batteries
-                .iter()
-                .find(|(index, _)| *index != bank.len() - 1)
-                .unwrap();
-            let second = sorted_batteries
-                .iter()
-                .find_map(|(index, joltage)| {
-                    if *index > first.0 {
-                        Some(joltage)
-                    } else {
-                        None
-                    }
-                })
-                .unwrap();
-            let first = first.1;
-
-            first * 10 + second
-        })
-        .sum()
+    input.iter().map(|bank| most_joltage(bank, 2)).sum()
 }
 
-fn most_joltage(bank: &[u64], desired_length: usize) -> u64 {
-    let sorted_bank = sort_batteries_by_index(bank);
-
+fn most_joltage(sorted_bank: &[(usize, u64)], desired_length: usize) -> u64 {
     fn inner(
         sorted_bank: &[(usize, u64)],
         desired_length: usize,
         number_thus_far: u64,
         digits: usize,
-        current_index: usize,
+        current_index: Option<usize>,
     ) -> Option<u64> {
         if digits == desired_length {
             Some(number_thus_far)
-        } else if sorted_bank.len() - current_index < desired_length - digits {
+        } else if current_index
+            .map(|i| i + desired_length - digits > sorted_bank.len())
+            .unwrap_or(false)
+        {
             None
         } else {
             sorted_bank
                 .iter()
-                .filter(|(index, _)| digits == 0 || *index > current_index)
+                .filter(|(index, _)| current_index.map(|i| i < *index).unwrap_or(true))
                 .flat_map(|(index, joltage)| {
                     inner(
                         sorted_bank,
                         desired_length,
                         number_thus_far * 10 + joltage,
                         digits + 1,
-                        *index,
+                        Some(*index),
                     )
                 })
                 .next()
         }
     }
 
-    inner(&sorted_bank, desired_length, 0, 0, 0).unwrap()
+    inner(sorted_bank, desired_length, 0, 0, None).unwrap()
 }
 
 fn part_2(input: &Input) -> Output2 {
@@ -99,9 +83,11 @@ fn main() {
             parse(io::stdin().lines().map(|result| result.expect("I/O error")))
         });
 
+        // let part_1 = part_1(&input);
         let part_1 = log_run("Part 1", || part_1(&input));
         println!("Part 1: {part_1}");
 
+        // let part_2 = part_2(&input);
         let part_2 = log_run("Part 2", || part_2(&input));
         println!("Part 2: {part_2}");
     });
@@ -129,4 +115,3 @@ mod tests {
         assert_eq!(result, 3121910778619);
     }
 }
-
