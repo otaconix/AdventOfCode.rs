@@ -922,6 +922,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "aoc-2025-05"
+version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "env_logger",
+ "itertools 0.14.0",
+]
+
+[[package]]
 name = "aoc-macros"
 version = "0.1.0"
 dependencies = [
