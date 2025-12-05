@@ -30,6 +30,7 @@ string-interner = "0.19.0"
 syn = "2.0"
 intcode = { version = "0.1.0", path = "crates/intcode" }
 ratatui = "0.29.0"
+divan = "0.1.21"
 
 [workspace.dependencies.aoc-macros]
 version = "0.1.0"

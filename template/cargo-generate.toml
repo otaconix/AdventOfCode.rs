@@ -1,3 +1,6 @@
+[template]
+ignore = ["crate.liquid"]
+
 [placeholders.year]
 type = "string"
 prompt = "Year? (defaults to the current year)"
