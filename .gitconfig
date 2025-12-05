@@ -1,0 +1,4 @@
+[filter "sops"]
+  clean = sops encrypt --filename-override %f
+  smudge = sops decrypt
+  required
