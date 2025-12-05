@@ -9,3 +9,18 @@ edition = "2024"
 aoc-timing = { workspace = true }
 env_logger = { workspace = true }
 itertools.workspace = true
+
+[dev-dependencies]
+divan.workspace = true
+
+[[bin]]
+name = "aoc-2025-02"
+path = "src/main.rs"
+
+[lib]
+name = "aoc_2025_02"
+path = "src/lib.rs"
+
+[[bench]]
+name = "solutions"
+harness = false

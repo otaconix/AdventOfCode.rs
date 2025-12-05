@@ -898,6 +898,7 @@ name = "aoc-2025-02"
 version = "0.1.0"
 dependencies = [
  "aoc-timing",
+ "divan",
  "env_logger",
  "itertools 0.14.0",
 ]
