@@ -10,14 +10,14 @@ fn main() {
 const INPUT: &str = include_str!("../src/test-input");
 
 #[divan::bench(sample_count = 10_000)]
-fn parse(bencher: Bencher) {
+fn {{ crate }}_parse(bencher: Bencher) {
     bencher.bench_local(move || {
         {{ crate }}::parse(INPUT.lines());
     });
 }
 
 #[divan::bench(sample_count = 10_000)]
-fn part_1(bencher: Bencher) {
+fn {{ crate }}_part_1(bencher: Bencher) {
     let input = {{ crate }}::parse(INPUT.lines());
 
     bencher.bench_local(move || {
@@ -26,7 +26,7 @@ fn part_1(bencher: Bencher) {
 }
 
 #[divan::bench(sample_count = 10_000)]
-fn part_2(bencher: Bencher) {
+fn {{ crate }}_part_2(bencher: Bencher) {
     let input = {{ crate }}::parse(INPUT.lines());
 
     bencher.bench_local(move || {
