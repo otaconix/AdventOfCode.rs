@@ -22,7 +22,7 @@ fn aoc_2025_01_part_1(bencher: Bencher) {
     });
 }
 
-#[divan::bench(sample_count = 1000)]
+#[divan::bench(sample_count = 10_000)]
 fn aoc_2025_01_part_2(bencher: Bencher) {
     let input = aoc_2025_01::parse(INPUT.lines());
 

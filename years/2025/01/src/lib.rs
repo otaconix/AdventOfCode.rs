@@ -14,15 +14,6 @@ impl Turn {
             Turn::Right(n) => *n as i32,
         }
     }
-
-    fn to_clicks(&self) -> impl Iterator<Item = i32> {
-        let (click, n) = match self {
-            Turn::Left(n) => (-1, n),
-            Turn::Right(n) => (1, n),
-        };
-
-        (0..(*n as i32).abs()).map(move |_| click)
-    }
 }
 
 const DIAL_POSITIONS: i32 = 100;
@@ -60,14 +51,16 @@ pub fn part_1(input: &Input) -> Output1 {
 pub fn part_2(input: &Input) -> Output2 {
     input
         .iter()
-        .flat_map(|turn| turn.to_clicks())
-        .scan(DIAL_START_POSITION, |current_position, click| {
-            *current_position += click;
-            *current_position = current_position.rem_euclid(DIAL_POSITIONS);
-            Some(*current_position)
-        })
-        .filter(|&position| position == 0)
-        .count()
+        .fold(
+            (DIAL_START_POSITION, 0usize),
+            |(mut current_position, zeroes), turn| {
+                current_position += turn.to_number_to_add();
+                let zeroes_passed = (current_position / 100).unsigned_abs() as usize;
+                current_position = current_position.rem_euclid(DIAL_POSITIONS);
+                (current_position, zeroes + zeroes_passed)
+            },
+        )
+        .1
 }
 
 #[cfg(test)]
