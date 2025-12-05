@@ -890,6 +890,7 @@ name = "aoc-2025-01"
 version = "0.1.0"
 dependencies = [
  "aoc-timing",
+ "divan",
  "env_logger",
 ]
 
