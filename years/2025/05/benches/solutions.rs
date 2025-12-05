@@ -4,7 +4,7 @@ fn main() {
     divan::main();
 }
 
-const INPUT: &str = include_str!("../src/test-input");
+const INPUT: &str = include_str!("input");
 
 #[divan::bench(sample_count = 10_000)]
 fn parse(bencher: Bencher) {
