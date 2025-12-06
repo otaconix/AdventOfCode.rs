@@ -54,9 +54,20 @@ pub fn part_2(input: &Input) -> Output2 {
         .fold(
             (DIAL_START_POSITION, 0usize),
             |(mut current_position, zeroes), turn| {
-                current_position += turn.to_number_to_add();
-                let zeroes_passed = (current_position / 100).unsigned_abs() as usize;
-                current_position = current_position.rem_euclid(DIAL_POSITIONS);
+                let new_position = current_position + turn.to_number_to_add();
+                let zeroes_passed = if new_position == 0 {
+                    1
+                } else {
+                    (new_position / 100).unsigned_abs() as usize
+                        + if current_position != 0
+                            && new_position.signum() != current_position.signum()
+                        {
+                            1
+                        } else {
+                            0
+                        }
+                };
+                current_position = new_position.rem_euclid(DIAL_POSITIONS);
                 (current_position, zeroes + zeroes_passed)
             },
         )
