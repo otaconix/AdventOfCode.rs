@@ -1,0 +1,26 @@
+[package]
+name = "aoc-2025-06"
+version = "0.1.0"
+edition = "2024"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+aoc-timing = { workspace = true }
+env_logger = { workspace = true }
+grid.workspace = true
+
+[[bin]]
+name = "aoc-2025-06"
+path = "src/main.rs"
+
+[lib]
+name = "aoc_2025_06"
+path = "src/lib.rs"
+
+[[bench]]
+name = "solutions"
+harness = false
+
+[dev-dependencies]
+divan = { workspace = true }
