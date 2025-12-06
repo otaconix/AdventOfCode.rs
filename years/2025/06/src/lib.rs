@@ -48,7 +48,11 @@ pub fn part_2((operators, operands): &Input) -> Output2 {
                 .map(|column| {
                     operands
                         .iter()
-                        .flat_map(|o| o.chars().nth(column).and_then(|d| d.to_digit(10)))
+                        .flat_map(|o| {
+                            o.as_bytes()
+                                .get(column)
+                                .and_then(|d| (*d as char).to_digit(10))
+                        })
                         .fold(0u64, |o, n| o * 10 + u64::from(n))
                 })
                 .take_while(|n| n != &0);
