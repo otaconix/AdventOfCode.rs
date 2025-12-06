@@ -1,62 +1,44 @@
-use grid::Grid;
-
-#[derive(PartialEq, PartialOrd)]
-pub enum Cell {
-    Multiply,
-    Add,
-    Number(u64),
-}
-
-type Input = Vec<String>;
+type Input = (String, Vec<String>);
 type Output1 = u64;
 type Output2 = Output1;
 
 pub fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
-    input.map(|line| line.as_ref().to_string()).collect()
+    let mut lines = input
+        .map(|line| line.as_ref().to_string())
+        .collect::<Vec<_>>();
+
+    let operators = lines.pop().unwrap();
+
+    (operators, lines)
 }
 
-trait ColCalc {
-    fn column_calc(&self, column: usize) -> Output1;
-}
-
-impl ColCalc for Grid<Cell> {
-    fn column_calc(&self, column: usize) -> Output1 {
-        let mut column_cells = self.column(column).rev();
-        let operation = column_cells.next().unwrap();
-        let operands = column_cells.map(|c| match c {
-            Cell::Number(n) => n,
-            _ => panic!("Operation found in unexpected row of column {column}"),
-        });
-        match operation {
-            Cell::Multiply => operands.product(),
-            Cell::Add => operands.sum(),
-            _ => panic!("Number found in unexpected row of column {column}"),
-        }
-    }
-}
-
-pub fn part_1(input: &Input) -> Output1 {
-    let grid: Grid<Cell> = input
+pub fn part_1((operators, operands): &Input) -> Output1 {
+    let operands = operands
         .iter()
-        .map(|line| {
-            line.split_whitespace()
-                .map(|n| match n {
-                    "*" => Cell::Multiply,
-                    "+" => Cell::Add,
-                    n => Cell::Number(n.parse().unwrap()),
-                })
-                .collect()
+        .map(|operands| {
+            operands
+                .split_whitespace()
+                .map(|n| n.parse::<u64>().unwrap())
+                .collect::<Vec<_>>()
         })
-        .collect();
-    (0..grid.width())
-        .map(|column| grid.column_calc(column))
+        .collect::<Vec<_>>();
+
+    operators
+        .split_whitespace()
+        .enumerate()
+        .map(|(index, operator)| {
+            let operands = operands.iter().map(|operands| operands[index]);
+
+            match operator {
+                "*" => operands.product::<u64>(),
+                "+" => operands.sum::<u64>(),
+                _ => panic!("Invalid operator {operator}"),
+            }
+        })
         .sum()
 }
 
-pub fn part_2(input: &Input) -> Output2 {
-    let operators = &input[input.len() - 1];
-    let operands = &input[..input.len() - 1];
-
+pub fn part_2((operators, operands): &Input) -> Output2 {
     operators
         .chars()
         .enumerate()

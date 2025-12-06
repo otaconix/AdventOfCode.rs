@@ -8,7 +8,6 @@ edition = "2024"
 [dependencies]
 aoc-timing = { workspace = true }
 env_logger = { workspace = true }
-grid.workspace = true
 
 [[bin]]
 name = "aoc-2025-06"
