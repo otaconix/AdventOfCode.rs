@@ -935,6 +935,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "aoc-2025-06"
+version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "divan",
+ "env_logger",
+]
+
+[[package]]
+name = "aoc-2025-07"
+version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "divan",
+ "env_logger",
+ "grid",
+ "rapidhash",
+]
+
+[[package]]
 name = "aoc-macros"
 version = "0.1.0"
 dependencies = [
