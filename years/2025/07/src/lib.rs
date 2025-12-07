@@ -1,7 +1,8 @@
+use std::collections::BTreeSet;
+
 use grid::Grid;
 use rapidhash::HashMapExt;
 use rapidhash::RapidHashMap;
-use rapidhash::RapidHashSet;
 
 #[derive(PartialEq)]
 pub enum Cell {
@@ -39,22 +40,22 @@ pub fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
 
 pub fn part_1((start, grid): &Input) -> Output1 {
     let mut splits = 0;
-    let mut beams = RapidHashSet::default();
-    beams.insert(*start);
+    let mut beams = BTreeSet::from([*start]);
 
     for row in 0..grid.height() {
-        beams = beams
-            .into_iter()
-            .flat_map(|beam| {
-                let mut new_beams = vec![beam];
-                if grid.get(beam, row).unwrap() == &Cell::Splitter {
-                    splits += 1;
-                    new_beams = vec![beam - 1, beam + 1];
-                }
+        let to_split = beams
+            .iter()
+            .filter(|beam| grid.get(**beam, row).unwrap() == &Cell::Splitter)
+            .copied()
+            .collect::<Vec<_>>();
 
-                new_beams.into_iter()
-            })
-            .collect::<RapidHashSet<_>>()
+        splits += to_split.len();
+
+        for split in to_split {
+            beams.remove(&split);
+            beams.insert(split - 1);
+            beams.insert(split + 1);
+        }
     }
 
     splits
