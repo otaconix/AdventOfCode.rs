@@ -4,7 +4,7 @@ fn main() {
     divan::main();
 }
 
-const INPUT: &str = include_str!("../src/test-input");
+const INPUT: &str = include_str!("input");
 
 #[divan::bench(sample_count = 10_000)]
 fn aoc_2025_08_parse(bencher: Bencher) {
@@ -13,7 +13,7 @@ fn aoc_2025_08_parse(bencher: Bencher) {
     });
 }
 
-#[divan::bench(sample_count = 10_000)]
+#[divan::bench(sample_count = 100)]
 fn aoc_2025_08_part_1(bencher: Bencher) {
     let input = aoc_2025_08::parse(INPUT.lines());
 
@@ -22,7 +22,7 @@ fn aoc_2025_08_part_1(bencher: Bencher) {
     });
 }
 
-#[divan::bench(sample_count = 10_000)]
+#[divan::bench(sample_count = 100)]
 fn aoc_2025_08_part_2(bencher: Bencher) {
     let input = aoc_2025_08::parse(INPUT.lines());
 
@@ -30,4 +30,3 @@ fn aoc_2025_08_part_2(bencher: Bencher) {
         aoc_2025_08::part_2(&input);
     });
 }
-
