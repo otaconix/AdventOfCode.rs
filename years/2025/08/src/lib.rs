@@ -25,7 +25,7 @@ pub fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
         .combinations(2)
         .map(|pair| (*pair[0], *pair[1]))
         .collect_vec();
-    junction_box_pairs.sort_unstable_by_key(|(a, b)| squared_euclidean_distance(*a, *b));
+    junction_box_pairs.sort_by_cached_key(|(a, b)| squared_euclidean_distance(*a, *b));
 
     Input {
         junction_box_count: junction_boxes.len(),
