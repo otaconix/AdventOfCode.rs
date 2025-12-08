@@ -3,8 +3,8 @@ use rapidhash::RapidHashSet;
 
 type JunctionBox = (i64, i64, i64);
 pub struct Input {
-    junction_box_count: usize,
-    junction_box_pairs: Vec<(JunctionBox, JunctionBox)>,
+    junction_boxes: Vec<JunctionBox>,
+    junction_box_pairs: Vec<(usize, usize)>,
 }
 type Output1 = usize;
 type Output2 = Output1;
@@ -20,15 +20,15 @@ pub fn parse<S: AsRef<str>, I: Iterator<Item = S>>(input: I) -> Input {
         })
         .collect_vec();
 
-    let mut junction_box_pairs = junction_boxes
-        .iter()
-        .combinations(2)
-        .map(|pair| (*pair[0], *pair[1]))
+    let junction_box_pairs = (0..junction_boxes.len())
+        .tuple_combinations()
+        .sorted_by_cached_key(|(a, b)| {
+            squared_euclidean_distance(junction_boxes[*a], junction_boxes[*b])
+        })
         .collect_vec();
-    junction_box_pairs.sort_by_cached_key(|(a, b)| squared_euclidean_distance(*a, *b));
 
     Input {
-        junction_box_count: junction_boxes.len(),
+        junction_boxes,
         junction_box_pairs,
     }
 }
@@ -45,12 +45,8 @@ fn squared_euclidean_distance(a: JunctionBox, b: JunctionBox) -> i64 {
     x + y + z
 }
 
-#[inline]
-fn merge_groups(
-    group_a: &mut RapidHashSet<JunctionBox>,
-    group_b: &mut RapidHashSet<JunctionBox>,
-) -> bool {
-    if group_b.iter().any(|b| group_a.contains(b)) {
+fn merge_groups(group_a: &mut RapidHashSet<usize>, group_b: &mut RapidHashSet<usize>) -> bool {
+    if group_b.intersection(group_a).next().is_some() {
         group_a.reserve(group_b.len());
         group_a.extend(group_b.drain());
         true
@@ -59,18 +55,17 @@ fn merge_groups(
     }
 }
 
-fn merge_groups_into(into_index: usize, groups: &mut Vec<RapidHashSet<JunctionBox>>) {
-    if (0..groups.len()).fold(false, |any_merged, current_index| {
-        if current_index != into_index {
+fn merge_groups_into(into_index: usize, groups: &mut Vec<RapidHashSet<usize>>) {
+    if (0..into_index).chain(into_index + 1..groups.len()).fold(
+        false,
+        |any_merged, current_index| {
             let [into, from] = groups
                 .get_disjoint_mut([into_index, current_index])
                 .unwrap();
 
             merge_groups(into, from) || any_merged
-        } else {
-            any_merged
-        }
-    }) {
+        },
+    ) {
         groups.retain(|group| !group.is_empty());
     }
 }
@@ -102,7 +97,7 @@ pub fn part_1(input: &Input) -> Output1 {
 }
 
 pub fn part_2(input: &Input) -> Output2 {
-    let mut groups: Vec<RapidHashSet<JunctionBox>> = vec![];
+    let mut groups: Vec<RapidHashSet<usize>> = vec![];
     let mut pairs = input.junction_box_pairs.iter().rev().copied().collect_vec();
 
     while let Some((a, b)) = pairs.pop() {
@@ -122,8 +117,10 @@ pub fn part_2(input: &Input) -> Output2 {
             merge_groups_into(groups.len() - 1, &mut groups);
         }
 
-        if groups.len() == 1 && groups[0].len() == input.junction_box_count {
-            return (a.0 * b.0).try_into().unwrap();
+        if groups.len() == 1 && groups[0].len() == input.junction_boxes.len() {
+            return (input.junction_boxes[a].0 * input.junction_boxes[b].0)
+                .try_into()
+                .unwrap();
         }
     }
 
