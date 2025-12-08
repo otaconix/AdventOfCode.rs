@@ -45,6 +45,7 @@ fn squared_euclidean_distance(a: JunctionBox, b: JunctionBox) -> i64 {
     x + y + z
 }
 
+#[inline]
 fn merge_groups(
     group_a: &mut RapidHashSet<JunctionBox>,
     group_b: &mut RapidHashSet<JunctionBox>,
@@ -60,14 +61,14 @@ fn merge_groups(
 
 fn merge_groups_into(into_index: usize, groups: &mut Vec<RapidHashSet<JunctionBox>>) {
     if (0..groups.len()).fold(false, |any_merged, current_index| {
-        if current_index == into_index {
-            any_merged
-        } else {
+        if current_index != into_index {
             let [into, from] = groups
                 .get_disjoint_mut([into_index, current_index])
                 .unwrap();
 
             merge_groups(into, from) || any_merged
+        } else {
+            any_merged
         }
     }) {
         groups.retain(|group| !group.is_empty());
@@ -107,17 +108,18 @@ pub fn part_2(input: &Input) -> Output2 {
     while let Some((a, b)) = pairs.pop() {
         if let Some(existing_group) = groups
             .iter_mut()
-            .find(|group| group.contains(&a) || group.contains(&b))
+            .position(|group| group.contains(&a) || group.contains(&b))
         {
-            existing_group.insert(a);
-            existing_group.insert(b);
+            groups[existing_group].insert(a);
+            groups[existing_group].insert(b);
 
-            merge_groups_into(groups.len() - 1, &mut groups);
+            merge_groups_into(existing_group, &mut groups);
         } else {
             let mut new_group = RapidHashSet::default();
             new_group.insert(a);
             new_group.insert(b);
             groups.push(new_group);
+            merge_groups_into(groups.len() - 1, &mut groups);
         }
 
         if groups.len() == 1 && groups[0].len() == input.junction_box_count {
