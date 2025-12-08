@@ -6,7 +6,7 @@ fn main() {
 
 const INPUT: &str = include_str!("input");
 
-#[divan::bench(sample_count = 10_000)]
+#[divan::bench(sample_count = 100)]
 fn aoc_2025_08_parse(bencher: Bencher) {
     bencher.bench_local(move || {
         aoc_2025_08::parse(INPUT.lines());
