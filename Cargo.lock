@@ -955,6 +955,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "aoc-2025-08"
+version = "0.1.0"
+dependencies = [
+ "aoc-timing",
+ "divan",
+ "env_logger",
+ "itertools 0.14.0",
+ "rapidhash",
+]
+
+[[package]]
 name = "aoc-macros"
 version = "0.1.0"
 dependencies = [
