@@ -36,32 +36,7 @@ fn merge_groups(
     }
 }
 
-fn part_1_parameterized(input: &Input, junctions_to_connect: usize) -> Output1 {
-    let mut groups = (0..input.len())
-        .flat_map(|index_a| {
-            (index_a + 1..input.len()).map(move |index_b| (input[index_a], input[index_b]))
-        })
-        .sorted_by_key(|(a, b)| euclidean_distance(*a, *b))
-        .take(junctions_to_connect)
-        .fold(vec![], |mut groups: Vec<RapidHashSet<_>>, (a, b)| {
-            if let Some(existing_group) = groups
-                .iter_mut()
-                .find(|group| group.contains(&a) || group.contains(&b))
-            {
-                existing_group.insert(a);
-                existing_group.insert(b);
-            } else {
-                let mut new_group = RapidHashSet::default();
-                new_group.insert(a);
-                new_group.insert(b);
-                groups.push(new_group);
-            }
-
-            groups
-        })
-        .into_iter()
-        .collect_vec();
-
+fn merge_all_groups(groups: &mut Vec<RapidHashSet<JunctionBox>>) {
     loop {
         let mut any_merged = false;
         let mut i = 0;
@@ -92,6 +67,35 @@ fn part_1_parameterized(input: &Input, junctions_to_connect: usize) -> Output1 {
             break;
         }
     }
+}
+
+fn part_1_parameterized(input: &Input, junctions_to_connect: usize) -> Output1 {
+    let mut groups = (0..input.len())
+        .flat_map(|index_a| {
+            (index_a + 1..input.len()).map(move |index_b| (input[index_a], input[index_b]))
+        })
+        .sorted_by_key(|(a, b)| euclidean_distance(*a, *b))
+        .take(junctions_to_connect)
+        .fold(vec![], |mut groups: Vec<RapidHashSet<_>>, (a, b)| {
+            if let Some(existing_group) = groups
+                .iter_mut()
+                .find(|group| group.contains(&a) || group.contains(&b))
+            {
+                existing_group.insert(a);
+                existing_group.insert(b);
+            } else {
+                let mut new_group = RapidHashSet::default();
+                new_group.insert(a);
+                new_group.insert(b);
+                groups.push(new_group);
+            }
+
+            groups
+        })
+        .into_iter()
+        .collect_vec();
+
+    merge_all_groups(&mut groups);
 
     groups
         .into_iter()
@@ -107,7 +111,30 @@ pub fn part_1(input: &Input) -> Output1 {
 }
 
 pub fn part_2(input: &Input) -> Output2 {
-    todo!()
+    let junction_box_count = input.len();
+
+    let mut groups = vec![];
+    let mut pairs = (0..input.len())
+        .flat_map(|index_a| {
+            (index_a + 1..input.len()).map(move |index_b| (input[index_a], input[index_b]))
+        })
+        .sorted_by_key(|(a, b)| euclidean_distance(*a, *b))
+        .rev()
+        .collect_vec();
+
+    loop {
+        let pair = pairs.pop().unwrap();
+
+        let mut new_group = RapidHashSet::default();
+        new_group.insert(pair.0);
+        new_group.insert(pair.1);
+        groups.push(new_group);
+        merge_all_groups(&mut groups);
+
+        if groups.len() == 1 && groups[0].len() == junction_box_count {
+            return (pair.0.0 * pair.1.0).try_into().unwrap();
+        }
+    }
 }
 
 #[cfg(test)]
@@ -129,6 +156,6 @@ mod tests {
         let input = parse(INPUT.lines());
         let result = part_2(&input);
 
-        assert_eq!(result, 0);
+        assert_eq!(result, 25272);
     }
 }
